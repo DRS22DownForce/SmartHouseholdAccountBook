@@ -1,5 +1,12 @@
+-- データベースの作成（もしなければ）
+CREATE DATABASE IF NOT EXISTS demo DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 -- データベースの選択
 USE demo;
+
+-- rootユーザーの権限設定
+ALTER USER 'root'@'%' IDENTIFIED BY 'rootpassword';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
 
 -- 家計簿テーブルの作成
 CREATE TABLE IF NOT EXISTS household_accounts (
@@ -9,7 +16,7 @@ CREATE TABLE IF NOT EXISTS household_accounts (
     amount INT NOT NULL,
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+)DEFAULT CHARSET=utf8mb4;;
 
 -- サンプルデータの挿入
 INSERT INTO household_accounts (date, category, amount, description) VALUES
