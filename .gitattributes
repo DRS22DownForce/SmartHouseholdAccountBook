@@ -1,0 +1,33 @@
+# テキストファイルの改行コードを自動的に変換
+* text=auto
+
+# 特定のファイルタイプの設定
+*.js text
+*.jsx text
+*.ts text
+*.tsx text
+*.json text
+*.md text
+*.css text
+*.scss text
+*.html text
+
+# バイナリファイルの設定
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.eot binary
+*.pdf binary
+
+# その他の設定
+.gitattributes text
+.gitignore text
+.editorconfig text
+
+# Java/Spring Boot specific
+/mvnw text eol=lf
+*.cmd text eol=crlf 
