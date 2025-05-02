@@ -10,11 +10,6 @@ SET character_set_client = utf8mb4;
 SET character_set_connection = utf8mb4;
 SET character_set_results = utf8mb4;
 
--- rootユーザーの権限設定
-ALTER USER 'root'@'%' IDENTIFIED BY 'rootpassword';
-GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
-FLUSH PRIVILEGES;
-
 -- 家計簿テーブルの作成
 CREATE TABLE IF NOT EXISTS household_accounts (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
