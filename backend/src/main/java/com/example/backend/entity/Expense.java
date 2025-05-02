@@ -7,70 +7,26 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Entity
-@Table(name = "household_accounts")  // テーブル名を修正
+@Entity // このアノテーションは、このクラスがJPAのエンティティであることを示します。
+@Table(name = "household_accounts") // テーブル名の指定
+@Data // getter, setter, equals, hashCode, toStringを自動生成
+@NoArgsConstructor // JPAが要求する引数なしコンストラクタを生成
+@AllArgsConstructor // Builderパターンで必要な全引数コンストラクタを生成
+@Builder // ビルダーパターンを実装（内部的に全引数コンストラクタも生成）
 public class Expense {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    
-    private String description;  // 支出の説明
-    private Integer amount;      // 金額（INT型に合わせてIntegerに変更）
-    private LocalDate date;      // 日付
-    private String category;     // カテゴリー
-    private LocalDateTime createdAt;  // 作成日時を追加
-    
-    // コンストラクタ
-    public Expense() {}
-    
-    // ゲッターとセッター
-    public Long getId() {
-        return id;
-    }
-    
-    public void setId(Long id) {
-        this.id = id;
-    }
-    
-    public String getDescription() {
-        return description;
-    }
-    
-    public void setDescription(String description) {
-        this.description = description;
-    }
-    
-    public Integer getAmount() {
-        return amount;
-    }
-    
-    public void setAmount(Integer amount) {
-        this.amount = amount;
-    }
-    
-    public LocalDate getDate() {
-        return date;
-    }
-    
-    public void setDate(LocalDate date) {
-        this.date = date;
-    }
-    
-    public String getCategory() {
-        return category;
-    }
-    
-    public void setCategory(String category) {
-        this.category = category;
-    }
-    
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-    
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
-    }
-} 
+    private Long id; // 主キー
+
+    private String description; // 支出の説明
+    private Integer amount; // 金額
+    private LocalDate date; // 日付
+    private String category; // カテゴリー
+    private LocalDateTime createdAt; // 作成日時
+}
