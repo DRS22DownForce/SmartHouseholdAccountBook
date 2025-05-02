@@ -4,8 +4,6 @@ import com.example.backend.entity.Expense;
 import com.example.backend.repository.ExpenseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -34,12 +32,7 @@ public class ExpenseService {
      * @param amount      金額
      * @return 追加した支出エンティティ
      */
-    public Expense addExpense(String date, String category, String description, Integer amount) {
-        Expense expense = new Expense();
-        expense.setDate(LocalDate.parse(date));
-        expense.setCategory(category);
-        expense.setDescription(description);
-        expense.setAmount(amount);
+    public Expense addExpense(Expense expense) {
         return expenseRepository.save(expense);
     }
 }

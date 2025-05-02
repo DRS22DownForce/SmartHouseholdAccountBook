@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
-
+import java.time.LocalDate;
 @Controller
 @RequestMapping("/expenses")
 public class ExpenseController {
@@ -48,7 +48,7 @@ public class ExpenseController {
 
         try {
             // Serviceを使って支出を追加
-            expenseService.addExpense(date, category, description, amount);
+            expenseService.addExpense(Expense.create(description, amount, LocalDate.parse(date), category));
 
             // 成功メッセージの設定
             redirectAttributes.addFlashAttribute("successMessage", "支出を追加しました。");
