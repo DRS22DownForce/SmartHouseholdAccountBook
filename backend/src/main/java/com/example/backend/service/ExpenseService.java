@@ -5,6 +5,7 @@ import com.example.backend.repository.ExpenseRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import com.example.backend.dto.ExpenseForm;
 
 /**
  * 支出に関するビジネスロジックを担当するサービスクラス
@@ -32,7 +33,9 @@ public class ExpenseService {
      * @param amount      金額
      * @return 追加した支出エンティティ
      */
-    public Expense addExpense(Expense expense) {
+    public Expense addExpense(ExpenseForm expenseForm) {
+        Expense expense = Expense.create(expenseForm.getDescription(), expenseForm.getAmount(),
+                expenseForm.getDate(), expenseForm.getCategory());
         return expenseRepository.save(expense);
     }
 }
