@@ -19,9 +19,9 @@ FLUSH PRIVILEGES;
 CREATE TABLE IF NOT EXISTS household_accounts (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     date DATE NOT NULL,
-    category VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+    category VARCHAR(50) NOT NULL,
     amount INT NOT NULL,
-    description TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
+    description VARCHAR(255),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
