@@ -1,7 +1,14 @@
 -- データベースの作成（もしなければ）
 CREATE DATABASE IF NOT EXISTS demo DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
 -- データベースの選択
 USE demo;
+
+-- セッションの文字コードをUTF-8に設定
+SET NAMES utf8mb4;
+SET character_set_client = utf8mb4;
+SET character_set_connection = utf8mb4;
+SET character_set_results = utf8mb4;
 
 -- rootユーザーの権限設定
 ALTER USER 'root'@'%' IDENTIFIED BY 'rootpassword';
@@ -12,11 +19,11 @@ FLUSH PRIVILEGES;
 CREATE TABLE IF NOT EXISTS household_accounts (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     date DATE NOT NULL,
-    category VARCHAR(50) NOT NULL,
+    category VARCHAR(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
     amount INT NOT NULL,
-    description TEXT,
+    description TEXT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-)DEFAULT CHARSET=utf8mb4;;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- サンプルデータの挿入
 INSERT INTO household_accounts (date, category, amount, description) VALUES
