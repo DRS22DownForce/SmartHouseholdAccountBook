@@ -18,7 +18,6 @@
                     <th>カテゴリー</th>
                     <th>説明</th>
                     <th>金額</th>
-                    <th>作成日時</th>
                 </tr>
             </thead>
             <tbody>
@@ -29,7 +28,6 @@
                     <td th:text="${expense.category}"></td>
                     <td th:text="${expense.description}"></td>
                     <td th:text="${#numbers.formatInteger(expense.amount, 0, 'COMMA') + '円'}"></td>
-                    <td th:text="${#temporals.format(expense.createdAt, 'yyyy-MM-dd HH:mm:ss')}"></td>
                 </tr>
             </tbody>
         </table>
