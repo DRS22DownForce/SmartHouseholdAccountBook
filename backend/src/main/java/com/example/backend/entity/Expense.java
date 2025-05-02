@@ -6,7 +6,6 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -28,5 +27,4 @@ public class Expense {
     private Integer amount; // 金額
     private LocalDate date; // 日付
     private String category; // カテゴリー
-    private LocalDateTime createdAt; // 作成日時
 }
