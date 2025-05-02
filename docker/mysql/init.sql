@@ -6,9 +6,6 @@ USE demo;
 
 -- セッションの文字コードをUTF-8に設定
 SET NAMES utf8mb4;
-SET character_set_client = utf8mb4;
-SET character_set_connection = utf8mb4;
-SET character_set_results = utf8mb4;
 
 -- 家計簿テーブルの作成
 CREATE TABLE IF NOT EXISTS household_accounts (
