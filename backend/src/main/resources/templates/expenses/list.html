@@ -19,6 +19,13 @@
             <span th:text="${errorMessage}"></span>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
+        <div th:if="${InputErrorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <span th:text="${InputErrorMessage}"></span>
+            <ul>
+                <li th:each="error : ${InputErrorList}" th:text="${error}"></li>
+            </ul>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
 
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h1>支出一覧</h1>
@@ -65,7 +72,8 @@
                         <!-- 日付入力 -->
                         <div class="mb-3">
                             <label for="date" class="form-label">日付</label>
-                            <input type="date" class="form-control" id="date" name="date" required>
+                            <input type="date" class="form-control" id="date" name="date" required
+                                th:max="${#temporals.format(T(java.time.LocalDate).now(), 'yyyy-MM-dd')}" />
                         </div>
                         <!-- カテゴリー入力 -->
                         <div class="mb-3">

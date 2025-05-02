@@ -8,11 +8,14 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-
+import jakarta.validation.Valid;
+import org.springframework.validation.BindingResult;
+import com.example.backend.dto.ExpenseForm;
 import java.util.List;
-import java.time.LocalDate;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import java.util.stream.Collectors;
+
 @Controller
 @RequestMapping("/expenses")
 public class ExpenseController {
@@ -40,15 +43,21 @@ public class ExpenseController {
      */
     @PostMapping("/add")
     public String addExpense(
-            @RequestParam String date,
-            @RequestParam String category,
-            @RequestParam String description,
-            @RequestParam Integer amount,
+            @Valid @ModelAttribute ExpenseForm expenseForm,
+            BindingResult bindingResult,
             RedirectAttributes redirectAttributes) {
 
+        if (bindingResult.hasErrors()) {
+            List<String> errorMessages = bindingResult.getAllErrors().stream()
+                    .map(error -> error.getDefaultMessage())
+                    .collect(Collectors.toList());
+            redirectAttributes.addFlashAttribute("InputErrorMessage", "入力内容に誤りがあります。");
+            redirectAttributes.addFlashAttribute("InputErrorList", errorMessages);
+            return "redirect:/expenses";
+        }
         try {
             // Serviceを使って支出を追加
-            expenseService.addExpense(Expense.create(description, amount, LocalDate.parse(date), category));
+            expenseService.addExpense(expenseForm);
 
             // 成功メッセージの設定
             redirectAttributes.addFlashAttribute("successMessage", "支出を追加しました。");
