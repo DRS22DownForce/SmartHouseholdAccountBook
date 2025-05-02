@@ -11,6 +11,8 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.time.LocalDate;
+import java.util.Arrays;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -28,8 +30,30 @@ class ExpenseServiceTest {
 
     @BeforeEach
     void setUp() {
+        
         // 各テスト実行前にモックの初期化を行う
         MockitoAnnotations.openMocks(this);
+    }
+    
+    /**
+     * getAllExpensesメソッドが正しく全ての支出を取得できるかのテスト
+     */
+    @Test
+    void getAllExpenses_正常系_全ての支出が取得できる() {
+        // テスト用の支出データ
+        Expense expense1 = Expense.create("支出1", 1000, LocalDate.of(2024, 1, 1), "食費");
+        Expense expense2 = Expense.create("支出2", 2000, LocalDate.of(2024, 1, 2), "交通費");
+
+        // モックの振る舞いの設定
+        when(expenseRepository.findAll()).thenReturn(Arrays.asList(expense1, expense2));
+
+        // サービスのメソッドを呼び出す
+        List<Expense> result = expenseService.getAllExpenses();
+
+        // 結果の検証
+        assertEquals(2, result.size(), "支出の数が正しいこと");
+        assertEquals(expense1, result.get(0), "支出1が正しいこと");
+        assertEquals(expense2, result.get(1), "支出2が正しいこと");
     }
 
     /**
