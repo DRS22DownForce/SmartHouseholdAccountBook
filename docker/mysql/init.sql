@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS household_accounts (
     date DATE NOT NULL,
     category VARCHAR(50) NOT NULL,
     amount INT NOT NULL,
-    description VARCHAR(255)
+    description VARCHAR(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- サンプルデータの挿入
