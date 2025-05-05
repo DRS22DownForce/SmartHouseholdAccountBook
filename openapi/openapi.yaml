@@ -1,0 +1,85 @@
+openapi: 3.0.3
+info:
+  title: Smart Household Account Book API
+  version: 1.0.0
+  description: スマート家計簿アプリのAPI仕様書
+servers:
+  - url: http://localhost:8080
+    description: Local
+
+paths:
+  /api/expenses:
+    get:
+      summary: 家計簿データ一覧取得
+      responses:
+        '200':
+          description: 家計簿データ一覧取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Expense'
+    post:
+      summary: 家計簿データ追加
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseRequest'
+      responses:
+        '201':
+          description: 家計簿データ追加成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Expense'
+  /api/expenses/{id}:
+    delete:
+      summary: 家計簿データ削除
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: 家計簿データ削除成功
+        '404':
+          description: 家計簿データが見つからない
+components:
+  schemas:
+    Expense:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        date:
+          type: string
+          format: date
+        category:
+          type: string
+        amount:
+          type: integer
+        description:
+          type: string
+    ExpenseRequest:
+      type: object
+      required:
+        - date
+        - category
+        - amount
+      properties:
+        date:
+          type: string
+          format: date
+        category:
+          type: string
+        amount:
+          type: integer
+            
+          
