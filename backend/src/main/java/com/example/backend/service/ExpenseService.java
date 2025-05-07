@@ -8,16 +8,19 @@ import java.util.stream.Collectors;
 
 import com.example.backend.generated.model.ExpenseDto;
 import com.example.backend.generated.model.ExpenseRequestDto;
+import com.example.backend.service.ExpenseMapper;
 
 /**
  * 支出に関するビジネスロジックを担当するサービスクラス
  */
 @Service
 public class ExpenseService {
-    private ExpenseRepository expenseRepository;
+    private final ExpenseRepository expenseRepository;
+    private final ExpenseMapper expenseMapper;
 
-    public ExpenseService(ExpenseRepository expenseRepository) {
+    public ExpenseService(ExpenseRepository expenseRepository, ExpenseMapper expenseMapper) {
         this.expenseRepository = expenseRepository;
+        this.expenseMapper = expenseMapper;
     }
 
     /**
@@ -27,19 +30,9 @@ public class ExpenseService {
      */
     public List<ExpenseDto> getAllExpenses() {
         List<Expense> expenses = expenseRepository.findAll();
-
-        List<ExpenseDto> expenseDtos = expenses.stream()
-                .map(expense -> {
-                    ExpenseDto expenseDto = new ExpenseDto();
-                    expenseDto.setId(expense.getId());
-                    expenseDto.setDate(expense.getDate());
-                    expenseDto.setCategory(expense.getCategory());
-                    expenseDto.setAmount(expense.getAmount());
-                    expenseDto.setDescription(expense.getDescription());
-                    return expenseDto;
-                })
+        return expenses.stream()
+                .map(expenseMapper::toDto)
                 .collect(Collectors.toList());
-        return expenseDtos;
     }
 
     /**
@@ -49,8 +42,9 @@ public class ExpenseService {
      * @return 追加した支出エンティティ
      */
     public Expense addExpense(ExpenseRequestDto expenseRequestDto) {
-        Expense expense = new Expense(expenseRequestDto.getDescription(), expenseRequestDto.getAmount(),
-                expenseRequestDto.getDate(), expenseRequestDto.getCategory());
+        if (expenseRequestDto == null)
+            throw new NullPointerException("requestDto is null");
+        Expense expense = expenseMapper.toEntity(expenseRequestDto);
         return expenseRepository.save(expense);
     }
 
