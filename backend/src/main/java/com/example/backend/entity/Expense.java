@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
 @Entity // このアノテーションは、このクラスがJPAのエンティティであることを示します。
 @Table(name = "household_accounts") // テーブル名の指定
 @Getter // getterのみ自動生成
-@NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA用
+@NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA用にデフォルトコンストラクタを生成
 public class Expense {
 
     @Id
@@ -33,15 +33,12 @@ public class Expense {
     @Column(nullable = false)
     private String category; // カテゴリー
 
-    // ファクトリーメソッドでバリデーション
-    public static Expense create(String description, Integer amount, LocalDate date, String category) {
+    public Expense(String description, Integer amount, LocalDate date, String category) {
         validate(description, amount, date, category);
-        Expense expense = new Expense();
-        expense.description = description;
-        expense.amount = amount;
-        expense.date = date;
-        expense.category = category;
-        return expense;
+        this.description = description;
+        this.amount = amount;
+        this.date = date;
+        this.category = category;
     }
 
     // バリデーションロジック

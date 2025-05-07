@@ -19,7 +19,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/Expense'
+                  $ref: '#/components/schemas/ExpenseDto'
     post:
       summary: 家計簿データ追加
       requestBody:
@@ -27,14 +27,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ExpenseRequest'
+              $ref: '#/components/schemas/ExpenseRequestDto'
       responses:
         '201':
           description: 家計簿データ追加成功
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Expense'
+                $ref: '#/components/schemas/ExpenseDto'
   /api/expenses/{id}:
     delete:
       summary: 家計簿データ削除
@@ -52,7 +52,7 @@ paths:
           description: 家計簿データが見つからない
 components:
   schemas:
-    Expense:
+    ExpenseDto:
       type: object
       properties:
         id:
@@ -67,7 +67,7 @@ components:
           type: integer
         description:
           type: string
-    ExpenseRequest:
+    ExpenseRequestDto:
       type: object
       required:
         - date
@@ -81,5 +81,7 @@ components:
           type: string
         amount:
           type: integer
+        description:
+          type: string
             
           
