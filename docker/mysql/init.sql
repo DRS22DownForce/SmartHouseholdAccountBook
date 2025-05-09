@@ -8,7 +8,7 @@ USE demo;
 SET NAMES utf8mb4;
 
 -- 家計簿テーブルの作成
-CREATE TABLE IF NOT EXISTS household_accounts (
+CREATE TABLE IF NOT EXISTS expense (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     date DATE NOT NULL,
     category VARCHAR(50) NOT NULL,
@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS household_accounts (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- サンプルデータの挿入
-INSERT INTO household_accounts (date, category, amount, description) VALUES
+INSERT INTO expense (date, category, amount, description) VALUES
 ('2024-03-01', '食費', 3500, 'スーパーでの買い物'),
 ('2024-03-02', '交通費', 1200, '電車賃'),
 ('2024-03-03', '光熱費', 8500, '電気代'),

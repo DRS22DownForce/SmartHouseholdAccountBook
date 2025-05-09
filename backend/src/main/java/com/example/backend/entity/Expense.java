@@ -4,7 +4,6 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import jakarta.persistence.Column;
 import java.time.LocalDate;
 import lombok.AccessLevel;
@@ -12,7 +11,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity // このアノテーションは、このクラスがJPAのエンティティであることを示します。
-@Table(name = "household_accounts") // テーブル名の指定
 @Getter // getterのみ自動生成
 @NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA用にデフォルトコンストラクタを生成
 public class Expense {
