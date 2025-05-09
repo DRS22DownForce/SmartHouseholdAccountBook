@@ -28,6 +28,7 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+		<openapi.file>../openapi/openapi.yaml</openapi.file>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -95,6 +96,23 @@
 		</dependency>
 	</dependencies>
 
+	<profiles>
+		<profile>
+			<!--backendフォルダ下でのmvnコマンド実行時に使用-->
+			<id>local</id>
+			<properties>
+				<openapi.file>../openapi/openapi.yaml</openapi.file>
+			</properties>
+		</profile>
+		<profile>
+			<!--docker-compose.yamlでのmvnコマンド実行時に使用-->
+			<id>docker</id>
+			<properties>
+				<openapi.file>openapi/openapi.yaml</openapi.file>
+			</properties>
+		</profile>
+	</profiles>
+
 	<build>
 		<plugins>
 			<plugin>
@@ -110,7 +128,7 @@
 				<phase>generate-sources</phase>
 				<configuration>
 					<!-- 入力ファイル -->
-					<inputSpec>${project.basedir}/../openapi/openapi.yaml</inputSpec>
+					<inputSpec>${openapi.file}</inputSpec>
 					<!-- 生成するコードの種類 -->
 					<generatorName>spring</generatorName>
 					<!-- 出力先ディレクトリ -->

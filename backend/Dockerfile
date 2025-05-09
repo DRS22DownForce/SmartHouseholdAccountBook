@@ -2,10 +2,11 @@
 FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /app
 
-COPY pom.xml .
-COPY src ./src
+COPY backend/pom.xml .
+COPY backend/src ./src
+COPY openapi/openapi.yaml ./openapi/openapi.yaml
 
-RUN mvn clean package -DskipTests
+RUN mvn clean package -DskipTests -Pdocker
 
 # --- Runtime stage ---
 FROM eclipse-temurin:21-jre

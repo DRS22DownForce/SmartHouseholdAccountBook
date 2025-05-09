@@ -2,8 +2,8 @@ services:
   backend:
     container_name: backend
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: ./
+      dockerfile: backend/Dockerfile
     ports:
       - "8080:8080"
     environment:
