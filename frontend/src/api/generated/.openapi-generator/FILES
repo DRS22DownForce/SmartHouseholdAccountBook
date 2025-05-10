@@ -1,0 +1,12 @@
+.gitignore
+.npmignore
+.openapi-generator-ignore
+api.ts
+base.ts
+common.ts
+configuration.ts
+docs/DefaultApi.md
+docs/ExpenseDto.md
+docs/ExpenseRequestDto.md
+git_push.sh
+index.ts
