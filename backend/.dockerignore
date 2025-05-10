@@ -1,0 +1,5 @@
+# ビルド成果物を除外（これがあるとビルドが遅くなる）
+target/
+
+# openapiの自動生成コードを除外
+main/java-generated/
