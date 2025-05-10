@@ -66,11 +66,18 @@ class ExpenseServiceTest {
         requestDto.setCategory("食費");
 
         Expense expense = new Expense("テスト支出", 1000, LocalDate.of(2024, 1, 1), "食費");
-
         when(expenseMapper.toEntity(requestDto)).thenReturn(expense);
+
+        ExpenseDto expenseDto = new ExpenseDto();
+        expenseDto.setDescription("テスト支出");
+        expenseDto.setAmount(1000);
+        expenseDto.setDate(LocalDate.of(2024, 1, 1));
+        expenseDto.setCategory("食費");
+        when(expenseMapper.toDto(expense)).thenReturn(expenseDto);
+        
         when(expenseRepository.save(expense)).thenReturn(expense);
 
-        Expense result = expenseService.addExpense(requestDto);
+        ExpenseDto result = expenseService.addExpense(requestDto);
 
         assertNotNull(result);
         assertEquals("テスト支出", result.getDescription());

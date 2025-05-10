@@ -12,6 +12,7 @@ public class ExpenseMapper {
         if (expense == null)
             return null;
         ExpenseDto dto = new ExpenseDto();
+        dto.setId(expense.getId());
         dto.setDescription(expense.getDescription());
         dto.setAmount(expense.getAmount());
         dto.setDate(expense.getDate());
