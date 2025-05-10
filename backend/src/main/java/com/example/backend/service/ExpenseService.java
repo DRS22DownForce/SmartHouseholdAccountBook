@@ -41,11 +41,12 @@ public class ExpenseService {
      * @param expenseRequestDto 支出リクエストDTO
      * @return 追加した支出エンティティ
      */
-    public Expense addExpense(ExpenseRequestDto expenseRequestDto) {
+    public ExpenseDto addExpense(ExpenseRequestDto expenseRequestDto) {
         if (expenseRequestDto == null)
             throw new NullPointerException("requestDto is null");
         Expense expense = expenseMapper.toEntity(expenseRequestDto);
-        return expenseRepository.save(expense);
+        Expense savedExpense = expenseRepository.save(expense);
+        return expenseMapper.toDto(savedExpense);
     }
 
     /**
