@@ -38,5 +38,3 @@ build/
 
 .env
 /backend/src/main/java-generated/
-
-node_modules
