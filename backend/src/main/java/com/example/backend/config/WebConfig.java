@@ -17,7 +17,12 @@ public class WebConfig {
                 // すべてのAPIパスに対してCORSを許可します
                 registry.addMapping("/**")
                         // 許可するオリジン（フロントエンド, データベースのURL）を指定します
-                        .allowedOrigins("http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3306", "http://127.0.0.1:3306")
+                        .allowedOrigins(
+                            "http://localhost:5173",
+                            "http://127.0.0.1:5173",
+                            "http://localhost:3306",
+                            "http://127.0.0.1:3306",
+                            "https://smart-household-account-book.com")
                         // 許可するHTTPメソッドを指定します
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         // Cookieなどの認証情報を許可する場合はtrueにします
