@@ -19,11 +19,8 @@ import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
-import Dialog from '@mui/material/Dialog';
-import DialogTitle from '@mui/material/DialogTitle';
-import DialogActions from '@mui/material/DialogActions';
-import Button from '@mui/material/Button';
 import ExpenseForm from './ExpenseForm';
+import ExpenseDeleteDialog from './ExpenseDeleteDialog';
 
 //ExpenseListという関数コンポーネント(関数で定義されたReactのUIコンポーネント)の作成
 const ExpenseList = () => {
@@ -115,27 +112,11 @@ const ExpenseList = () => {
             </TableContainer>
 
             {/* 削除確認ダイアログ */}
-            <Dialog
-                open={!!deleteTargetId} //deleteTargetIdがnullでない場合にダイアログを表示
-                onClose={() => setDeleteTargetId(null)} //oncloseはダイアログの外をクリックした時に呼ばれる
-            >
-                <DialogTitle>
-                    本当に削除しますか？
-                </DialogTitle>
-                <DialogActions>
-                    <Button onClick={() => setDeleteTargetId(null)} color="primary">
-                        キャンセル
-                    </Button>
-                    <Button
-                        //deleteTargetIdがnullでない時だけhandleDeleteを呼び出す
-                        onClick={() => deleteTargetId && handleDelete(deleteTargetId!)}
-                        color="error"
-                        variant="contained"
-                    >
-                        削除
-                    </Button>
-                </DialogActions>
-            </Dialog>
+            <ExpenseDeleteDialog
+                open={!!deleteTargetId}
+                onClose={() => setDeleteTargetId(null)}
+                onDelete={() => deleteTargetId && handleDelete(deleteTargetId!)}
+            />
         </Box>
     );
 };
