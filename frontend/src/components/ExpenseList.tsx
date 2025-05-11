@@ -17,6 +17,12 @@ import TableRow from '@mui/material/TableRow';
 import Paper from '@mui/material/Paper';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
+import DeleteIcon from '@mui/icons-material/Delete';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogActions from '@mui/material/DialogActions';
+import Button from '@mui/material/Button';
 
 
 //ExpenseListという関数コンポーネント(関数で定義されたReactのUIコンポーネント)の作成
@@ -24,14 +30,37 @@ const ExpenseList = () => {
     const [expenseDtos, setExpenses] = useState<ExpenseDto[]>([]); //支出データを管理するためのステート
     const [error, setError] = useState<string | null>(null); //エラーメッセージを管理するためのステート
 
+    const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null); //削除対象のIDを管理するためのステート
+
     //useEffectはReactのフック(副作用(コンポーネント外部に影響を及ぼす処理)を扱う関数)で、コンポーネントがマウント(画面に初めて表示)された時に一度だけ実行される
     useEffect(() => {
-        api.apiExpensesGet().then((response) => {
-            setExpenses(response.data); //取得した支出データをステートに保存
-        }).catch((error) => {
-            setError(error.message); //エラーが発生した場合、エラーメッセージをステートに保存
-        });
+        fetchExpenses()
     }, []);
+
+    // 支出一覧を取得する関数
+    const fetchExpenses = () => {
+        api.apiExpensesGet().then((response) => {
+            setExpenses(response.data);
+        }).catch((error) => {
+            setError(error.message);
+        });
+    };
+
+    // 削除処理
+    const handleDelete = (id: number) => {
+        api.apiExpensesIdDelete(id)
+            .then(() => {
+                // 削除成功時はローカルのリストから該当データを除外
+                //prevは前のステートの値を参照するための変数
+                //prev.filter((e) => e.id !== id)は、前のステートの値を参照して、idが一致するデータを除外した新しい配列を作成
+                setExpenses((prev) => prev.filter((e) => e.id !== id));
+                setDeleteTargetId(null); // ダイアログを閉じる
+            })
+            .catch((error) => {
+                setError(error.message);
+                setDeleteTargetId(null); // ダイアログを閉じる
+            });
+    };
 
     return (
         <Box sx={{ mt: 4, px: 2 }}> {/* ボックスコンテナを作成 mt:4は上部のマージンを4pxに設定 px:2は左右のパディングを2pxに設定 */}
@@ -64,20 +93,49 @@ const ExpenseList = () => {
                             <TableCell sx={{ minWidth: 120 }}>カテゴリ</TableCell>
                             <TableCell align="right" sx={{ minWidth: 120 }}>金額</TableCell>
                             <TableCell sx={{ minWidth: 200 }}>説明</TableCell>
+                            <TableCell sx={{ minWidth: 120 }}>操作</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
-                        {expenseDtos.map((expense) => (
-                            <TableRow key={expense.id} hover>
-                                <TableCell>{expense.date}</TableCell>
-                                <TableCell>{expense.category}</TableCell>
-                                <TableCell align="right" sx={{ fontWeight: 'bold' }}>{expense.amount}円</TableCell>
-                                <TableCell>{expense.description}</TableCell>
+                        {expenseDtos.map((expenseDto) => (
+                            <TableRow key={expenseDto.id} hover>
+                                <TableCell>{expenseDto.date}</TableCell>
+                                <TableCell>{expenseDto.category}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 'bold' }}>{expenseDto.amount}円</TableCell>
+                                <TableCell>{expenseDto.description}</TableCell>
+                                <TableCell>
+                                    <IconButton onClick={() => setDeleteTargetId(expenseDto.id ?? null)}>
+                                        <DeleteIcon />
+                                    </IconButton>
+                                </TableCell>
                             </TableRow>
                         ))}
                     </TableBody>
                 </Table>
             </TableContainer>
+
+            {/* 削除確認ダイアログ */}
+            <Dialog
+                open={!!deleteTargetId} //deleteTargetIdがnullでない場合にダイアログを表示
+                onClose={() => setDeleteTargetId(null)} //oncloseはダイアログの外をクリックした時に呼ばれる
+            >
+                <DialogTitle>
+                    本当に削除しますか？
+                </DialogTitle>
+                <DialogActions>
+                    <Button onClick={() => setDeleteTargetId(null)} color="primary">
+                        キャンセル
+                    </Button>
+                    <Button
+                        //deleteTargetIdがnullでない時だけhandleDeleteを呼び出す
+                        onClick={() => deleteTargetId && handleDelete(deleteTargetId!)}
+                        color="error"
+                        variant="contained"
+                    >
+                        削除
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };
