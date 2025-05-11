@@ -23,7 +23,7 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogActions from '@mui/material/DialogActions';
 import Button from '@mui/material/Button';
-
+import ExpenseForm from './ExpenseForm';
 
 //ExpenseListという関数コンポーネント(関数で定義されたReactのUIコンポーネント)の作成
 const ExpenseList = () => {
@@ -64,12 +64,12 @@ const ExpenseList = () => {
 
     return (
         <Box sx={{ mt: 4, px: 2 }}> {/* ボックスコンテナを作成 mt:4は上部のマージンを4pxに設定 px:2は左右のパディングを2pxに設定 */}
+        <ExpenseForm onAdded={fetchExpenses} />
         {/* タイトル：
         Typographyでh1相当の表示
         variant="h4"は大きなタイトルを表示するためのオプション
         align="center"は中央揃え
         gutterBottomは下部のマージンを設定*/}
-    
         <Typography variant="h4" align="center" gutterBottom>
           支出リスト
         </Typography>
