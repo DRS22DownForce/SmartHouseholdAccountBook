@@ -4,7 +4,7 @@ import { DefaultApi, type ExpenseDto } from '../api/generated/api';//実行時�
 import { Configuration } from '../api/generated/configuration'; //Configurationをインポート
 //APIクライアントのインスタンスを作成
 const api = new DefaultApi(new Configuration({
-    basePath: 'http://localhost:8080'
+    basePath: ''
 }));
 
 // MUIのコンポーネントをインポート

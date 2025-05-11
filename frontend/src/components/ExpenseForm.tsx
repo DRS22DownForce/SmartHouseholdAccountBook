@@ -8,7 +8,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 
 // APIクライアントのインスタンス
-const api = new DefaultApi(new Configuration({ basePath: 'http://localhost:8080' }));
+const api = new DefaultApi(new Configuration({ basePath: '' }));
 
 // カテゴリの例
 const categories = ['食費', '日用品', '交通費', '娯楽', 'その他'];
@@ -28,8 +28,8 @@ const ExpenseForm = ({ onAdded }: Props) => {
         event.preventDefault();
         setError(null);
 
-        if (!date || !category || !amount) {
-            setError('日付・カテゴリ・金額は必須です');
+        if (!date || !category || !amount || !description) {
+            setError('日付・カテゴリ・金額・説明は必須です');
             return;
         }
 
@@ -96,6 +96,7 @@ const ExpenseForm = ({ onAdded }: Props) => {
             value={description}
             onChange={e => setDescription(e.target.value)}
             size="small"
+            required
             sx={{ minWidth: 200 }}
           />
           <Button type="submit" variant="contained" color="primary">
