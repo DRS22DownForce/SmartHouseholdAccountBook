@@ -7,6 +7,18 @@ const api = new DefaultApi(new Configuration({
     basePath: 'http://localhost:8080'
 }));
 
+// MUIのコンポーネントをインポート
+import Table from '@mui/material/Table';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import TableHead from '@mui/material/TableHead';
+import TableRow from '@mui/material/TableRow';
+import Paper from '@mui/material/Paper';
+import Typography from '@mui/material/Typography';
+import Box from '@mui/material/Box';
+
+
 //ExpenseListという関数コンポーネント(関数で定義されたReactのUIコンポーネント)の作成
 const ExpenseList = () => {
     const [expenseDtos, setExpenses] = useState<ExpenseDto[]>([]); //支出データを管理するためのステート
@@ -22,33 +34,51 @@ const ExpenseList = () => {
     }, []);
 
     return (
-        <div className="container-fluid mt-4">
-            <h1 className="fs-2 text-center">支出リスト</h1>
-            {error && <p className="text-danger fs-4 text-center">{error}</p>}
-            {/* 横スクロール対応＆幅100% */}
-            <div className="d-block w-100" style={{ overflowX: 'auto' }}>
-                <table className="table table-striped table-hover w-100 fs-5" style={{ minWidth: "700px" }}>
-                    <thead className="table-light">
-                        <tr>
-                            <th style={{ minWidth: "120px" }}>日付</th>
-                            <th style={{ minWidth: "120px" }}>カテゴリ</th>
-                            <th className="text-end" style={{ minWidth: "120px" }}>金額</th>
-                            <th style={{ minWidth: "200px" }}>説明</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+        <Box sx={{ mt: 4, px: 2 }}> {/* ボックスコンテナを作成 mt:4は上部のマージンを4pxに設定 px:2は左右のパディングを2pxに設定 */}
+        {/* タイトル：
+        Typographyでh1相当の表示
+        variant="h4"は大きなタイトルを表示するためのオプション
+        align="center"は中央揃え
+        gutterBottomは下部のマージンを設定*/}
+    
+        <Typography variant="h4" align="center" gutterBottom>
+          支出リスト
+        </Typography>
+  
+        {/* エラー表示がある場合だけ表示する */}
+        {error && (
+          <Typography variant="h6" color="error" align="center" gutterBottom>
+            {error}
+          </Typography>
+        )}
+            {/*TableContainerはテーブルをラップするコンテナコンポーネント
+            Paperはテーブルの背景色を設定するコンポーネント
+            sx={{ maxHeight: 440 }}はテーブルの高さを440pxに設定*/}
+            {/*sxとはMUIのコンポーネントのスタイルを設定するためのオプション*/}
+            <TableContainer component={Paper} sx={{ maxHeight: 440 }}>
+                {/* stickyHeaderはテーブルのヘッダーが固定されるようにするオプション */}
+                <Table stickyHeader aria-label="支出リストテーブル">
+                    <TableHead>
+                        <TableRow>
+                            <TableCell sx={{ minWidth: 120 }}>日付</TableCell>
+                            <TableCell sx={{ minWidth: 120 }}>カテゴリ</TableCell>
+                            <TableCell align="right" sx={{ minWidth: 120 }}>金額</TableCell>
+                            <TableCell sx={{ minWidth: 200 }}>説明</TableCell>
+                        </TableRow>
+                    </TableHead>
+                    <TableBody>
                         {expenseDtos.map((expense) => (
-                            <tr key={expense.id}>
-                                <td>{expense.date}</td>
-                                <td>{expense.category}</td>
-                                <td className="text-end fw-bold">{expense.amount}円</td>
-                                <td>{expense.description}</td>
-                            </tr>
+                            <TableRow key={expense.id} hover>
+                                <TableCell>{expense.date}</TableCell>
+                                <TableCell>{expense.category}</TableCell>
+                                <TableCell align="right" sx={{ fontWeight: 'bold' }}>{expense.amount}円</TableCell>
+                                <TableCell>{expense.description}</TableCell>
+                            </TableRow>
                         ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                    </TableBody>
+                </Table>
+            </TableContainer>
+        </Box>
     );
 };
 
