@@ -11,6 +11,10 @@
     "generate:api": "npx openapi-generator-cli generate -i ../openapi/openapi.yaml -g typescript-axios -o ./src/api/generated"
   },
   "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/icons-material": "^7.1.0",
+    "@mui/material": "^7.1.0",
     "bootstrap": "^5.3.6",
     "react": "^19.1.0",
     "react-dom": "^19.1.0"
