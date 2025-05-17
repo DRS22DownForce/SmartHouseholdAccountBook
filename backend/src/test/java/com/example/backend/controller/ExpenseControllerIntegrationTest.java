@@ -18,11 +18,13 @@ import java.time.LocalDate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-
+import com.example.backend.config.TestSecurityConfig;
+import org.springframework.context.annotation.Import;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test") //application-test.propertiesを使用
+@Import(TestSecurityConfig.class) //test時にはセキュリティを無効化する
 class ExpenseControllerIntegrationTest {
 
     @Autowired
