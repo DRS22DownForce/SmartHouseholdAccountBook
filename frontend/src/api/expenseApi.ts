@@ -12,18 +12,17 @@ export async function getJwtToken() {
 //JWT付きAPIクライアントを返す
 export function getApiClient() {
     return new DefaultApi(new Configuration({
-        basePath: '',
-        accessToken: async () => await getJwtToken(),
+        basePath: ''
     }));
 }
 //API呼び出し時にAuthorizationヘッダーを付与するヘルパー関数
-export async function withAuthHeader(options: any = {}) {
+export async function withAuthHeader(options: Record<string, any> = {}) {
     const token = await getJwtToken();
     return {
         ...options,
         headers: {
             ...(options.headers || {}),
-            Authorization: `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,//Bearer+JWTトークンという形式でAuthorizationヘッダーを付与
         },
     };
 }
