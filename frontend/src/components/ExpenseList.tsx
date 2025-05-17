@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';//useState, useEffectをインポート
 //生成されたAPIクライアントと型をインポート
 import { type ExpenseDto } from '../api/generated/api';//実行時には消えるinterface or typeであることを示すためにtypeを使用
-import { getApiClient } from '../api/expenseApi';
+import { getApiClient, withAuthHeader } from '../api/expenseApi';
 //APIクライアントのインスタンスを作成
 const api = getApiClient();
 
@@ -47,28 +47,30 @@ const ExpenseList = () => {
     }, []);
 
     // 支出一覧を取得する関数
-    const fetchExpenses = () => {
-        api.apiExpensesGet().then((response) => {
+    const fetchExpenses = async () => {
+        try {
+            const options = await withAuthHeader();
+            const response = await api.apiExpensesGet(options);
             setExpenses(response.data);
-        }).catch((error) => {
+        } catch (error: any) {
             setError(error.message);
-        });
+        }
     };
 
     // 削除処理
-    const handleDelete = (id: number) => {
-        api.apiExpensesIdDelete(id)
-            .then(() => {
-                // 削除成功時はローカルのリストから該当データを除外
-                //prevは前のステートの値を参照するための変数
-                //prev.filter((e) => e.id !== id)は、前のステートの値を参照して、idが一致するデータを除外した新しい配列を作成
-                setExpenses((prev) => prev.filter((e) => e.id !== id));
-                setDeleteTargetId(null); // ダイアログを閉じる
-            })
-            .catch((error) => {
+    const handleDelete = async (id: number) => {
+        try {
+            const options = await withAuthHeader();
+            await api.apiExpensesIdDelete(id, options);
+            // 削除成功時はローカルのリストから該当データを除外
+            //prevは前のステートの値を参照するための変数
+            //prev.filter((e) => e.id !== id)は、前のステートの値を参照して、idが一致するデータを除外した新しい配列を作成
+            setExpenses((prev) => prev.filter((e) => e.id !== id));
+            setDeleteTargetId(null); // ダイアログを閉じる
+            }catch(error: any){
                 setError(error.message);
                 setDeleteTargetId(null); // ダイアログを閉じる
-            });
+            };
     };
 
     return (
