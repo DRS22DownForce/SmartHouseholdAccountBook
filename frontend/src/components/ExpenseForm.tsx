@@ -1,15 +1,15 @@
 /** @jsxImportSource @emotion/react */
 import { useState } from 'react';
-import { DefaultApi, type ExpenseRequestDto } from '../api/generated/api';
-import { Configuration } from '../api/generated/configuration';
+import {type ExpenseRequestDto } from '../api/generated/api';
 import TextField from '@mui/material/TextField';
 import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import { css } from '@emotion/react';
+import { getApiClient } from '../api/expenseApi';
 
 // APIクライアントのインスタンス
-const api = new DefaultApi(new Configuration({ basePath: '' }));
+const api = getApiClient();
 
 // カテゴリの例
 const categories = ['食費', '日用品', '交通費', '娯楽', 'その他'];
