@@ -6,6 +6,7 @@ import { DefaultApi } from './generated/api';
 export async function getJwtToken() {
     const session = await fetchAuthSession();
     return session.tokens?.accessToken?.toString() ?? '';
+    
 }
 
 //JWT付きAPIクライアントを返す
@@ -14,4 +15,15 @@ export function getApiClient() {
         basePath: '',
         accessToken: async () => await getJwtToken(),
     }));
+}
+//API呼び出し時にAuthorizationヘッダーを付与するヘルパー関数
+export async function withAuthHeader(options: any = {}) {
+    const token = await getJwtToken();
+    return {
+        ...options,
+        headers: {
+            ...(options.headers || {}),
+            Authorization: `Bearer ${token}`,
+        },
+    };
 }

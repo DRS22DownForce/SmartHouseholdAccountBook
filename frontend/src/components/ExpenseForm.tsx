@@ -6,7 +6,7 @@ import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import { css } from '@emotion/react';
-import { getApiClient } from '../api/expenseApi';
+import { getApiClient, withAuthHeader } from '../api/expenseApi';
 
 // APIクライアントのインスタンス
 const api = getApiClient();
@@ -66,7 +66,8 @@ const ExpenseForm = ({ onAdded }: Props) => {
     };
 
     try {
-      await api.apiExpensesPost(req); //api.apiExpensesPostは非同期関数なのでawaitを付けて結果が返ってくるまで待つ
+      const options = await withAuthHeader();
+      await api.apiExpensesPost(req, options); //api.apiExpensesPostは非同期関数なのでawaitを付けて結果が返ってくるまで待つ
       //追加成功時はフォームをクリアし、リストを更新
       setDate('');
       setCategory('');
