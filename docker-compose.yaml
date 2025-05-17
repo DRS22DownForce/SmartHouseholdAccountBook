@@ -12,6 +12,7 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_JPA_SHOW_SQL: "true"
+      COGNITO_JWK_SET_URL: ${COGNITO_JWK_SET_URL}
     depends_on:
       mysql:
         condition: service_healthy
