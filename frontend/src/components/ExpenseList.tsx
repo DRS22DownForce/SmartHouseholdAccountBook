@@ -1,12 +1,10 @@
 /** @jsxImportSource @emotion/react */
 import { useState, useEffect } from 'react';//useState, useEffectをインポート
 //生成されたAPIクライアントと型をインポート
-import { DefaultApi, type ExpenseDto } from '../api/generated/api';//実行時には消えるinterface or typeであることを示すためにtypeを使用
-import { Configuration } from '../api/generated/configuration'; //Configurationをインポート
+import { type ExpenseDto } from '../api/generated/api';//実行時には消えるinterface or typeであることを示すためにtypeを使用
+import { getApiClient } from '../api/expenseApi';
 //APIクライアントのインスタンスを作成
-const api = new DefaultApi(new Configuration({
-    basePath: ''
-}));
+const api = getApiClient();
 
 // MUIのコンポーネントをインポート
 import Table from '@mui/material/Table';
