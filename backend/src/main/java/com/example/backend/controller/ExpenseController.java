@@ -21,7 +21,7 @@ public class ExpenseController implements DefaultApi {
 
     @Override
     public ResponseEntity<List<ExpenseDto>> apiExpensesGet() {
-        List<ExpenseDto> expenseDtos = expenseService.getAllExpenses();
+        List<ExpenseDto> expenseDtos = expenseService.getExpenses();
         return ResponseEntity.ok(expenseDtos);
     }
 

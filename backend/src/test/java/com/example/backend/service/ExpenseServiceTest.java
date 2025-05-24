@@ -1,13 +1,12 @@
 package com.example.backend.service;
 
 import com.example.backend.entity.Expense;
+import com.example.backend.entity.User;
 import com.example.backend.generated.model.ExpenseDto;
 import com.example.backend.generated.model.ExpenseRequestDto;
 import com.example.backend.repository.ExpenseRepository;
-import com.example.backend.service.ExpenseMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentMatchers;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -24,9 +23,12 @@ class ExpenseServiceTest {
     @Mock
     private ExpenseRepository expenseRepository;
 
-    //ExpenseMapperはテスト対象クラスではないのでMock化
+    // ExpenseMapperはテスト対象クラスではないのでMock化
     @Mock
     private ExpenseMapper expenseMapper;
+
+    @Mock
+    private UserService userService;
 
     @InjectMocks
     private ExpenseService expenseService;
@@ -46,11 +48,13 @@ class ExpenseServiceTest {
         dto2.setDate(LocalDate.of(2024, 1, 2));
         dto2.setCategory("交通費");
 
-        when(expenseRepository.findAll()).thenReturn(Arrays.asList(expense1, expense2));
+        // テスト用のユーザーを作成
+        User user = new User("cognitoSub", "test@example.com");
+        when(expenseRepository.findByUser(user)).thenReturn(Arrays.asList(expense1, expense2));
         when(expenseMapper.toDto(expense1)).thenReturn(dto1);
         when(expenseMapper.toDto(expense2)).thenReturn(dto2);
-
-        List<ExpenseDto> result = expenseService.getAllExpenses();
+        when(userService.getUser()).thenReturn(user);
+        List<ExpenseDto> result = expenseService.getExpenses();
 
         assertEquals(2, result.size());
         assertEquals("支出1", result.get(0).getDescription());
@@ -74,7 +78,7 @@ class ExpenseServiceTest {
         expenseDto.setDate(LocalDate.of(2024, 1, 1));
         expenseDto.setCategory("食費");
         when(expenseMapper.toDto(expense)).thenReturn(expenseDto);
-        
+
         when(expenseRepository.save(expense)).thenReturn(expense);
 
         ExpenseDto result = expenseService.addExpense(requestDto);

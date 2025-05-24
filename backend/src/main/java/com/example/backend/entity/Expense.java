@@ -4,6 +4,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Column;
 import java.time.LocalDate;
 import lombok.AccessLevel;
@@ -30,6 +32,12 @@ public class Expense {
 
     @Column(nullable = false)
     private String category; // カテゴリー
+
+    // UserEntityのidを外部キーとして参照
+    // Java上ではUser型で参照するが、データベース上ではuser_idというカラム名でUserテーブルのid(主キー)を参照される
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     public Expense(String description, Integer amount, LocalDate date, String category) {
         validate(description, amount, date, category);
@@ -74,5 +82,9 @@ public class Expense {
     public void changeCategory(String category) {
         validate(this.description, this.amount, this.date, category);
         this.category = category;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
     }
 }

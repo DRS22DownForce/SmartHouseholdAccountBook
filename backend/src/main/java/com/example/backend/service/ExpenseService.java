@@ -1,6 +1,7 @@
 package com.example.backend.service;
 
 import com.example.backend.entity.Expense;
+import com.example.backend.entity.User;
 import com.example.backend.repository.ExpenseRepository;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -8,7 +9,6 @@ import java.util.stream.Collectors;
 
 import com.example.backend.generated.model.ExpenseDto;
 import com.example.backend.generated.model.ExpenseRequestDto;
-import com.example.backend.service.ExpenseMapper;
 
 /**
  * 支出に関するビジネスロジックを担当するサービスクラス
@@ -17,10 +17,12 @@ import com.example.backend.service.ExpenseMapper;
 public class ExpenseService {
     private final ExpenseRepository expenseRepository;
     private final ExpenseMapper expenseMapper;
+    private final UserService userService;
 
-    public ExpenseService(ExpenseRepository expenseRepository, ExpenseMapper expenseMapper) {
+    public ExpenseService(ExpenseRepository expenseRepository, ExpenseMapper expenseMapper, UserService userService) {
         this.expenseRepository = expenseRepository;
         this.expenseMapper = expenseMapper;
+        this.userService = userService;
     }
 
     /**
@@ -28,8 +30,9 @@ public class ExpenseService {
      * 
      * @return 支出リスト
      */
-    public List<ExpenseDto> getAllExpenses() {
-        List<Expense> expenses = expenseRepository.findAll();
+    public List<ExpenseDto> getExpenses() {
+        User user = userService.getUser();
+        List<Expense> expenses = expenseRepository.findByUser(user);
         return expenses.stream()
                 .map(expenseMapper::toDto)
                 .collect(Collectors.toList());
@@ -44,7 +47,10 @@ public class ExpenseService {
     public ExpenseDto addExpense(ExpenseRequestDto expenseRequestDto) {
         if (expenseRequestDto == null)
             throw new NullPointerException("requestDto is null");
+        User user = userService.getUser();
         Expense expense = expenseMapper.toEntity(expenseRequestDto);
+        expense.setUser(user);
+
         Expense savedExpense = expenseRepository.save(expense);
         return expenseMapper.toDto(savedExpense);
     }
