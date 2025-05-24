@@ -14,13 +14,17 @@ public class SecurityConfig {
     @Autowired
     private JwtAuthFilter jwtAuthFilter;
 
+    @Autowired
+    private UserRegistrationFilter userRegistrationFilter;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authz -> authz.requestMatchers("/api/**").authenticated() // apiエンドポイントへのリクエストは認証が必要
                         .anyRequest().permitAll() // それ以外のエンドポイントは認証不要
                 )
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(userRegistrationFilter, JwtAuthFilter.class);
         return http.build();
     }
 }

@@ -108,6 +108,19 @@
 			<artifactId>nimbus-jose-jwt</artifactId>
 			<version>9.37.3</version>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-client</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.security</groupId>
+			<artifactId>spring-security-test</artifactId>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 	<profiles>
 		<profile>
@@ -140,13 +153,13 @@
 				</goals>
 				<phase>generate-sources</phase>
 				<configuration>
-					<!-- 入力ファイル -->
+							<!-- 入力ファイル -->
 					<inputSpec>${openapi.file}</inputSpec>
-					<!-- 生成するコードの種類 -->
+							<!-- 生成するコードの種類 -->
 					<generatorName>spring</generatorName>
-					<!-- 出力先ディレクトリ -->
+							<!-- 出力先ディレクトリ -->
 					<output>${project.basedir}/src/main/java-generated</output>
-					<!-- パッケージ名などのオプション -->
+							<!-- パッケージ名などのオプション -->
 					<apiPackage>com.example.backend.generated.api</apiPackage>
 					<modelPackage>com.example.backend.generated.model</modelPackage>
 					<configOptions>
