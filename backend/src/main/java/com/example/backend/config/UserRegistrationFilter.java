@@ -21,6 +21,13 @@ public class UserRegistrationFilter extends OncePerRequestFilter {
     }
 
     @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String path = request.getRequestURI();
+        // /apiで始まるリクエストだけこのフィルターを有効化
+        return !path.startsWith("/api");
+    }
+
+    @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain)

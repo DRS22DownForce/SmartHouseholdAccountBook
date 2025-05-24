@@ -3,10 +3,14 @@ package com.example.backend.service;
 import com.example.backend.auth.CurrentAuthProvider;
 import com.example.backend.entity.User;
 import com.example.backend.repository.UserRepository;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
 public class UserService {
+    private static final Logger logger = LoggerFactory.getLogger(UserService.class);
     private final UserRepository userRepository;
     private final CurrentAuthProvider currentAuthProvider;
 
@@ -18,11 +22,15 @@ public class UserService {
     public User createUserIfNotExists() {
         String sub = currentAuthProvider.getCurrentSub();
         String email = currentAuthProvider.getCurrentEmail();
-        return userRepository.findByCognitoSub(sub)
-                .orElseGet(() -> {
-                    User user = new User(sub, email);
-                    return userRepository.save(user);
-                });
+        if (sub != null) {
+            return userRepository.findByCognitoSub(sub)
+                    .orElseGet(() -> {
+                        User user = new User(sub, email);
+                        return userRepository.save(user);
+                    });
+        }
+        logger.warn("subがnullです。認証情報が正しく取得できていません。");
+        return null;
     }
 
     public User getUser() {
