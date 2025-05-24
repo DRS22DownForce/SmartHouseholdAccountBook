@@ -38,3 +38,5 @@ build/
 
 .env
 /backend/src/main/java-generated/
+/docker/mysql/init.sql
+
