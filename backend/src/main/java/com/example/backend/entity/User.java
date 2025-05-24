@@ -32,12 +32,6 @@ public class User {
 
     public User(String cognitoSub, String email) {
         this.cognitoSub = cognitoSub;
-        // emailがnullまたは空文字の場合はダミー値をセット
-        // FIXME: ダミー値ではなくcognitoからemailアドレスを取得する
-        if (email == null || email.isEmpty()) {
-            this.email = "dummy@example.com";
-        } else {
-            this.email = email;
-        }
+        this.email = email;
     }
 }

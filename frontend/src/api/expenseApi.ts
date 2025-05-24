@@ -5,8 +5,8 @@ import { DefaultApi } from './generated/api';
 //JWTトークンを取得
 export async function getJwtToken() {
     const session = await fetchAuthSession();
-    return session.tokens?.accessToken?.toString() ?? '';
-    
+    return session.tokens?.idToken?.toString() ?? '';
+    //アクセストークンではなく、IDトークンを返すことで、emailの情報をJWTトークンに含める
 }
 
 //JWT付きAPIクライアントを返す
