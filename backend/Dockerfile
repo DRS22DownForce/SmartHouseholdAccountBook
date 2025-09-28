@@ -6,6 +6,7 @@ WORKDIR /app
 #Dockerの機能でRUNコマンドまでのレイヤーに変更がない場合はRUNコマンドはスキップされキャッシュを利用する
 #pomに変更がない場合はキャッシュが利用され、イメージのビルドが速くなる
 COPY backend/pom.xml .
+#依存関係を事前にダウンロードする
 RUN mvn dependency:go-offline
 
 COPY backend/src ./src
@@ -19,7 +20,7 @@ FROM eclipse-temurin:21-jre
 WORKDIR /app
 
 COPY --from=builder /app/target/*.jar app.jar
-
+#このコンテナ内のアプリケーションが8080ポートをリッスンすることを明示
 EXPOSE 8080
 
 CMD ["java", "-jar", "app.jar"]
