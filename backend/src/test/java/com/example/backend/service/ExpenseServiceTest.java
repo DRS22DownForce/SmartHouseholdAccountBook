@@ -95,4 +95,75 @@ class ExpenseServiceTest {
     void addExpense_リクエストがnullなら例外() {
         assertThrows(NullPointerException.class, () -> expenseService.addExpense(null));
     }
+
+    @Test
+    void updateExpense_正常に更新できる() {
+        // テストデータの準備
+        Long expenseId = 1L;
+        ExpenseRequestDto requestDto = new ExpenseRequestDto();
+        requestDto.setDescription("更新された支出");
+        requestDto.setAmount(1500);
+        requestDto.setDate(LocalDate.of(2024, 1, 15));
+        requestDto.setCategory("娯楽費");
+
+        // 既存の支出エンティティをモック
+        Expense existingExpense = new Expense("元の支出", 1000, LocalDate.of(2024, 1, 1), "食費");
+
+        // 更新後の支出DTOをモック
+        ExpenseDto updatedDto = new ExpenseDto();
+        updatedDto.setDescription("更新された支出");
+        updatedDto.setAmount(1500);
+        updatedDto.setDate(LocalDate.of(2024, 1, 15));
+        updatedDto.setCategory("娯楽費");
+
+        // モックの設定
+        when(expenseRepository.findById(expenseId)).thenReturn(java.util.Optional.of(existingExpense));
+        when(expenseRepository.save(existingExpense)).thenReturn(existingExpense);
+        when(expenseMapper.toDto(existingExpense)).thenReturn(updatedDto);
+
+        // テスト実行
+        ExpenseDto result = expenseService.updateExpense(expenseId, requestDto);
+
+        // 検証
+        assertNotNull(result);
+        assertEquals("更新された支出", result.getDescription());
+        assertEquals(1500, result.getAmount());
+        assertEquals(LocalDate.of(2024, 1, 15), result.getDate());
+        assertEquals("娯楽費", result.getCategory());
+
+        // リポジトリのメソッドが正しく呼ばれたことを確認
+        verify(expenseRepository, times(1)).findById(expenseId);
+        verify(expenseRepository, times(1)).save(existingExpense);
+        verify(expenseMapper, times(1)).toDto(existingExpense);
+    }
+
+    @Test
+    void updateExpense_存在しないIDなら例外() {
+        // テストデータの準備
+        Long nonExistentId = 999L;
+        ExpenseRequestDto requestDto = new ExpenseRequestDto();
+        requestDto.setDescription("テスト支出");
+
+        // モックの設定（存在しないIDなので空のOptionalを返す）
+        when(expenseRepository.findById(nonExistentId)).thenReturn(java.util.Optional.empty());
+
+        // テスト実行と検証
+        RuntimeException exception = assertThrows(RuntimeException.class,
+                () -> expenseService.updateExpense(nonExistentId, requestDto));
+
+        assertEquals("Expense not found with id: 999", exception.getMessage());
+        verify(expenseRepository, times(1)).findById(nonExistentId);
+        verify(expenseRepository, never()).save(any());
+    }
+
+    @Test
+    void updateExpense_リクエストがnullなら例外() {
+        // テスト実行と検証
+        assertThrows(NullPointerException.class,
+                () -> expenseService.updateExpense(1L, null));
+
+        // リポジトリは呼ばれないことを確認
+        verify(expenseRepository, never()).findById(any());
+        verify(expenseRepository, never()).save(any());
+    }
 }

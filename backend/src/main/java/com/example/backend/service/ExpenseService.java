@@ -5,6 +5,7 @@ import com.example.backend.entity.User;
 import com.example.backend.repository.ExpenseRepository;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import com.example.backend.generated.model.ExpenseDto;
@@ -62,6 +63,32 @@ public class ExpenseService {
      */
     public void deleteExpense(Long id) {
         expenseRepository.deleteById(id);
+    }
+
+    /**
+     * 支出を更新します
+     * 
+     * @param id                支出ID
+     * @param expenseRequestDto 更新する支出リクエストDTO
+     * @return 更新された支出DTO
+     */
+    public ExpenseDto updateExpense(Long id, ExpenseRequestDto expenseRequestDto) {
+        Objects.requireNonNull(expenseRequestDto, "requestDto is null");
+
+        // 既存の支出を取得
+        Expense existingExpense = expenseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Expense not found with id: " + id));
+
+        // 既存のエンティティを直接更新（IDは変更しない）
+        existingExpense.changeDescription(expenseRequestDto.getDescription());
+        existingExpense.changeAmount(expenseRequestDto.getAmount());
+        existingExpense.changeDate(expenseRequestDto.getDate());
+        existingExpense.changeCategory(expenseRequestDto.getCategory());
+        // ユーザーは既存のものを保持（通常は変更しない）
+
+        // データベースに保存（UPDATE文が実行される）
+        Expense savedExpense = expenseRepository.save(existingExpense);
+        return expenseMapper.toDto(savedExpense);
     }
 
 }

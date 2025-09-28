@@ -5,10 +5,10 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**date** | **string** |  | [default to undefined]
-**category** | **string** |  | [default to undefined]
-**amount** | **number** |  | [default to undefined]
-**description** | **string** |  | [optional] [default to undefined]
+**date** | **string** | 支出日 | [default to undefined]
+**category** | **string** | 支出カテゴリ | [default to undefined]
+**amount** | **number** | 支出金額 | [default to undefined]
+**description** | **string** | 支出の詳細説明 | [optional] [default to undefined]
 
 ## Example
 

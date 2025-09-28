@@ -5,6 +5,7 @@ base.ts
 common.ts
 configuration.ts
 docs/DefaultApi.md
+docs/ErrorResponse.md
 docs/ExpenseDto.md
 docs/ExpenseRequestDto.md
 git_push.sh
