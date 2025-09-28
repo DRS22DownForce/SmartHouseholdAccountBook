@@ -14,7 +14,6 @@ import java.util.List;
 public class ExpenseController implements DefaultApi {
     private final ExpenseService expenseService;
 
-    // コンストラクタインジェクション
     public ExpenseController(ExpenseService expenseService) {
         this.expenseService = expenseService;
     }
@@ -35,6 +34,12 @@ public class ExpenseController implements DefaultApi {
     public ResponseEntity<Void> apiExpensesIdDelete(Long id) {
         expenseService.deleteExpense(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @Override
+    public ResponseEntity<ExpenseDto> apiExpensesIdPut(Long id, ExpenseRequestDto expenseRequestDto) {
+        ExpenseDto expenseDto = expenseService.updateExpense(id, expenseRequestDto);
+        return ResponseEntity.ok(expenseDto);
     }
 
 }

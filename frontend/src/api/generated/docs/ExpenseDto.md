@@ -5,11 +5,11 @@
 
 Name | Type | Description | Notes
 ------------ | ------------- | ------------- | -------------
-**id** | **number** |  | [optional] [default to undefined]
-**date** | **string** |  | [optional] [default to undefined]
-**category** | **string** |  | [optional] [default to undefined]
-**amount** | **number** |  | [optional] [default to undefined]
-**description** | **string** |  | [optional] [default to undefined]
+**id** | **number** | 家計簿データの一意ID | [optional] [default to undefined]
+**date** | **string** | 支出日 | [optional] [default to undefined]
+**category** | **string** | 支出カテゴリ | [optional] [default to undefined]
+**amount** | **number** | 支出金額 | [optional] [default to undefined]
+**description** | **string** | 支出の詳細説明 | [optional] [default to undefined]
 
 ## Example
 

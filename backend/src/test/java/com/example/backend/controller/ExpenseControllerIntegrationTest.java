@@ -108,4 +108,34 @@ class ExpenseControllerIntegrationTest {
         // 2. DBから消えていることを確認
         assertThat(expenseRepository.existsById(expense.getId())).isFalse();
     }
+
+    @Test
+    @DisplayName("家計簿更新API→DB更新まで一貫テスト")
+    void testUpdateExpense() throws Exception {
+        // 事前にデータを登録
+        Expense expense = new Expense("バス代", 500, LocalDate.now(), "交通費");
+        expense.setUser(user);
+        expense = expenseRepository.save(expense);
+
+        // 1. PUTで更新
+        mockMvc.perform(put("/api/expenses/" + expense.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                        {
+                            "date": "%s",
+                            "category": "食費",
+                            "amount": 1000,
+                            "description": "テスト"
+                        }
+                        """.formatted(LocalDate.now())))
+                .andExpect(status().isOk());
+
+        // 2. DBに更新されたことを確認
+        Expense updated = expenseRepository.findById(expense.getId()).orElse(null);
+        assertThat(updated).isNotNull();
+        assertThat(updated.getCategory()).isEqualTo("食費");
+        assertThat(updated.getAmount()).isEqualTo(1000);
+        assertThat(updated.getDescription()).isEqualTo("テスト");
+        assertThat(updated.getDate()).isEqualTo(LocalDate.now());
+    }
 }

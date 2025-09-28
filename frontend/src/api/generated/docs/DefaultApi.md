@@ -6,6 +6,7 @@ All URIs are relative to *http://localhost:8080*
 |------------- | ------------- | -------------|
 |[**apiExpensesGet**](#apiexpensesget) | **GET** /api/expenses | 家計簿データ一覧取得|
 |[**apiExpensesIdDelete**](#apiexpensesiddelete) | **DELETE** /api/expenses/{id} | 家計簿データ削除|
+|[**apiExpensesIdPut**](#apiexpensesidput) | **PUT** /api/expenses/{id} | 家計簿データ更新|
 |[**apiExpensesPost**](#apiexpensespost) | **POST** /api/expenses | 家計簿データ追加|
 
 # **apiExpensesGet**
@@ -98,6 +99,63 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 |**204** | 家計簿データ削除成功 |  -  |
+|**404** | 家計簿データが見つからない |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)
+
+# **apiExpensesIdPut**
+> ExpenseDto apiExpensesIdPut(expenseRequestDto)
+
+指定されたIDの家計簿データを更新します
+
+### Example
+
+```typescript
+import {
+    DefaultApi,
+    Configuration,
+    ExpenseRequestDto
+} from './api';
+
+const configuration = new Configuration();
+const apiInstance = new DefaultApi(configuration);
+
+let id: number; // (default to undefined)
+let expenseRequestDto: ExpenseRequestDto; //
+
+const { status, data } = await apiInstance.apiExpensesIdPut(
+    id,
+    expenseRequestDto
+);
+```
+
+### Parameters
+
+|Name | Type | Description  | Notes|
+|------------- | ------------- | ------------- | -------------|
+| **expenseRequestDto** | **ExpenseRequestDto**|  | |
+| **id** | [**number**] |  | defaults to undefined|
+
+
+### Return type
+
+**ExpenseDto**
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+ - **Content-Type**: application/json
+ - **Accept**: application/json
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+|**200** | 家計簿データ更新成功 |  -  |
+|**400** | バリデーションエラー |  -  |
 |**404** | 家計簿データが見つからない |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#documentation-for-api-endpoints) [[Back to Model list]](../README.md#documentation-for-models) [[Back to README]](../README.md)

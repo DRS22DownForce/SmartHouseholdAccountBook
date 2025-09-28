@@ -20,6 +20,7 @@ import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpenseForm from './ExpenseForm';
 import ExpenseDeleteDialog from './ExpenseDeleteDialog';
+import ExpenseEditDialog from './ExpenseEditDialog';
 import { css } from '@emotion/react';
 
 // レスポンシブなテーブル用スタイル
@@ -40,6 +41,7 @@ const ExpenseList = () => {
     const [error, setError] = useState<string | null>(null); //エラーメッセージを管理するためのステート
 
     const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null); //削除対象のIDを管理するためのステート
+    const [editTarget, setEditTarget] = useState<ExpenseDto | null>(null); //編集対象
 
     //useEffectはReactのフック(副作用(コンポーネント外部に影響を及ぼす処理)を扱う関数)で、コンポーネントがマウント(画面に初めて表示)された時に一度だけ実行される
     useEffect(() => {
@@ -67,10 +69,10 @@ const ExpenseList = () => {
             //prev.filter((e) => e.id !== id)は、前のステートの値を参照して、idが一致するデータを除外した新しい配列を作成
             setExpenses((prev) => prev.filter((e) => e.id !== id));
             setDeleteTargetId(null); // ダイアログを閉じる
-            }catch(error: any){
-                setError(error.message);
-                setDeleteTargetId(null); // ダイアログを閉じる
-            };
+        } catch (error: any) {
+            setError(error.message);
+            setDeleteTargetId(null); // ダイアログを閉じる
+        };
     };
 
     return (
@@ -112,6 +114,10 @@ const ExpenseList = () => {
                                 <TableCell align="right" sx={{ fontWeight: 'bold' }}>{expenseDto.amount}円</TableCell>
                                 <TableCell>{expenseDto.description}</TableCell>
                                 <TableCell>
+                                    <IconButton onClick={() => setEditTarget(expenseDto)} sx={{ mr: 1 }}>
+                                        {/* 編集アイコンは標準で用意されていないためテキストでも可 */}
+                                        ✏️
+                                    </IconButton>
                                     <IconButton onClick={() => setDeleteTargetId(expenseDto.id ?? null)}>
                                         <DeleteIcon />
                                     </IconButton>
@@ -127,6 +133,18 @@ const ExpenseList = () => {
                 open={!!deleteTargetId}
                 onClose={() => setDeleteTargetId(null)}
                 onDelete={() => deleteTargetId && handleDelete(deleteTargetId!)}
+            />
+
+            {/* 編集ダイアログ */}
+            <ExpenseEditDialog
+                open={!!editTarget}
+                expense={editTarget}
+                onClose={() => setEditTarget(null)}
+                onSaved={(updated) => {
+                    setEditTarget(null)
+                    // 一覧の該当行だけ差し替える（最小再描画）
+                    setExpenses(prev => prev.map(x => x.id === updated.id ? updated : x))
+                }}
             />
         </Box>
     );

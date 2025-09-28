@@ -24,37 +24,56 @@ import type { RequestArgs } from './base';
 import { BASE_PATH, COLLECTION_FORMATS, BaseAPI, RequiredError, operationServerMap } from './base';
 
 /**
+ * エラーレスポンス用の共通スキーマ
+ * @export
+ * @interface ErrorResponse
+ */
+export interface ErrorResponse {
+    /**
+     * エラーメッジ
+     * @type {string}
+     * @memberof ErrorResponse
+     */
+    'message': string;
+    /**
+     * エラー発生時刻
+     * @type {string}
+     * @memberof ErrorResponse
+     */
+    'timestamp': string;
+}
+/**
  * 
  * @export
  * @interface ExpenseDto
  */
 export interface ExpenseDto {
     /**
-     * 
+     * 家計簿データの一意ID
      * @type {number}
      * @memberof ExpenseDto
      */
     'id'?: number;
     /**
-     * 
+     * 支出日
      * @type {string}
      * @memberof ExpenseDto
      */
     'date'?: string;
     /**
-     * 
+     * 支出カテゴリ
      * @type {string}
      * @memberof ExpenseDto
      */
     'category'?: string;
     /**
-     * 
+     * 支出金額
      * @type {number}
      * @memberof ExpenseDto
      */
     'amount'?: number;
     /**
-     * 
+     * 支出の詳細説明
      * @type {string}
      * @memberof ExpenseDto
      */
@@ -67,25 +86,25 @@ export interface ExpenseDto {
  */
 export interface ExpenseRequestDto {
     /**
-     * 
+     * 支出日
      * @type {string}
      * @memberof ExpenseRequestDto
      */
     'date': string;
     /**
-     * 
+     * 支出カテゴリ
      * @type {string}
      * @memberof ExpenseRequestDto
      */
     'category': string;
     /**
-     * 
+     * 支出金額
      * @type {number}
      * @memberof ExpenseRequestDto
      */
     'amount': number;
     /**
-     * 
+     * 支出の詳細説明
      * @type {string}
      * @memberof ExpenseRequestDto
      */
@@ -156,6 +175,46 @@ export const DefaultApiAxiosParamCreator = function (configuration?: Configurati
             setSearchParams(localVarUrlObj, localVarQueryParameter);
             let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
             localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+
+            return {
+                url: toPathString(localVarUrlObj),
+                options: localVarRequestOptions,
+            };
+        },
+        /**
+         * 指定されたIDの家計簿データを更新します
+         * @summary 家計簿データ更新
+         * @param {number} id 
+         * @param {ExpenseRequestDto} expenseRequestDto 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiExpensesIdPut: async (id: number, expenseRequestDto: ExpenseRequestDto, options: RawAxiosRequestConfig = {}): Promise<RequestArgs> => {
+            // verify required parameter 'id' is not null or undefined
+            assertParamExists('apiExpensesIdPut', 'id', id)
+            // verify required parameter 'expenseRequestDto' is not null or undefined
+            assertParamExists('apiExpensesIdPut', 'expenseRequestDto', expenseRequestDto)
+            const localVarPath = `/api/expenses/{id}`
+                .replace(`{${"id"}}`, encodeURIComponent(String(id)));
+            // use dummy base URL string because the URL constructor only accepts absolute URLs.
+            const localVarUrlObj = new URL(localVarPath, DUMMY_BASE_URL);
+            let baseOptions;
+            if (configuration) {
+                baseOptions = configuration.baseOptions;
+            }
+
+            const localVarRequestOptions = { method: 'PUT', ...baseOptions, ...options};
+            const localVarHeaderParameter = {} as any;
+            const localVarQueryParameter = {} as any;
+
+
+    
+            localVarHeaderParameter['Content-Type'] = 'application/json';
+
+            setSearchParams(localVarUrlObj, localVarQueryParameter);
+            let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+            localVarRequestOptions.headers = {...localVarHeaderParameter, ...headersFromBaseOptions, ...options.headers};
+            localVarRequestOptions.data = serializeDataIfNeeded(expenseRequestDto, localVarRequestOptions, configuration)
 
             return {
                 url: toPathString(localVarUrlObj),
@@ -234,6 +293,20 @@ export const DefaultApiFp = function(configuration?: Configuration) {
             return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
         },
         /**
+         * 指定されたIDの家計簿データを更新します
+         * @summary 家計簿データ更新
+         * @param {number} id 
+         * @param {ExpenseRequestDto} expenseRequestDto 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        async apiExpensesIdPut(id: number, expenseRequestDto: ExpenseRequestDto, options?: RawAxiosRequestConfig): Promise<(axios?: AxiosInstance, basePath?: string) => AxiosPromise<ExpenseDto>> {
+            const localVarAxiosArgs = await localVarAxiosParamCreator.apiExpensesIdPut(id, expenseRequestDto, options);
+            const localVarOperationServerIndex = configuration?.serverIndex ?? 0;
+            const localVarOperationServerBasePath = operationServerMap['DefaultApi.apiExpensesIdPut']?.[localVarOperationServerIndex]?.url;
+            return (axios, basePath) => createRequestFunction(localVarAxiosArgs, globalAxios, BASE_PATH, configuration)(axios, localVarOperationServerBasePath || basePath);
+        },
+        /**
          * 
          * @summary 家計簿データ追加
          * @param {ExpenseRequestDto} expenseRequestDto 
@@ -276,6 +349,17 @@ export const DefaultApiFactory = function (configuration?: Configuration, basePa
             return localVarFp.apiExpensesIdDelete(id, options).then((request) => request(axios, basePath));
         },
         /**
+         * 指定されたIDの家計簿データを更新します
+         * @summary 家計簿データ更新
+         * @param {number} id 
+         * @param {ExpenseRequestDto} expenseRequestDto 
+         * @param {*} [options] Override http request option.
+         * @throws {RequiredError}
+         */
+        apiExpensesIdPut(id: number, expenseRequestDto: ExpenseRequestDto, options?: RawAxiosRequestConfig): AxiosPromise<ExpenseDto> {
+            return localVarFp.apiExpensesIdPut(id, expenseRequestDto, options).then((request) => request(axios, basePath));
+        },
+        /**
          * 
          * @summary 家計簿データ追加
          * @param {ExpenseRequestDto} expenseRequestDto 
@@ -316,6 +400,19 @@ export class DefaultApi extends BaseAPI {
      */
     public apiExpensesIdDelete(id: number, options?: RawAxiosRequestConfig) {
         return DefaultApiFp(this.configuration).apiExpensesIdDelete(id, options).then((request) => request(this.axios, this.basePath));
+    }
+
+    /**
+     * 指定されたIDの家計簿データを更新します
+     * @summary 家計簿データ更新
+     * @param {number} id 
+     * @param {ExpenseRequestDto} expenseRequestDto 
+     * @param {*} [options] Override http request option.
+     * @throws {RequiredError}
+     * @memberof DefaultApi
+     */
+    public apiExpensesIdPut(id: number, expenseRequestDto: ExpenseRequestDto, options?: RawAxiosRequestConfig) {
+        return DefaultApiFp(this.configuration).apiExpensesIdPut(id, expenseRequestDto, options).then((request) => request(this.axios, this.basePath));
     }
 
     /**

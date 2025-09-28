@@ -50,6 +50,41 @@ paths:
           description: 家計簿データ削除成功
         '404':
           description: 家計簿データが見つからない
+    put:
+      summary: 家計簿データ更新
+      description: 指定されたIDの家計簿データを更新します
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ExpenseRequestDto'
+      responses:
+        '200':
+          description: 家計簿データ更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExpenseDto'
+        '400':
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 家計簿データが見つからない
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'          
 components:
   schemas:
     ExpenseDto:
@@ -58,15 +93,20 @@ components:
         id:
           type: integer
           format: int64
+          description: 家計簿データの一意ID
         date:
           type: string
           format: date
+          description: 支出日
         category:
           type: string
+          description: 支出カテゴリ
         amount:
           type: integer
+          description: 支出金額
         description:
           type: string
+          description: 支出の詳細説明
     ExpenseRequestDto:
       type: object
       required:
@@ -76,12 +116,28 @@ components:
       properties:
         date:
           type: string
-          format: date
+          format: date 
+          description: 支出日
         category:
           type: string
+          description: 支出カテゴリ
         amount:
           type: integer
+          description: 支出金額
         description:
           type: string
-            
-          
+          description: 支出の詳細説明
+    ErrorResponse:
+      type: object
+      description: エラーレスポンス用の共通スキーマ
+      required:
+        - message
+        - timestamp
+      properties:
+        message:
+          type: string
+          description: エラーメッジ
+        timestamp:
+          type: string
+          format: date-time
+          description: エラー発生時刻
