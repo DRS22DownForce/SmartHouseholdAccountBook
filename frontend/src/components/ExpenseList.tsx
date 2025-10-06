@@ -18,9 +18,12 @@ import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
-import ExpenseForm from './ExpenseForm';
+import Button from '@mui/material/Button';
+import AddIcon from '@mui/icons-material/Add';
+// import ExpenseForm from './ExpenseForm'; // 追加をダイアログ化するため削除
 import ExpenseDeleteDialog from './Dialog/ExpenseDeleteDialog';
 import ExpenseEditDialog from './Dialog/ExpenseEditDialog';
+import ExpenseAddDialog from './Dialog/ExpenseAddDialog';
 import { css } from '@emotion/react';
 
 // レスポンシブなテーブル用スタイル
@@ -42,6 +45,7 @@ const ExpenseList = () => {
 
     const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null); //削除対象のIDを管理するためのステート
     const [editTarget, setEditTarget] = useState<ExpenseDto | null>(null); //編集対象
+    const [addDialogOpen, setAddOpen] = useState(false); // 追加ダイアログの開閉
 
     //useEffectはReactのフック(副作用(コンポーネント外部に影響を及ぼす処理)を扱う関数)で、コンポーネントがマウント(画面に初めて表示)された時に一度だけ実行される
     useEffect(() => {
@@ -61,7 +65,13 @@ const ExpenseList = () => {
 
     return (
         <Box sx={{ mt: 4, px: { xs: 0.5, sm: 2 } }}> {/* スマホ時は左右パディングを減らす */}
-            <ExpenseForm onAdded={fetchExpenses} />
+            {/* 追加ボタン：押すと追加ダイアログを開く */}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+                <Button variant="contained" startIcon={<AddIcon />} onClick={() => setAddOpen(true)}>
+                    支出を追加
+                </Button>
+            </Box>
+
             {/* タイトル：
         Typographyでh1相当の表示
         variant="h4"は大きなタイトルを表示するためのオプション
@@ -111,6 +121,17 @@ const ExpenseList = () => {
                     </TableBody>
                 </Table>
             </TableContainer>
+
+            {/* 追加ダイアログ */}
+            <ExpenseAddDialog
+                open={addDialogOpen}
+                onClose={() => setAddOpen(false)}
+                onSaved={(created) => {
+                    setAddOpen(false);
+                    // 一覧の先頭に差し込む（最小再描画で高速）
+                    setExpenses(prev => [created, ...prev]);
+                }}
+            />
 
             {/* 削除確認ダイアログ */}
             <ExpenseDeleteDialog
