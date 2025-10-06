@@ -19,8 +19,8 @@ import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExpenseForm from './ExpenseForm';
-import ExpenseDeleteDialog from './ExpenseDeleteDialog';
-import ExpenseEditDialog from './ExpenseEditDialog';
+import ExpenseDeleteDialog from './Dialog/ExpenseDeleteDialog';
+import ExpenseEditDialog from './Dialog/ExpenseEditDialog';
 import { css } from '@emotion/react';
 
 // レスポンシブなテーブル用スタイル
@@ -57,22 +57,6 @@ const ExpenseList = () => {
         } catch (error: any) {
             setError(error.message);
         }
-    };
-
-    // 削除処理
-    const handleDelete = async (id: number) => {
-        try {
-            const options = await withAuthHeader();
-            await api.apiExpensesIdDelete(id, options);
-            // 削除成功時はローカルのリストから該当データを除外
-            //prevは前のステートの値を参照するための変数
-            //prev.filter((e) => e.id !== id)は、前のステートの値を参照して、idが一致するデータを除外した新しい配列を作成
-            setExpenses((prev) => prev.filter((e) => e.id !== id));
-            setDeleteTargetId(null); // ダイアログを閉じる
-        } catch (error: any) {
-            setError(error.message);
-            setDeleteTargetId(null); // ダイアログを閉じる
-        };
     };
 
     return (
@@ -131,8 +115,9 @@ const ExpenseList = () => {
             {/* 削除確認ダイアログ */}
             <ExpenseDeleteDialog
                 open={!!deleteTargetId}
+                expenseId={deleteTargetId ?? 0}
                 onClose={() => setDeleteTargetId(null)}
-                onDelete={() => deleteTargetId && handleDelete(deleteTargetId!)}
+                onDeleted={fetchExpenses}
             />
 
             {/* 編集ダイアログ */}
