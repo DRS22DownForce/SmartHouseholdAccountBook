@@ -1,9 +1,26 @@
+/**
+ * ホームページコンポーネント
+ * 
+ * スマート家計簿アプリのメイン画面です。
+ * 
+ * 認証について:
+ * - このページは AuthProvider によって保護されています
+ * - useAuthenticator フックで現在ログイン中のユーザー情報を取得
+ * - ユーザーが未認証の場合、AuthProvider が自動的にログイン画面を表示
+ * 
+ * 主な機能:
+ * - 支出の追加、編集、削除
+ * - 月別サマリーの表示
+ * - トレンドチャートの表示
+ * - CSVファイルからのインポート
+ * - AI チャットによる支出分析
+ */
+
 "use client"
 
-import { useState, useMemo, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useMemo } from "react"
+import { useAuthenticator } from "@aws-amplify/ui-react"
 import { useExpenses } from "@/hooks/use-expenses"
-import { useUser } from "@/hooks/use-user"
 import { ExpenseForm } from "@/components/expense-form"
 import { ExpenseList } from "@/components/expense-list"
 import { MonthlySummary } from "@/components/monthly-summary"
@@ -14,23 +31,23 @@ import { Wallet } from "lucide-react"
 import { AiChatDialog } from "@/components/ai-chat-dialog"
 
 export default function HomePage() {
-  const router = useRouter()
-  const { expenses, addExpense, addExpenses, updateExpense, deleteExpense, isLoaded } = useExpenses()
-  const { username, saveUsername, logout, isLoaded: isUserLoaded } = useUser()
+  // Cognito認証情報を取得
+  // user: ログイン中のユーザー情報（メールアドレス、属性など）
+  // signOut: ログアウト関数
+  const { user, signOut } = useAuthenticator((context) => [context.user])
 
+  // 支出データの管理
+  const { expenses, addExpense, addExpenses, updateExpense, deleteExpense, isLoaded } = useExpenses()
+
+  // 現在の月を取得（YYYY-MM形式）
   const currentMonth = useMemo(() => {
     return new Date().toISOString().substring(0, 7)
   }, [])
 
   const [selectedMonth, setSelectedMonth] = useState(currentMonth)
 
-  useEffect(() => {
-    if (isUserLoaded && !username) {
-      router.push("/login")
-    }
-  }, [isUserLoaded, username, router])
-
-  if (!isLoaded || !isUserLoaded) {
+  // データ読み込み中の表示
+  if (!isLoaded) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-muted-foreground">読み込み中...</p>
@@ -38,13 +55,9 @@ export default function HomePage() {
     )
   }
 
-  if (!username) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-muted-foreground">リダイレクト中...</p>
-      </div>
-    )
-  }
+  // ユーザー名を取得（メールアドレスまたはusername属性）
+  // Cognitoではメールアドレスをユーザー名として使用しています
+  const username = user.signInDetails?.loginId || user.username
 
   return (
     <div className="min-h-screen bg-background">
@@ -66,7 +79,8 @@ export default function HomePage() {
               <AiChatDialog expenses={expenses} />
               <CsvUploadDialog onUpload={addExpenses} />
               <ExpenseForm onSubmit={addExpense} />
-              <UserMenu username={username} onLogout={logout} />
+              {/* signOut関数を渡してログアウト機能を実装 */}
+              <UserMenu username={username} onLogout={signOut} />
             </div>
           </div>
         </div>

@@ -40,3 +40,4 @@ build/
 /backend/src/main/java-generated/
 /docker/mysql/init.sql
 
+frontend-nextjs/COGNITO_MIGRATION.md
