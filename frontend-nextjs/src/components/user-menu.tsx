@@ -1,6 +1,19 @@
+/**
+ * ユーザーメニューコンポーネント
+ * 
+ * ヘッダー右上に表示されるユーザーメニューです。
+ * 
+ * 機能:
+ * - ログイン中のユーザー名（メールアドレス）を表示
+ * - ログアウトボタンを提供
+ * 
+ * Cognito連携:
+ * - onLogout関数でCognitoからログアウト
+ * - ログアウト後はAuthProviderが自動的にログイン画面を表示
+ */
+
 "use client"
 
-import { useRouter } from "next/navigation"
 import { User, LogOut } from "lucide-react"
 import {
   DropdownMenu,
@@ -18,15 +31,21 @@ interface UserMenuProps {
 }
 
 export function UserMenu({ username, onLogout }: UserMenuProps) {
-  const router = useRouter()
-
   if (!username) {
     return null
   }
 
+  /**
+   * ログアウトハンドラー
+   * 
+   * Cognitoからログアウトを実行します。
+   * ログアウト後、AuthProviderが認証状態の変更を検知して
+   * 自動的にログイン画面を表示するため、明示的なリダイレクトは不要です。
+   */
   const handleLogout = () => {
     onLogout()
-    router.push("/login")
+    // AuthProviderが自動的にログイン画面に戻すため、
+    // router.push("/login")は不要
   }
 
   return (
