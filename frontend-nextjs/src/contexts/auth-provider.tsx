@@ -65,7 +65,7 @@ I18n.putVocabularies({
     }
 })
 
-interface AuthProviderProps {
+type AuthProviderProps = {
     children: React.ReactNode
 }
 

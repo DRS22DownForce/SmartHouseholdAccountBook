@@ -6,11 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "generate:api": "npx openapi-generator-cli generate -i ../openapi/openapi.yaml -g typescript-axios -o ./src/api/generated"
   },
   "dependencies": {
     "@aws-amplify/ui-react": "^6.13.0",
     "@hookform/resolvers": "^3.10.0",
+    "@openapitools/openapi-generator-cli": "^2.25.0",
     "@radix-ui/react-accordion": "1.2.2",
     "@radix-ui/react-alert-dialog": "1.1.4",
     "@radix-ui/react-aspect-ratio": "1.1.1",
@@ -42,6 +44,7 @@
     "ai": "5.0.68",
     "autoprefixer": "^10.4.20",
     "aws-amplify": "^6.15.7",
+    "axios": "^1.12.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
