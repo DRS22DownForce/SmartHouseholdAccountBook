@@ -16,15 +16,17 @@ public class WebConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 // すべてのAPIパスに対してCORSを許可します
                 registry.addMapping("/**")
-                        // 許可するオリジン（フロントエンド, データベースのURL）を指定します
+                        // 許可するオリジン（フロントエンド）を指定します
                         .allowedOrigins(
-                            "http://localhost:5173",
-                            "http://127.0.0.1:5173",
-                            "http://localhost:3306",
-                            "http://127.0.0.1:3306",
-                            "https://smart-household-account-book.com")
+                                "http://localhost:3000", // Next.js開発サーバー
+                                "http://127.0.0.1:3000", // Next.js開発サーバー（127.0.0.1）
+                                "http://localhost:5173", // Vite開発サーバー
+                                "http://127.0.0.1:5173", // Vite開発サーバー（127.0.0.1）
+                                "https://smart-household-account-book.com")
                         // 許可するHTTPメソッドを指定します
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                        // すべてのヘッダーを許可（Authorizationヘッダーを含む）
+                        .allowedHeaders("*")
                         // Cookieなどの認証情報を許可する場合はtrueにします
                         .allowCredentials(true);
             }
