@@ -36,7 +36,63 @@ build/
 ### VS Code ###
 .vscode/
 
-.env
-/backend/src/main/java-generated/
-/docker/mysql/init.sql
+# ========================================
+# 🔒 機密情報・セキュリティ関連ファイル
+# ========================================
 
+# 環境変数ファイル（すべてのバリエーション）
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+*.env
+
+# データベース関連
+/docker/mysql/init.sql
+*.sql.backup
+*.sql.dump
+*.db
+*.sqlite
+*.sqlite3
+
+# ログファイル
+*.log
+logs/
+*.log.*
+
+# 認証情報・証明書
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+secrets/
+credentials/
+
+# AWS・クラウド関連
+.aws/
+*.tfstate
+*.tfstate.backup
+
+# Docker関連の機密データ
+docker-compose.override.yml
+
+# ========================================
+# ビルド成果物・生成ファイル
+# ========================================
+/backend/src/main/java-generated/
+
+# ========================================
+# 一時ファイル・ドキュメント
+# ========================================
+frontend-nextjs/COGNITO_MIGRATION.md
+
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
