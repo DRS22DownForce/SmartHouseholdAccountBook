@@ -16,8 +16,7 @@
  * - Cognitoで認証されたユーザーのみアクセス可能
  * 
  * パフォーマンス:
- * - 楽観的UI更新: ユーザー操作に即座に反応
- * - エラー時のロールバック: API失敗時は元の状態に戻す
+ * - API成功後のみUI更新: サーバーの応答を確認してから更新
  */
 
 "use client"
@@ -26,18 +25,7 @@ import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { getApiClient, withAuthHeader } from "@/api/expenseApi"
 import type { ExpenseDto, ExpenseRequestDto } from "@/api/generated/api"
-
-// OpenAPI生成型との互換性のため、既存のExpense型を維持しつつマッピング
-export type Expense = {
-  id: string  // UIではstring型で管理（元のExpenseDtoはnumber）
-  amount: number
-  category: string
-  description: string
-  date: string
-  createdAt: string  // UI用のメタデータ（APIには存在しない）
-}
-
-export type ExpenseFormData = Omit<Expense, "id" | "createdAt">
+import type { Expense, ExpenseFormData } from "@/lib/types"
 
 /**
  * ExpenseDtoをExpense型に変換
@@ -72,6 +60,17 @@ function toRequestDto(data: ExpenseFormData): ExpenseRequestDto {
     category: data.category,
     amount: data.amount,
     description: data.description
+  }
+}
+
+function notifyError(error: any, defaultMessage: string) {
+
+  if (error.response?.status === 401) {
+    toast.error('認証エラー: 再ログインしてください')
+  } else if (error.response?.status === 404) {
+    toast.error('データが見つかりませんでした')
+  } else {
+    toast.error(defaultMessage)
   }
 }
 
@@ -110,9 +109,6 @@ export function useExpenses() {
    * 
    * GET /api/expenses を呼び出して、全ての支出データを取得します。
    * 
-   * エラーハンドリング:
-   * - 401 Unauthorized: 認証エラー（トークン期限切れなど）
-   * - その他のエラー: 一般的なエラーメッセージを表示
    */
   const fetchExpenses = async () => {
     try {
@@ -129,15 +125,7 @@ export function useExpenses() {
       setExpenses(expenseList)
       setIsLoaded(true)
     } catch (error: any) {
-      console.error('Failed to fetch expenses:', error)
-
-      // エラーの種類に応じたメッセージを表示
-      if (error.response?.status === 401) {
-        toast.error('認証エラー: 再ログインしてください')
-      } else {
-        toast.error('支出データの取得に失敗しました')
-      }
-
+      notifyError(error, '支出データの取得に失敗しました')
       // エラーでも読み込み完了とする（空の配列を表示）
       setIsLoaded(true)
     }
@@ -147,12 +135,6 @@ export function useExpenses() {
    * 支出を追加する関数
    * 
    * POST /api/expenses を呼び出して、新しい支出をサーバーに保存します。
-   * 
-   * 楽観的UI更新:
-   * 1. 即座にUIを更新（ユーザーへの高速フィードバック）
-   * 2. バックグラウンドでAPIを呼び出し
-   * 3. 成功時: サーバーから返されたデータ（IDを含む）で更新
-   * 4. 失敗時: ロールバック（元の状態に戻す）
    * 
    * @param {ExpenseFormData} data - 追加する支出データ
    */
@@ -176,14 +158,7 @@ export function useExpenses() {
       // 成功通知
       toast.success('支出を追加しました')
     } catch (error: any) {
-      console.error('Failed to add expense:', error)
-
-      // エラー通知
-      if (error.response?.status === 401) {
-        toast.error('認証エラー: 再ログインしてください')
-      } else {
-        toast.error('支出の追加に失敗しました')
-      }
+      notifyError(error, '支出の追加に失敗しました')
     }
   }
 
@@ -217,11 +192,7 @@ export function useExpenses() {
       console.error('Failed to add expenses:', error)
 
       // エラー通知
-      if (error.response?.status === 401) {
-        toast.error('認証エラー: 再ログインしてください')
-      } else {
-        toast.error('支出の一括追加に失敗しました')
-      }
+      notifyError(error, '支出の一括追加に失敗しました')
     }
   }
 
@@ -230,29 +201,16 @@ export function useExpenses() {
    * 
    * PUT /api/expenses/{id} を呼び出して、既存の支出を更新します。
    * 
-   * 楽観的UI更新:
-   * 1. 即座にUIを更新
-   * 2. バックグラウンドでAPIを呼び出し
-   * 3. 成功時: サーバーから返されたデータで更新
-   * 4. 失敗時: ロールバック
+   * 更新の流れ:
+   * 1. APIを呼び出してサーバーで更新
+   * 2. 成功時のみ: サーバーから返されたデータでUIを更新
+   * 3. 失敗時: エラー通知のみ（UIは変更されない）
    * 
    * @param {string} id - 更新する支出のID
    * @param {ExpenseFormData} data - 更新後のデータ
    */
   const updateExpense = async (id: string, data: ExpenseFormData) => {
-    // ロールバック用に元のデータを保存
-    const oldExpenses = [...expenses]
-
     try {
-      // 楽観的UI更新: 即座にUIを更新
-      setExpenses((prev) =>
-        prev.map((expense) =>
-          expense.id === id
-            ? { ...expense, ...data }
-            : expense
-        )
-      )
-
       // API用のリクエストDTOに変換
       const requestDto = toRequestDto(data)
 
@@ -262,32 +220,20 @@ export function useExpenses() {
       // APIで支出を更新（idをnumberに変換）
       const response = await api.apiExpensesIdPut(Number(id), requestDto, options)
 
-      // サーバーから返されたデータで再度更新（サーバーが正となる）
+      // サーバーから返されたデータをUI用の型に変換
       const updatedExpense = toExpense(response.data)
+
+      // API成功後にのみUIを更新
       setExpenses((prev) =>
         prev.map((expense) =>
-          expense.id === id
-            ? updatedExpense
-            : expense
+          expense.id === id ? updatedExpense : expense
         )
       )
-
       // 成功通知
       toast.success('支出を更新しました')
     } catch (error: any) {
-      console.error('Failed to update expense:', error)
-
-      // エラー時にロールバック
-      setExpenses(oldExpenses)
-
-      // エラー通知
-      if (error.response?.status === 401) {
-        toast.error('認証エラー: 再ログインしてください')
-      } else if (error.response?.status === 404) {
-        toast.error('支出が見つかりませんでした')
-      } else {
-        toast.error('支出の更新に失敗しました')
-      }
+      // エラー通知（UIは変更されない）
+      notifyError(error, '支出の更新に失敗しました')
     }
   }
 
@@ -296,43 +242,31 @@ export function useExpenses() {
    * 
    * DELETE /api/expenses/{id} を呼び出して、支出をサーバーから削除します。
    * 
-   * 楽観的UI更新:
-   * 1. 即座にUIから削除
-   * 2. バックグラウンドでAPIを呼び出し
-   * 3. 失敗時: ロールバック（削除した要素を復元）
+   * 削除の流れ:
+   * 1. APIを呼び出してサーバーで削除
+   * 2. 成功時のみ: UIから削除
+   * 3. 失敗時: エラー通知のみ（UIは変更されない）
    * 
    * @param {string} id - 削除する支出のID
    */
   const deleteExpense = async (id: string) => {
-    // ロールバック用に元のデータを保存
-    const oldExpenses = [...expenses]
-
     try {
-      // 楽観的UI更新: 即座にUIから削除
-      setExpenses((prev) => prev.filter((expense) => expense.id !== id))
-
       // JWT認証ヘッダーを付与
       const options = await withAuthHeader()
 
       // APIで支出を削除（idをnumberに変換）
       await api.apiExpensesIdDelete(Number(id), options)
 
+      // API成功後にのみUIから削除
+      setExpenses((prev) => prev.filter((expense) => expense.id !== id))
+
       // 成功通知
       toast.success('支出を削除しました')
     } catch (error: any) {
       console.error('Failed to delete expense:', error)
 
-      // エラー時にロールバック
-      setExpenses(oldExpenses)
-
-      // エラー通知
-      if (error.response?.status === 401) {
-        toast.error('認証エラー: 再ログインしてください')
-      } else if (error.response?.status === 404) {
-        toast.error('支出が見つかりませんでした')
-      } else {
-        toast.error('支出の削除に失敗しました')
-      }
+      // エラー通知（UIは変更されない）
+      notifyError(error, '支出の削除に失敗しました')
     }
   }
 
