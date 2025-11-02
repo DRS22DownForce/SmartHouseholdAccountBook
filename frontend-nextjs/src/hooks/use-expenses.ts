@@ -25,18 +25,7 @@ import { useState, useEffect } from "react"
 import { toast } from "sonner"
 import { getApiClient, withAuthHeader } from "@/api/expenseApi"
 import type { ExpenseDto, ExpenseRequestDto } from "@/api/generated/api"
-
-// OpenAPI生成型との互換性のため、既存のExpense型を維持しつつマッピング
-export type Expense = {
-  id: string  // UIではstring型で管理（元のExpenseDtoはnumber）
-  amount: number
-  category: string
-  description: string
-  date: string
-  createdAt: string  // UI用のメタデータ（APIには存在しない）
-}
-
-export type ExpenseFormData = Omit<Expense, "id" | "createdAt">
+import type { Expense, ExpenseFormData } from "@/lib/types"
 
 /**
  * ExpenseDtoをExpense型に変換
