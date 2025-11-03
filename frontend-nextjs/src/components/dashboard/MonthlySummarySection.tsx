@@ -44,7 +44,7 @@ function calculateMonthlyData(expenses: Expense[], selectedMonth: string) {
   }
 }
 
-export function SummarySection({
+export function MonthlySummarySection({
   expenses,
   selectedMonth,
   onMonthChange,
@@ -57,10 +57,10 @@ export function SummarySection({
   )
 
   const chartData = useMemo(() => {
-    return monthlyData.byCategory.map(([name, value], index) => ({
+    return monthlyData.byCategory.map(([name, value]) => ({
       name,
       value,
-      color: getCategoryColor(name, index),
+      color: getCategoryColor(name),
     }))
   }, [monthlyData.byCategory])
 
@@ -70,18 +70,18 @@ export function SummarySection({
         <h2 className="text-base md:text-lg font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent tracking-tight">
           月別サマリー
         </h2>
-    <Select value={selectedMonth} onValueChange={onMonthChange}>
-      <SelectTrigger className="w-40 md:w-48 rounded-lg border-border/60 hover:border-primary/40 transition-colors">
-        <SelectValue />
-      </SelectTrigger>
-      <SelectContent>
-        {availableMonths.map((month) => (
-          <SelectItem key={month} value={month}>
-            {formatMonth(month)}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
+        <Select value={selectedMonth} onValueChange={onMonthChange}>
+          <SelectTrigger className="w-40 md:w-48 rounded-lg border-border/60 hover:border-primary/40 transition-colors">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {availableMonths.map((month) => (
+              <SelectItem key={month} value={month}>
+                {formatMonth(month)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid gap-2.5 md:grid-cols-3 md:gap-3">
@@ -110,7 +110,7 @@ export function SummarySection({
           <CardContent className="pt-0">
             {monthlyData.byCategory.length > 0 ? (
               <div className="space-y-1.5">
-                {monthlyData.byCategory.slice(0, 3).map(([category, amount], index) => (
+                {monthlyData.byCategory.slice(0, 3).map(([category, amount]) => (
                   <div
                     key={category}
                     className="flex items-center justify-between p-1 rounded-lg hover:bg-muted/50 transition-colors"
@@ -118,7 +118,7 @@ export function SummarySection({
                     <div className="flex items-center gap-1.5">
                       <div
                         className="w-3 h-3 rounded-full shadow-sm"
-                        style={{ backgroundColor: getCategoryColor(category, index) }}
+                        style={{ backgroundColor: getCategoryColor(category) }}
                       />
                       <span className="text-xs md:text-sm font-semibold text-foreground">{category}</span>
                     </div>
