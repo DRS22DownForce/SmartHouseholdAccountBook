@@ -5,7 +5,7 @@ import { useAuthenticator } from "@aws-amplify/ui-react"
 import { useExpenses } from "@/hooks/use-expenses"
 import { Header } from "@/components/dashboard/Header"
 import { ExpenseTrendChart } from "@/components/expense-trend-chart"
-import { SummarySection } from "@/components/dashboard/SummarySection"
+import { MonthlySummarySection } from "@/components/dashboard/MonthlySummarySection"
 import { getCurrentMonthString } from "@/lib/formatters"
 
 function LoadingSpinner() {
@@ -47,7 +47,7 @@ export default function HomePage() {
       <main className="container mx-auto max-w-7xl px-6 md:px-8 lg:px-12 py-1 md:py-2">
         <div className="space-y-2 md:space-y-2.5">
           <MemoizedExpenseTrendChart expenses={expenses} />
-          <SummarySection
+          <MonthlySummarySection
             expenses={expenses}
             selectedMonth={selectedMonth}
             onMonthChange={setSelectedMonth}
