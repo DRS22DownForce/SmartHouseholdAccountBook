@@ -4,7 +4,7 @@ import { useState, useMemo } from "react"
 import { useAuthenticator } from "@aws-amplify/ui-react"
 import { useExpenses } from "@/hooks/use-expenses"
 import { Header } from "@/components/dashboard/Header"
-import { ExpenseTrendSection } from "@/components/dashboard/ExpenseTrendSection"
+import { ExpenseTrendChart } from "@/components/expense-trend-chart"
 import { SummarySection } from "@/components/dashboard/SummarySection"
 import { getCurrentMonthString } from "@/lib/formatters"
 
@@ -43,7 +43,7 @@ export default function HomePage() {
 
       <main className="container mx-auto max-w-7xl px-6 md:px-8 lg:px-12 py-3 md:py-4">
         <div className="space-y-4 md:space-y-5 lg:space-y-6">
-          <ExpenseTrendSection expenses={expenses} />
+          <ExpenseTrendChart expenses={expenses} />
           <SummarySection
             expenses={expenses}
             selectedMonth={selectedMonth}

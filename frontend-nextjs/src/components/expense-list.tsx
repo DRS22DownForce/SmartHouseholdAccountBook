@@ -18,6 +18,7 @@ import { ExpenseForm } from "./expense-form"
 import { Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
 import type { Expense, ExpenseFormData } from "@/lib/types"
 import { getCategoryColor } from "@/lib/category-colors"
+import { formatCurrency } from "@/lib/formatters"
 
 interface ExpenseListProps {
   expenses: Expense[]
@@ -35,13 +36,6 @@ export function ExpenseList({ expenses, onUpdate, onDelete }: ExpenseListProps) 
       month: "long",
       day: "numeric",
     }).format(date)
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("ja-JP", {
-      style: "currency",
-      currency: "JPY",
-    }).format(amount)
   }
 
   const filteredExpenses = expenses.filter((expense) => {
@@ -87,39 +81,29 @@ export function ExpenseList({ expenses, onUpdate, onDelete }: ExpenseListProps) 
 
   return (
     <div className="space-y-6">
-      {/* 月選択ナビゲーション: より洗練されたデザイン */}
       <Card className="border-border/50 shadow-sm bg-gradient-to-r from-card to-card/95">
         <div className="flex items-center justify-between gap-4 p-4 md:p-5">
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={goToPreviousMonth} 
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={goToPreviousMonth}
             className="rounded-lg hover:bg-muted/80 transition-colors"
           >
             <ChevronLeft className="h-4 w-4" />
             <span className="sr-only">前月</span>
           </Button>
           <div className="flex-1 text-center">
-            {/* 
-              月表示のサイズを適切なサイズに調整
-              - text-lg md:text-xl: 適切なサイズ（以前のtext-xl md:text-2xlから縮小）
-              - font-semibold: 太すぎず適度な太さ
-            */}
             <h3 className="text-lg md:text-xl font-semibold text-foreground tracking-tight">
               {formatMonthYear(selectedDate)}
             </h3>
-            {/* 
-              合計金額の表示サイズも適切に調整
-              - text-sm md:text-base: 読みやすいサイズに調整
-            */}
             <p className="text-sm md:text-base text-muted-foreground mt-2 font-medium">
               合計: <span className="text-foreground font-semibold">{formatCurrency(monthTotal)}</span>
             </p>
           </div>
-          <Button 
-            variant="outline" 
-            size="icon" 
-            onClick={goToNextMonth} 
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={goToNextMonth}
             className="rounded-lg hover:bg-muted/80 transition-colors"
           >
             <ChevronRight className="h-4 w-4" />
@@ -128,13 +112,12 @@ export function ExpenseList({ expenses, onUpdate, onDelete }: ExpenseListProps) 
         </div>
       </Card>
 
-      {/* 今月に戻るボタン: より目立つデザイン */}
       {!isCurrentMonth() && (
         <div className="text-center">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={goToCurrentMonth} 
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={goToCurrentMonth}
             className="rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
           >
             今月に戻る
@@ -142,28 +125,25 @@ export function ExpenseList({ expenses, onUpdate, onDelete }: ExpenseListProps) 
         </div>
       )}
 
-      {/* 支出一覧: 空の場合 */}
       {filteredExpenses.length === 0 ? (
         <Card className="p-16 md:p-20 text-center border-2 border-dashed border-muted-foreground/20 shadow-sm bg-muted/30">
           <p className="text-muted-foreground text-lg md:text-xl font-medium">この月の支出はありません</p>
         </Card>
       ) : (
-        /* 支出一覧: スクロール可能なリスト */
         <div className="max-h-[600px] overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
           {filteredExpenses.map((expense) => (
-            <Card 
-              key={expense.id} 
+            <Card
+              key={expense.id}
               className="group p-5 md:p-6 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 border-border/60 bg-gradient-to-br from-card to-card/95 hover:border-primary/20"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  {/* カテゴリーと日付: より良いレイアウト */}
                   <div className="flex items-center gap-3 mb-4">
                     <span
                       className="inline-flex items-center rounded-lg px-3 py-1.5 text-xs md:text-sm font-semibold text-white shadow-md transition-transform group-hover:scale-105"
-                      style={{ 
+                      style={{
                         backgroundColor: getCategoryColor(expense.category),
-                        boxShadow: `0 4px 12px ${getCategoryColor(expense.category)}40`
+                        boxShadow: `0 4px 12px ${getCategoryColor(expense.category)}40`,
                       }}
                     >
                       {expense.category}
@@ -172,28 +152,19 @@ export function ExpenseList({ expenses, onUpdate, onDelete }: ExpenseListProps) 
                       {formatDate(expense.date)}
                     </span>
                   </div>
-                  {/* 説明: より読みやすいフォントサイズ */}
-                  <p className="font-semibold text-foreground mb-3 text-base md:text-lg">
-                    {expense.description}
-                  </p>
-                  {/* 
-                    金額の表示サイズを適切なサイズに調整
-                    - text-lg md:text-xl: 適切なサイズ（以前のtext-2xl md:text-3xlから縮小）
-                    - font-bold: 金額なので太字は維持
-                  */}
+                  <p className="font-semibold text-foreground mb-3 text-base md:text-lg">{expense.description}</p>
                   <p className="text-lg md:text-xl font-bold text-foreground tracking-tight">
                     {formatCurrency(expense.amount)}
                   </p>
                 </div>
-                {/* アクションボタン: ホバー時の視覚的フィードバック */}
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <ExpenseForm
                     expense={expense}
                     onSubmit={(data) => onUpdate(expense.id, data)}
                     trigger={
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
                       >
                         <Pencil className="h-4 w-4" />
@@ -203,9 +174,9 @@ export function ExpenseList({ expenses, onUpdate, onDelete }: ExpenseListProps) 
                   />
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         className="rounded-lg hover:bg-destructive/10 hover:text-destructive transition-colors"
                       >
                         <Trash2 className="h-4 w-4" />

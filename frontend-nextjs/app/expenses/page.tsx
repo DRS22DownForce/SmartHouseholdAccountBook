@@ -4,7 +4,7 @@ import { useMemo } from "react"
 import { useAuthenticator } from "@aws-amplify/ui-react"
 import { useExpenses } from "@/hooks/use-expenses"
 import { Header } from "@/components/dashboard/Header"
-import { ExpenseListSection } from "@/components/dashboard/ExpenseListSection"
+import { ExpenseList } from "@/components/expense-list"
 
 function LoadingSpinner() {
   return (
@@ -46,7 +46,7 @@ export default function ExpensesPage() {
           <p className="text-muted-foreground">全ての支出を確認し、編集・削除できます</p>
         </div>
 
-        <ExpenseListSection expenses={expenses} onUpdate={updateExpense} onDelete={deleteExpense} />
+        <ExpenseList expenses={expenses} onUpdate={updateExpense} onDelete={deleteExpense} />
       </main>
     </div>
   )
