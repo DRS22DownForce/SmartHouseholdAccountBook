@@ -22,21 +22,6 @@ export const CATEGORY_COLORS: Record<string, string> = {
 }
 
 /**
- * デフォルトカラー配列
- * カテゴリーが定義されていない場合に使用される色のリスト
- */
-const DEFAULT_COLORS = [
-  "#FF6B35", // Orange
-  "#FF8C42", // Dark Orange
-  "#4A90E2", // Blue
-  "#9B59B6", // Purple
-  "#2ECC71", // Green
-  "#E74C3C", // Red
-  "#F39C12", // Yellow
-  "#1ABC9C", // Teal
-]
-
-/**
  * カテゴリーに対応する色を取得する関数
  * 
  * @param category - 支出カテゴリー名（例: "食費", "交通費"）
@@ -47,11 +32,6 @@ const DEFAULT_COLORS = [
  * - getCategoryColor("食費") → "#FF6B35"
  * - getCategoryColor("未定義カテゴリー", 2) → "#4A90E2"（DEFAULT_COLORSから）
  */
-export function getCategoryColor(category: string, index = 0): string {
-  // まず定義済みのカテゴリーカラーをチェック
-  if (CATEGORY_COLORS[category]) {
+export function getCategoryColor(category: string): string {
     return CATEGORY_COLORS[category]
-  }
-  // 定義されていない場合は、インデックスに基づいてデフォルトカラーを返す
-  return DEFAULT_COLORS[index % DEFAULT_COLORS.length]
 }

@@ -89,6 +89,12 @@ components:
   schemas:
     ExpenseDto:
       type: object
+      required:
+        - id
+        - date
+        - category
+        - amount
+        - description
       properties:
         id:
           type: integer

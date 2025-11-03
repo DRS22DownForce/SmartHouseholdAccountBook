@@ -1,11 +1,11 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, memo } from "react"
 import { useAuthenticator } from "@aws-amplify/ui-react"
 import { useExpenses } from "@/hooks/use-expenses"
 import { Header } from "@/components/dashboard/Header"
 import { ExpenseTrendChart } from "@/components/expense-trend-chart"
-import { SummarySection } from "@/components/dashboard/SummarySection"
+import { MonthlySummarySection } from "@/components/dashboard/MonthlySummarySection"
 import { getCurrentMonthString } from "@/lib/formatters"
 
 function LoadingSpinner() {
@@ -20,6 +20,9 @@ function getUserDisplayName(user: ReturnType<typeof useAuthenticator>["user"]): 
   return user.signInDetails?.loginId || user.username
 }
 
+const MemoizedHeader = memo(Header)
+const MemoizedExpenseTrendChart = memo(ExpenseTrendChart)
+
 export default function HomePage() {
   const { user, signOut } = useAuthenticator((context) => [context.user])
   const { expenses, addExpense, addExpenses, isLoaded } = useExpenses()
@@ -33,7 +36,7 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <Header
+      <MemoizedHeader
         expenses={expenses}
         username={username}
         onLogout={signOut}
@@ -43,8 +46,8 @@ export default function HomePage() {
 
       <main className="container mx-auto max-w-7xl px-6 md:px-8 lg:px-12 py-1 md:py-2">
         <div className="space-y-2 md:space-y-2.5">
-          <ExpenseTrendChart expenses={expenses} />
-          <SummarySection
+          <MemoizedExpenseTrendChart expenses={expenses} />
+          <MonthlySummarySection
             expenses={expenses}
             selectedMonth={selectedMonth}
             onMonthChange={setSelectedMonth}
