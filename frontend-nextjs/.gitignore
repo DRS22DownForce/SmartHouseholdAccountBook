@@ -42,3 +42,6 @@ next-env.d.ts
 
 # cognito
 ./config/aws-exports.ts
+
+# OpenAPI Generated files (auto-generated, do not commit)
+/src/api/generated/
