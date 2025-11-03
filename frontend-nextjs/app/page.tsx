@@ -41,8 +41,8 @@ export default function HomePage() {
         onAddExpenses={addExpenses}
       />
 
-      <main className="container mx-auto max-w-7xl px-6 md:px-8 lg:px-12 py-3 md:py-4">
-        <div className="space-y-4 md:space-y-5 lg:space-y-6">
+      <main className="container mx-auto max-w-7xl px-6 md:px-8 lg:px-12 py-1 md:py-2">
+        <div className="space-y-2 md:space-y-2.5">
           <ExpenseTrendChart expenses={expenses} />
           <SummarySection
             expenses={expenses}
