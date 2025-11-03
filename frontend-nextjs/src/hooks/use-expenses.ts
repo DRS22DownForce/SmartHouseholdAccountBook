@@ -8,11 +8,11 @@ import type { Expense, ExpenseFormData } from "@/lib/types"
 
 function toExpense(dto: ExpenseDto): Expense {
   return {
-    id: String(dto.id ?? 0),
-    amount: dto.amount ?? 0,
-    category: dto.category ?? "",
-    description: dto.description ?? "",
-    date: dto.date ?? "",
+    id: String(dto.id),
+    amount: dto.amount,
+    category: dto.category,
+    description: dto.description,
+    date: dto.date,
     createdAt: new Date().toISOString(),
   }
 }
