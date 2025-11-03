@@ -26,7 +26,7 @@ function toRequestDto(data: ExpenseFormData): ExpenseRequestDto {
   }
 }
 
-function handleApiError(error: unknown, defaultMessage: string): void {
+function showApiErrorMessage(error: unknown, defaultMessage: string): void {
   if (error && typeof error === "object" && "response" in error) {
     const apiError = error as { response?: { status?: number } }
     if (apiError.response?.status === 401) {
@@ -55,7 +55,7 @@ export function useExpenses() {
       setExpenses(expenseList)
       setIsLoaded(true)
     } catch (error) {
-      handleApiError(error, "支出データの取得に失敗しました")
+      showApiErrorMessage(error, "支出データの取得に失敗しました")
       setIsLoaded(true)
     }
   }, [api])
@@ -74,7 +74,7 @@ export function useExpenses() {
         setExpenses((prev) => [newExpense, ...prev])
         toast.success("支出を追加しました")
       } catch (error) {
-        handleApiError(error, "支出の追加に失敗しました")
+        showApiErrorMessage(error, "支出の追加に失敗しました")
       }
     },
     [api]
@@ -91,7 +91,7 @@ export function useExpenses() {
         setExpenses((prev) => [...newExpenses, ...prev])
         toast.success(`${newExpenses.length}件の支出を追加しました`)
       } catch (error) {
-        handleApiError(error, "支出の一括追加に失敗しました")
+        showApiErrorMessage(error, "支出の一括追加に失敗しました")
       }
     },
     [api]
@@ -109,7 +109,7 @@ export function useExpenses() {
         )
         toast.success("支出を更新しました")
       } catch (error) {
-        handleApiError(error, "支出の更新に失敗しました")
+        showApiErrorMessage(error, "支出の更新に失敗しました")
       }
     },
     [api]
@@ -123,7 +123,7 @@ export function useExpenses() {
         setExpenses((prev) => prev.filter((expense) => expense.id !== id))
         toast.success("支出を削除しました")
       } catch (error) {
-        handleApiError(error, "支出の削除に失敗しました")
+        showApiErrorMessage(error, "支出の削除に失敗しました")
       }
     },
     [api]
