@@ -18,31 +18,16 @@ export const metadata: Metadata = {
   description: "AWS Cognitoで保護された家計簿管理アプリケーション",
 };
 
-/**
- * RootLayout
- * 
- * アプリケーション全体の基本レイアウトを定義します。
- * AuthProviderでラップすることで、全ページでCognito認証が必須になります。
- * 
- * 言語設定:
- * - htmlのlang属性を"ja"に設定して日本語サイトとして認識させる
- */
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+interface RootLayoutProps {
+  children: React.ReactNode
+}
+
+export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
   return (
     <html lang="ja">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        {/* 認証プロバイダーで全体をラップ */}
-        {/* これにより、未認証ユーザーは自動的にログイン画面に誘導されます */}
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
-  );
+  )
 }
