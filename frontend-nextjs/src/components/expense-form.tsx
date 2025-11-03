@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,8 +9,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Plus } from "lucide-react"
 import type { Expense, ExpenseFormData } from "@/lib/types"
-
-const CATEGORIES = ["食費", "交通費", "住居費", "光熱費", "通信費", "娯楽費", "医療費", "衣服費", "その他"]
+import { EXPENSE_CATEGORIES } from "@/lib/constants"
+import { getCurrentDateString } from "@/lib/formatters"
 
 interface ExpenseFormProps {
   expense?: Expense
@@ -19,14 +18,16 @@ interface ExpenseFormProps {
   trigger?: React.ReactNode
 }
 
+const getInitialFormData = (): ExpenseFormData => ({
+  amount: 0,
+  category: "",
+  description: "",
+  date: getCurrentDateString(),
+})
+
 export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
   const [open, setOpen] = useState(false)
-  const [formData, setFormData] = useState<ExpenseFormData>({
-    amount: 0,
-    category: "",
-    description: "",
-    date: new Date().toISOString().split("T")[0],
-  })
+  const [formData, setFormData] = useState<ExpenseFormData>(getInitialFormData())
 
   useEffect(() => {
     if (expense) {
@@ -36,20 +37,17 @@ export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
         description: expense.description,
         date: expense.date,
       })
+    } else if (!open) {
+      setFormData(getInitialFormData())
     }
-  }, [expense])
+  }, [expense, open])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onSubmit(formData)
     setOpen(false)
     if (!expense) {
-      setFormData({
-        amount: 0,
-        category: "",
-        description: "",
-        date: new Date().toISOString().split("T")[0],
-      })
+      setFormData(getInitialFormData())
     }
   }
 
@@ -93,7 +91,7 @@ export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
                 <SelectValue placeholder="カテゴリーを選択" />
               </SelectTrigger>
               <SelectContent>
-                {CATEGORIES.map((category) => (
+                {EXPENSE_CATEGORIES.map((category) => (
                   <SelectItem key={category} value={category}>
                     {category}
                   </SelectItem>

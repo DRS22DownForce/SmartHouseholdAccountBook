@@ -1,21 +1,8 @@
-# VSCode settings
-settings.json
-
 # Java/Spring Boot
-HELP.md
 target/
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
-
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
 
 ### IntelliJ IDEA ###
 .idea
@@ -23,18 +10,11 @@ target/
 *.iml
 *.ipr
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
 ### VS Code ###
 .vscode/
+
+### Cursor ###
+.cursor/
 
 # ========================================
 # 🔒 機密情報・セキュリティ関連ファイル
@@ -74,25 +54,9 @@ credentials/
 
 # AWS・クラウド関連
 .aws/
-*.tfstate
-*.tfstate.backup
-
-# Docker関連の機密データ
-docker-compose.override.yml
 
 # ========================================
 # ビルド成果物・生成ファイル
 # ========================================
 /backend/src/main/java-generated/
 
-# ========================================
-# 一時ファイル・ドキュメント
-# ========================================
-frontend-nextjs/COGNITO_MIGRATION.md
-
-# Mac
-.DS_Store
-
-# Windows
-Thumbs.db
-desktop.ini

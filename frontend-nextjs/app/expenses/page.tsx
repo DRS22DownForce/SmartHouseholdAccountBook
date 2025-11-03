@@ -1,12 +1,10 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useMemo } from "react"
 import { useAuthenticator } from "@aws-amplify/ui-react"
 import { useExpenses } from "@/hooks/use-expenses"
 import { Header } from "@/components/dashboard/Header"
-import { ExpenseTrendChart } from "@/components/expense-trend-chart"
-import { SummarySection } from "@/components/dashboard/SummarySection"
-import { getCurrentMonthString } from "@/lib/formatters"
+import { ExpenseList } from "@/components/expense-list"
 
 function LoadingSpinner() {
   return (
@@ -20,11 +18,10 @@ function getUserDisplayName(user: ReturnType<typeof useAuthenticator>["user"]): 
   return user.signInDetails?.loginId || user.username
 }
 
-export default function HomePage() {
+export default function ExpensesPage() {
   const { user, signOut } = useAuthenticator((context) => [context.user])
-  const { expenses, addExpense, addExpenses, isLoaded } = useExpenses()
-  const currentMonth = useMemo(() => getCurrentMonthString(), [])
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth)
+  const { expenses, addExpense, addExpenses, updateExpense, deleteExpense, isLoaded } =
+    useExpenses()
   const username = useMemo(() => getUserDisplayName(user), [user])
 
   if (!isLoaded) {
@@ -41,16 +38,17 @@ export default function HomePage() {
         onAddExpenses={addExpenses}
       />
 
-      <main className="container mx-auto max-w-7xl px-6 md:px-8 lg:px-12 py-1 md:py-2">
-        <div className="space-y-2 md:space-y-2.5">
-          <ExpenseTrendChart expenses={expenses} />
-          <SummarySection
-            expenses={expenses}
-            selectedMonth={selectedMonth}
-            onMonthChange={setSelectedMonth}
-          />
+      <main className="container mx-auto max-w-7xl px-6 md:px-8 lg:px-12 py-8 md:py-12">
+        <div className="mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground tracking-tight mb-2">
+            支出一覧
+          </h1>
+          <p className="text-muted-foreground">全ての支出を確認し、編集・削除できます</p>
         </div>
+
+        <ExpenseList expenses={expenses} onUpdate={updateExpense} onDelete={deleteExpense} />
       </main>
     </div>
   )
 }
+
