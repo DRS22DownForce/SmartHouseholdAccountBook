@@ -10,7 +10,8 @@
 - 📊 過去3ヶ月間の支出推移を棒グラフで表示
 - 📋 月別の支出明細リスト（編集・削除機能付き）
 - 📈 カテゴリー別支出の割合をドーナツグラフで可視化
-- 📥 CSVインポート機能
+- 📥 CSVインポート機能（一括登録）
+- 📄 支出一覧ページ（全データの閲覧・編集・削除）
 
 ## 🎯 プロジェクト概要
 
@@ -18,7 +19,7 @@
 
 ### 主な特徴
 
-- ✨ **モダンなUI/UX**: Next.js 15とTailwind CSSを使用したレスポンシブデザイン
+- ✨ **モダンなUI/UX**: Next.js 15とTailwind CSS 4.xを使用したレスポンシブデザイン、shadcn/uiによる高品質なコンポーネント
 - 🔐 **セキュアな認証**: AWS Cognitoによる認証・認可
 - 📊 **データ可視化**: Rechartsによるインタラクティブなグラフ表示
 - 🔄 **API設計**: OpenAPI/Swaggerによる型安全なAPI開発
@@ -30,15 +31,22 @@
 - **フレームワーク**: Next.js 15.5.4 (App Router)
 - **UIライブラリ**: React 19.1.0
 - **言語**: TypeScript 5.0
-- **スタイリング**: Tailwind CSS 4.1
+- **スタイリング**: Tailwind CSS 4.1 (PostCSS経由)
 - **UIコンポーネント**: 
-  - Radix UI (アクセシブルなコンポーネント)
+  - shadcn/ui (Radix UIベースのアクセシブルなコンポーネント)
+  - Radix UI (ダイアログ、ドロップダウン、セレクト等)
   - Lucide React (アイコン)
   - Recharts 2.15 (グラフ可視化)
 - **フォーム管理**: React Hook Form + Zod (バリデーション)
-- **状態管理**: React Hooks
-- **認証**: AWS Amplify
+- **状態管理**: React Hooks + React Context
+- **認証**: AWS Amplify (@aws-amplify/ui-react)
 - **APIクライアント**: Axios (OpenAPI Generatorで自動生成)
+- **ユーティリティ**:
+  - date-fns (日付処理)
+  - next-themes (ダークモード対応)
+  - sonner (トースト通知)
+  - class-variance-authority (UIコンポーネントバリアント管理)
+  - Geist (フォント)
 
 ### バックエンド
 - **フレームワーク**: Spring Boot 3.x
@@ -67,7 +75,7 @@
 - 📈 **月別サマリー**: 合計支出、件数、トップカテゴリーの表示
 
 ### 3. データインポート/エクスポート
-- 📥 CSVファイルからの支出データインポート（予定）
+- ✅ CSVファイルからの支出データインポート（複数件一括登録対応）
 - 📤 データエクスポート機能（予定）
 
 ### 4. セキュリティ機能
@@ -96,15 +104,33 @@ SmartHouseholdAccountBook/
 │   └── Dockerfile
 │
 ├── frontend-nextjs/           # Next.js アプリケーション
+│   ├── app/                   # App Router (Next.js 15)
+│   │   ├── page.tsx           # ダッシュボードページ（ホーム）
+│   │   ├── expenses/          # 支出一覧ページ
+│   │   ├── login/             # ログインページ
+│   │   ├── api/               # API Routes
+│   │   ├── layout.tsx         # ルートレイアウト
+│   │   └── globals.css        # グローバルスタイル
 │   ├── src/
-│   │   ├── app/                # App Router (Next.js 15)
-│   │   │   ├── page.tsx       # ダッシュボードページ
-│   │   │   └── api/           # API Routes
-│   │   ├── components/        # React コンポーネント
-│   │   └── api/               # API クライアント（自動生成）
+│   │   ├── components/         # React コンポーネント
+│   │   │   ├── ui/           # shadcn/uiコンポーネント
+│   │   │   ├── dashboard/    # ダッシュボード関連コンポーネント
+│   │   │   ├── auth/         # 認証関連コンポーネント
+│   │   │   └── expense-*.tsx # 支出関連コンポーネント
+│   │   ├── hooks/             # カスタムフック
+│   │   │   └── use-expenses.ts # 支出管理フック
+│   │   ├── lib/               # ユーティリティ関数
+│   │   │   └── formatters.ts  # フォーマッター
+│   │   ├── contexts/          # React Context
+│   │   │   └── auth-provider.tsx # 認証プロバイダー
+│   │   ├── config/            # 設定ファイル
+│   │   └── api/               # API クライアント
+│   │       └── generated/    # OpenAPI Generatorで自動生成
 │   ├── public/                # 静的ファイル
+│   ├── components.json        # shadcn/ui設定
+│   ├── postcss.config.mjs     # PostCSS設定（Tailwind CSS 4.x）
 │   ├── package.json
-│   └── tailwind.config.js
+│   └── tsconfig.json
 │
 ├── docker/                     # Docker設定ファイル
 ├── openapi/                    # API仕様書
@@ -137,7 +163,6 @@ NEXT_PUBLIC_API_URL=http://localhost:8080
 NEXT_PUBLIC_AWS_REGION=your-aws-region
 NEXT_PUBLIC_USER_POOL_ID=your-user-pool-id
 NEXT_PUBLIC_CLIENT_ID=your-client-id
-OPENAI_API_KEY=your-openai-api-key
 ```
 
 #### バックエンド
@@ -210,9 +235,11 @@ Swagger UI: `http://localhost:8080/swagger-ui.html`（開発環境）
 ## 🚧 今後の拡張予定
 
 - [ ] AIチャット機能の追加
+- [x] CSVインポート機能 ✅
 - [ ] 収入管理機能の追加
 - [ ] 予算設定・管理機能
 - [ ] レポート生成機能（PDF出力）
+- [ ] データエクスポート機能
 - [ ] 複数通貨対応
 - [ ] モバイルアプリ（React Native）
 - [ ] 家計簿テンプレート機能

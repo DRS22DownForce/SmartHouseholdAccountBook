@@ -115,9 +115,9 @@ export function ExpenseTrendChart({ expenses }: ExpenseTrendChartProps) {
 
   return (
     <Card className="border-border/50 shadow-md hover:shadow-xl hover:scale-[1.01] transition-all duration-300 bg-gradient-to-br from-card to-card/95 hover:border-primary/30">
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-1.5">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xl md:text-2xl font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent tracking-tight">
+          <CardTitle className="text-base md:text-lg font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent tracking-tight">
             支出の推移
           </CardTitle>
           <Select value={monthRange} onValueChange={setMonthRange}>
@@ -136,69 +136,69 @@ export function ExpenseTrendChart({ expenses }: ExpenseTrendChartProps) {
       </CardHeader>
       <CardContent className="pt-0">
         {chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={220}>
             <BarChart
               data={chartData}
-              barSize={50}
-              margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="hsl(var(--muted-foreground))"
-                opacity={0.2}
-              />
-              <XAxis
-                dataKey="month"
-                className="text-xs"
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 14 }}
-                axisLine={{ stroke: "hsl(var(--border))" }}
-                tickLine={{ stroke: "hsl(var(--border))" }}
-              />
-              <YAxis
-                className="text-xs"
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 14 }}
-                tickFormatter={formatCurrencyForChart}
-                axisLine={{ stroke: "hsl(var(--border))" }}
-                tickLine={{ stroke: "hsl(var(--border))" }}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend
-                wrapperStyle={{
-                  fontSize: "14px",
+              barSize={45}
+              margin={{ top: 5, right: 8, left: 0, bottom: 3 }}
+        >
+          <CartesianGrid
+            strokeDasharray="3 3"
+            stroke="hsl(var(--muted-foreground))"
+            opacity={0.2}
+          />
+          <XAxis
+            dataKey="month"
+            className="text-xs"
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+            axisLine={{ stroke: "hsl(var(--border))" }}
+            tickLine={{ stroke: "hsl(var(--border))" }}
+          />
+          <YAxis
+            className="text-xs"
+            tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+            tickFormatter={formatCurrencyForChart}
+            axisLine={{ stroke: "hsl(var(--border))" }}
+            tickLine={{ stroke: "hsl(var(--border))" }}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <Legend
+            wrapperStyle={{
+              fontSize: "12px",
+              fontWeight: 600,
+              paddingTop: "8px",
+            }}
+            iconType="square"
+            iconSize={12}
+            formatter={(value, entry: any) => (
+              <span
+                style={{
+                  color: entry.color || "hsl(var(--foreground))",
                   fontWeight: 600,
-                  paddingTop: "20px",
                 }}
-                iconType="square"
-                iconSize={14}
-                formatter={(value, entry: any) => (
-                  <span
-                    style={{
-                      color: entry.color || "hsl(var(--foreground))",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {value}
-                  </span>
-                )}
-              />
-              {categories.map((category) => (
-                <Bar
-                  key={category}
-                  dataKey={category}
-                  stackId="stack"
-                  fill={getCategoryColor(category)}
-                  name={category}
-                  radius={[0, 0, 4, 4]}
-                  style={{
-                    filter: `drop-shadow(0 2px 4px ${getCategoryColor(category)}30)`,
-                  }}
-                />
-              ))}
-            </BarChart>
-          </ResponsiveContainer>
+              >
+                {value}
+              </span>
+            )}
+          />
+          {categories.map((category) => (
+            <Bar
+              key={category}
+              dataKey={category}
+              stackId="stack"
+              fill={getCategoryColor(category)}
+              name={category}
+              radius={[0, 0, 4, 4]}
+              style={{
+                filter: `drop-shadow(0 2px 4px ${getCategoryColor(category)}30)`,
+              }}
+            />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
         ) : (
-          <div className="flex h-[300px] items-center justify-center border-2 border-dashed border-muted-foreground/20 rounded-lg bg-muted/20">
-            <p className="text-base md:text-lg text-muted-foreground font-medium">
+          <div className="flex h-[220px] items-center justify-center border-2 border-dashed border-muted-foreground/20 rounded-lg bg-muted/20">
+            <p className="text-sm md:text-base text-muted-foreground font-medium">
               データがありません
             </p>
           </div>
