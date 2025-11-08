@@ -4,8 +4,8 @@ import com.example.backend.generated.api.DefaultApi;
 import com.example.backend.generated.model.ExpenseDto;
 import com.example.backend.generated.model.ExpenseRequestDto;
 import com.example.backend.service.ExpenseService;
-import com.example.backend.entity.Expense;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
@@ -27,7 +27,7 @@ public class ExpenseController implements DefaultApi {
     @Override
     public ResponseEntity<ExpenseDto> apiExpensesPost(ExpenseRequestDto expenseRequestDto) {
         ExpenseDto expenseDto = expenseService.addExpense(expenseRequestDto);
-        return ResponseEntity.ok(expenseDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(expenseDto);
     }
 
     @Override
