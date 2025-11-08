@@ -4,31 +4,33 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.lang.NonNull;
 
-@Configuration // このクラスが設定クラスであることを示します
+/**
+ * CORS（Cross-Origin Resource Sharing）の設定
+ */
+@Configuration
 public class WebConfig {
 
-    // CORSのグローバル設定を行うBeanを定義します
+    private final CorsProperties corsProperties;
+
+    public WebConfig(CorsProperties corsProperties) {
+        this.corsProperties = corsProperties;
+    }
+
     @Bean
     public WebMvcConfigurer corsConfigurer() {
         return new WebMvcConfigurer() {
             @Override
-            public void addCorsMappings(CorsRegistry registry) {
-                // すべてのAPIパスに対してCORSを許可します
-                registry.addMapping("/**")
-                        // 許可するオリジン（フロントエンド）を指定します
-                        .allowedOrigins(
-                                "http://localhost:3000", // Next.js開発サーバー
-                                "http://127.0.0.1:3000", // Next.js開発サーバー（127.0.0.1）
-                                "http://localhost:5173", // Vite開発サーバー
-                                "http://127.0.0.1:5173", // Vite開発サーバー（127.0.0.1）
-                                "https://smart-household-account-book.com")
-                        // 許可するHTTPメソッドを指定します
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                        // すべてのヘッダーを許可（Authorizationヘッダーを含む）
-                        .allowedHeaders("*")
-                        // Cookieなどの認証情報を許可する場合はtrueにします
-                        .allowCredentials(true);
+            @SuppressWarnings("null")
+            public void addCorsMappings(@NonNull CorsRegistry registry) {
+                registry.addMapping("/api/**")
+                        .allowedOrigins(corsProperties.getAllowedOrigins().toArray(String[]::new))
+                        .allowedMethods(corsProperties.getAllowedMethods().toArray(String[]::new))
+                        .allowedHeaders(corsProperties.getAllowedHeaders().toArray(String[]::new))
+                        .exposedHeaders(corsProperties.getExposedHeaders().toArray(String[]::new))
+                        .allowCredentials(corsProperties.isAllowCredentials())
+                        .maxAge(corsProperties.getMaxAge());
             }
         };
     }
