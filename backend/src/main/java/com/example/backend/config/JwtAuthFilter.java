@@ -24,33 +24,43 @@ import java.util.Collections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import java.util.HashMap;
 import java.text.ParseException;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
     private final ConfigurableJWTProcessor<SecurityContext> jwtProcessor;
-    private final JWKSource<SecurityContext> jwkSource;
+    private final JWKSource<SecurityContext> remoteJwkSet;
 
     public JwtAuthFilter(JwtProperties jwtProperties) {
         try {
             // JWKセット(JWT署名検証用の公開鍵)を取得
-            // JWKセットをキャッシュ
-            this.jwkSource = new RemoteJWKSet<>(
+            // RemoteJWKSetは内部でキャッシュを管理
+            // タイムアウト設定付きのリソースリトリーバーを作成
+            DefaultResourceRetriever resourceRetriever = new DefaultResourceRetriever(
+                    5000, // 接続タイムアウト（ミリ秒）
+                    5000, // 読み取りタイムアウト（ミリ秒）
+                    1024 * 1024 // 最大エンティティサイズ（1MB）
+            );
+            
+            // RemoteJWKSetは非推奨だが、まだ機能しており、適切な代替手段がないため使用
+            @SuppressWarnings("deprecation")
+            RemoteJWKSet<SecurityContext> remoteJWKSet = new RemoteJWKSet<>(
                     URI.create(jwtProperties.getJwkSetUrl()).toURL(),
-                    new DefaultResourceRetriever(5000, 5000, 1024 * 1024));
+                    resourceRetriever);
+            this.remoteJwkSet = remoteJWKSet;
+
             // JWTの検証を行うプロセッサーを作成
             this.jwtProcessor = new DefaultJWTProcessor<>();
-
             // RS256アルゴリズム用の鍵セレクターを設定
             JWSKeySelector<SecurityContext> keySelector = new JWSVerificationKeySelector<>(
                     JWSAlgorithm.RS256,
-                    this.jwkSource);
+                    this.remoteJwkSet);
             this.jwtProcessor.setJWSKeySelector(keySelector);
-            logger.info("JwtAuthFilter initialized with JWK URL: {}", jwtProperties.getJwkSetUrl());
+            logger.info("JWT認証フィルターを初期化しました。JWK URL: {}", jwtProperties.getJwkSetUrl());
+        
         } catch (Exception e) {
-            logger.error("Failed to initialize JwtAuthFilter", e);
+            logger.error("JWT認証フィルターの初期化に失敗しました", e);
             throw new RuntimeException("JWT認証フィルターの初期化に失敗しました", e);
         }
     }
@@ -72,8 +82,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 SignedJWT signedJWT = SignedJWT.parse(jwtToken);
                 Map<String, Object> headerMap = signedJWT.getHeader().toJSONObject();
 
-                // クレームをInstant型に変換
-                Map<String, Object> claims = convertDateClaimsToInstant(claimsSet.getClaims());
+                Map<String, Object> claims = claimsSet.getClaims();
 
                 // Spring Security用の認証情報オブジェクト作成
                 Jwt jwt = Jwt.withTokenValue(jwtToken)
@@ -87,17 +96,14 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
             } catch (ParseException e) {
-                // JWTのパースエラー（形式が不正）
                 logger.warn("JWTパースエラー: {}", e.getMessage());
                 sendUnauthorizedResponse(response, "JWTトークンの形式が不正です");
                 return;
             } catch (BadJWTException e) {
-                // JWTの検証エラー（署名が無効、有効期限切れなど）
                 logger.warn("JWT検証エラー: {}", e.getMessage());
                 sendUnauthorizedResponse(response, "JWTトークンの検証に失敗しました");
                 return;
             } catch (Exception e) {
-                // その他の予期しないエラー
                 logger.error("JWT認証中に予期しないエラーが発生しました", e);
                 sendUnauthorizedResponse(response, "認証処理中にエラーが発生しました");
                 return;
@@ -112,25 +118,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         response.setContentType("application/json; charset=UTF-8");
         response.getWriter().write(
                 String.format("{\"error\":\"Unauthorized\",\"message\":\"%s\"}", message));
-    }
-
-    /**
-     * JWTクレームのうち、iat, exp, nbfがDate型の場合はInstant型に変換するユーティリティ
-     * それ以外はそのまま返す
-     */
-    private Map<String, Object> convertDateClaimsToInstant(Map<String, Object> originalClaims) {
-        Map<String, Object> claims = new HashMap<>();
-        for (Map.Entry<String, Object> entry : originalClaims.entrySet()) {
-            String key = entry.getKey();
-            Object value = entry.getValue();
-            // iat, exp, nbfはInstant型に変換
-            if ((key.equals("iat") || key.equals("exp") || key.equals("nbf")) && value instanceof java.util.Date) {
-                claims.put(key, ((java.util.Date) value).toInstant());
-            } else {
-                claims.put(key, value);
-            }
-        }
-        return claims;
     }
 
 }
