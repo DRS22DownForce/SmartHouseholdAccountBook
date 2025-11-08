@@ -1,6 +1,7 @@
 package com.example.backend.service;
 
 import com.example.backend.entity.Expense;
+import com.example.backend.entity.User;
 import com.example.backend.generated.model.ExpenseDto;
 import com.example.backend.generated.model.ExpenseRequestDto;
 import org.springframework.stereotype.Component;
@@ -21,24 +22,26 @@ public class ExpenseMapper {
     }
 
     // DTO → Entity
-    public Expense toEntity(ExpenseDto dto) {
+    public Expense toEntity(ExpenseDto dto, User user) {
         if (dto == null)
             return null;
         return new Expense(
                 dto.getDescription(),
                 dto.getAmount(),
                 dto.getDate(),
-                dto.getCategory());
+                dto.getCategory(),
+                user);
     }
 
     // RequestDto → Entity
-    public Expense toEntity(ExpenseRequestDto dto) {
+    public Expense toEntity(ExpenseRequestDto dto, User user) {
         if (dto == null)
             return null;
         return new Expense(
                 dto.getDescription(),
                 dto.getAmount(),
                 dto.getDate(),
-                dto.getCategory());
+                dto.getCategory(),
+                user);
     }
 }

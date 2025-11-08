@@ -1,6 +1,7 @@
 package com.example.backend.service;
 
 import com.example.backend.entity.Expense;
+import com.example.backend.entity.User;
 import com.example.backend.generated.model.ExpenseDto;
 import com.example.backend.generated.model.ExpenseRequestDto;
 import org.junit.jupiter.api.Test;
@@ -15,7 +16,8 @@ class ExpenseMapperTest {
 
     @Test
     void toDto_正常系() {
-        Expense expense = new Expense("説明", 1234, LocalDate.of(2024, 6, 1), "食費");
+        User user = new User("cognitoSub", "test@example.com");
+        Expense expense = new Expense("説明", 1234, LocalDate.of(2024, 6, 1), "食費", user);
         ExpenseDto dto = mapper.toDto(expense);
 
         assertNotNull(dto);
@@ -32,13 +34,14 @@ class ExpenseMapperTest {
 
     @Test
     void toEntity_ExpenseDtoからEntityへ変換() {
+        User user = new User("cognitoSub", "test@example.com");
         ExpenseDto dto = new ExpenseDto();
         dto.setDescription("テスト");
         dto.setAmount(500);
         dto.setDate(LocalDate.of(2024, 5, 1));
         dto.setCategory("交通費");
 
-        Expense entity = mapper.toEntity(dto);
+        Expense entity = mapper.toEntity(dto, user);
 
         assertNotNull(entity);
         assertEquals("テスト", entity.getDescription());
@@ -49,18 +52,20 @@ class ExpenseMapperTest {
 
     @Test
     void toEntity_ExpenseDto_nullならnull() {
-        assertNull(mapper.toEntity((ExpenseDto) null));
+        User user = new User("cognitoSub", "test@example.com");
+        assertNull(mapper.toEntity((ExpenseDto) null, user));
     }
 
     @Test
     void toEntity_ExpenseRequestDtoからEntityへ変換() {
+        User user = new User("cognitoSub", "test@example.com");
         ExpenseRequestDto req = new ExpenseRequestDto();
         req.setDescription("リクエスト");
         req.setAmount(999);
         req.setDate(LocalDate.of(2024, 4, 1));
         req.setCategory("日用品");
 
-        Expense entity = mapper.toEntity(req);
+        Expense entity = mapper.toEntity(req, user);
 
         assertNotNull(entity);
         assertEquals("リクエスト", entity.getDescription());
@@ -71,6 +76,7 @@ class ExpenseMapperTest {
 
     @Test
     void toEntity_ExpenseRequestDto_nullならnull() {
-        assertNull(mapper.toEntity((ExpenseRequestDto) null));
+        User user = new User("cognitoSub", "test@example.com");
+        assertNull(mapper.toEntity((ExpenseRequestDto) null, user));
     }
 }

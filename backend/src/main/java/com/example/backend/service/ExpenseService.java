@@ -49,9 +49,7 @@ public class ExpenseService {
         if (expenseRequestDto == null)
             throw new NullPointerException("requestDto is null");
         User user = userService.getUser();
-        Expense expense = expenseMapper.toEntity(expenseRequestDto);
-        expense.setUser(user);
-
+        Expense expense = expenseMapper.toEntity(expenseRequestDto, user);
         Expense savedExpense = expenseRepository.save(expense);
         return expenseMapper.toDto(savedExpense);
     }
