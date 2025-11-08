@@ -1,30 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
 		<version>3.2.4</version>
-		<relativePath/> <!-- lookup parent from repository -->
+		<relativePath /> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.example</groupId>
 	<artifactId>backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>backend</name>
 	<description>Backend of SmartHouseholdAccountBook</description>
-	<url/>
+	<url />
 	<licenses>
-		<license/>
+		<license />
 	</licenses>
 	<developers>
-		<developer/>
+		<developer />
 	</developers>
 	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
+		<connection />
+		<developerConnection />
+		<tag />
+		<url />
 	</scm>
 	<properties>
 		<java.version>21</java.version>
@@ -70,8 +71,8 @@
 			<artifactId>jakarta.validation-api</artifactId>
 		</dependency>
 		<dependency>
-    		<groupId>org.springframework.boot</groupId>
-    		<artifactId>spring-boot-starter-validation</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.openapitools</groupId>
@@ -121,11 +122,6 @@
 			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>com.nimbusds</groupId>
-			<artifactId>nimbus-jose-jwt</artifactId>
-			<version>9.37.3</version>
-		</dependency>
 	</dependencies>
 	<profiles>
 		<profile>
@@ -147,35 +143,42 @@
 	<build>
 		<plugins>
 			<plugin>
-			<groupId>org.openapitools</groupId>
-			<artifactId>openapi-generator-maven-plugin</artifactId>
-			<version>7.13.0</version>
-			<executions>
-				<execution>
-				<id>generate-spring</id>
-				<goals>
-					<goal>generate</goal>
-				</goals>
-				<phase>generate-sources</phase>
-				<configuration>
-							<!-- 入力ファイル -->
-					<inputSpec>${openapi.file}</inputSpec>
-							<!-- 生成するコードの種類 -->
-					<generatorName>spring</generatorName>
-							<!-- 出力先ディレクトリ -->
-					<output>${project.basedir}/src/main/java-generated</output>
+				<groupId>org.openapitools</groupId>
+				<artifactId>openapi-generator-maven-plugin</artifactId>
+				<version>7.13.0</version>
+				<executions>
+					<execution>
+						<id>generate-spring</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<!-- 入力ファイル（OpenAPI仕様書のパス） -->
+							<inputSpec>${openapi.file}</inputSpec>
+							<!-- 生成するコードの種類（Spring用のコードを生成） -->
+							<generatorName>spring</generatorName>
+							<!-- 出力先ディレクトリ（生成されたコードを配置する場所） -->
+							<output>${project.basedir}/src/main/java-generated</output>
 							<!-- パッケージ名などのオプション -->
-					<apiPackage>com.example.backend.generated.api</apiPackage>
-					<modelPackage>com.example.backend.generated.model</modelPackage>
-					<configOptions>
-					<interfaceOnly>true</interfaceOnly>
-					<useTags>true</useTags>
-					<dateLibrary>java8</dateLibrary>
-					<useJakartaEe>true</useJakartaEe>
-					</configOptions>
-				</configuration>
-				</execution>
-			</executions>
+							<apiPackage>com.example.backend.generated.api</apiPackage>
+							<modelPackage>com.example.backend.generated.model</modelPackage>
+							<configOptions>
+								<!-- インターフェースのみ生成（実装クラスは生成しない） -->
+								<interfaceOnly>true</interfaceOnly>
+								<!-- タグを使用してAPIをグループ化 -->
+								<useTags>true</useTags>
+								<!-- Java 8の日付ライブラリを使用 -->
+								<dateLibrary>java8</dateLibrary>
+								<!-- Jakarta EEを使用（Spring Boot 3.xはJakarta EE準拠） -->
+								<useJakartaEe>true</useJakartaEe>
+								<!-- Spring Boot用のライブラリを指定 -->
+								<library>spring-boot</library>
+								<!-- Spring Boot 3.x用の設定を有効化 -->
+								<useSpringBoot3>true</useSpringBoot3>
+							</configOptions>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
