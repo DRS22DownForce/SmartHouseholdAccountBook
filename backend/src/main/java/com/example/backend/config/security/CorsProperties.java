@@ -1,4 +1,4 @@
-package com.example.backend.config;
+package com.example.backend.config.security;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
@@ -69,3 +69,4 @@ public class CorsProperties {
      */
     private long maxAge = 3600L;
 }
+

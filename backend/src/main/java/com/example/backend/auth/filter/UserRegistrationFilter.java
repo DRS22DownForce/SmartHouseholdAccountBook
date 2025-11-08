@@ -1,4 +1,4 @@
-package com.example.backend.config;
+package com.example.backend.auth.filter;
 
 import java.io.IOException;
 import org.springframework.stereotype.Component;
@@ -12,6 +12,13 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
+/**
+ * ユーザー登録フィルター
+ * 
+ * このフィルターは、JWT認証が成功した後、
+ * データベースにユーザーが存在しない場合に自動的に登録します。
+ * /apiで始まるパスに対してのみ動作します。
+ */
 @Component
 public class UserRegistrationFilter extends OncePerRequestFilter {
     private final UserService userService;
@@ -38,3 +45,4 @@ public class UserRegistrationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
+
