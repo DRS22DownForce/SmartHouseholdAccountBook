@@ -8,6 +8,8 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 
+import com.example.backend.auth.filter.UserRegistrationFilter;
+
 @TestConfiguration
 public class TestSecurityConfig {
     @Autowired

@@ -1,4 +1,4 @@
-package com.example.backend.config;
+package com.example.backend.auth.filter;
 
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.jwk.source.RemoteJWKSet;
@@ -26,6 +26,15 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import java.text.ParseException;
 
+import com.example.backend.config.security.JwtProperties;
+
+/**
+ * JWT認証フィルター
+ * 
+ * このフィルターは、リクエストヘッダーからJWTトークンを取得し、
+ * CognitoのJWKセットを使用して署名を検証します。
+ * 検証が成功した場合、Spring Securityのセキュリティコンテキストに認証情報を設定します。
+ */
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
@@ -121,3 +130,4 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
 }
+
