@@ -7,14 +7,15 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Column;
+import jakarta.persistence.FetchType;
 import java.time.LocalDate;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Entity // このアノテーションは、このクラスがJPAのエンティティであることを示します。
-@Getter // getterのみ自動生成
-@NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA用にデフォルトコンストラクタを生成
+@Entity
+@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Expense {
 
     @Id
@@ -34,21 +35,21 @@ public class Expense {
     private String category; // カテゴリー
 
     // UserEntityのidを外部キーとして参照
-    // Java上ではUser型で参照するが、データベース上ではuser_idというカラム名でUserテーブルのid(主キー)を参照される
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    public Expense(String description, Integer amount, LocalDate date, String category) {
-        validate(description, amount, date, category);
+    public Expense(String description, Integer amount, LocalDate date, String category, User user) {
+        validate(description, amount, date, category, user);
         this.description = description;
         this.amount = amount;
         this.date = date;
         this.category = category;
+        this.user = user;
     }
 
     // バリデーションロジック
-    private static void validate(String description, Integer amount, LocalDate date, String category) {
+    private static void validate(String description, Integer amount, LocalDate date, String category, User user) {
         if (description == null || description.trim().isEmpty()) {
             throw new IllegalArgumentException("説明は必須です。");
         }
@@ -61,30 +62,29 @@ public class Expense {
         if (category == null || category.trim().isEmpty()) {
             throw new IllegalArgumentException("カテゴリーは必須です。");
         }
+        if (user == null) {
+            throw new IllegalArgumentException("ユーザーは必須です。");
+        }
     }
 
     // 変更メソッド（必要なものだけ公開）
     public void changeDescription(String description) {
-        validate(description, this.amount, this.date, this.category);
+        validate(description, this.amount, this.date, this.category, this.user);
         this.description = description;
     }
 
     public void changeAmount(Integer amount) {
-        validate(this.description, amount, this.date, this.category);
+        validate(this.description, amount, this.date, this.category, this.user);
         this.amount = amount;
     }
 
     public void changeDate(LocalDate date) {
-        validate(this.description, this.amount, date, this.category);
+        validate(this.description, this.amount, date, this.category, this.user);
         this.date = date;
     }
 
     public void changeCategory(String category) {
-        validate(this.description, this.amount, this.date, category);
+        validate(this.description, this.amount, this.date, category, this.user);
         this.category = category;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
     }
 }

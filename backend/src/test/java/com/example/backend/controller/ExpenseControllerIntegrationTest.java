@@ -80,7 +80,7 @@ class ExpenseControllerIntegrationTest {
         mockMvc.perform(post("/api/expenses")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(json))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
         // 2. DBに保存されたか確認
         assertThat(expenseRepository.count()).isEqualTo(1);
@@ -97,8 +97,7 @@ class ExpenseControllerIntegrationTest {
     @DisplayName("家計簿削除API→DB削除まで一貫テスト")
     void testDeleteExpense() throws Exception {
         // 事前にデータを登録
-        Expense expense = new Expense("バス代", 500, LocalDate.now(), "交通費");
-        expense.setUser(user);
+        Expense expense = new Expense("バス代", 500, LocalDate.now(), "交通費", user);
         expense = expenseRepository.save(expense);
 
         // 1. DELETEで削除
@@ -113,8 +112,7 @@ class ExpenseControllerIntegrationTest {
     @DisplayName("家計簿更新API→DB更新まで一貫テスト")
     void testUpdateExpense() throws Exception {
         // 事前にデータを登録
-        Expense expense = new Expense("バス代", 500, LocalDate.now(), "交通費");
-        expense.setUser(user);
+        Expense expense = new Expense("バス代", 500, LocalDate.now(), "交通費", user);
         expense = expenseRepository.save(expense);
 
         // 1. PUTで更新
