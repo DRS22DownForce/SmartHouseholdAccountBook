@@ -11,7 +11,6 @@ import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 
 import java.util.Map;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
@@ -25,11 +24,9 @@ import java.util.HashMap;
 
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
+    
     private final JwtProperties jwtProperties;
-    // CognitoのJWKセット(JWT署名検証用の公開鍵)URL
 
-    //コンストラクタが一つだけの場合は@Autowiredは省略可能
-    @Autowired
     public JwtAuthFilter(JwtProperties jwtProperties) {
         this.jwtProperties = jwtProperties;
     }
@@ -41,9 +38,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             String jwtToken = authorizationHeader.substring(7);
             try {
-                // JWKセットを取得してJWTを検証
+                // JWKセット(JWT署名検証用の公開鍵)を取得してJWTを検証
                 // JWKとはJSON Web Keyの略で、公開鍵や秘密鍵をJSON形式で表したもの
-                // 公開鍵をcognitoから取得してJWTの署名を検証する
                 JWKSource<SecurityContext> jwkSource = new RemoteJWKSet<>(
                         URI.create(jwtProperties.getJwkSetUrl()).toURL(),
                         new DefaultResourceRetriever());
@@ -64,13 +60,12 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 // クレームをInstant型に変換
                 Map<String, Object> claims = convertDateClaimsToInstant(claimsSet.getClaims());
 
-                // Spring SecurityのJwtオブジェクトを作成
+                // Spring SecurityのJWT認証用のオブジェクトを作成
                 Jwt jwt = Jwt.withTokenValue(jwtToken)
                         .headers(h -> h.putAll(headerMap))
                         .claims(c -> c.putAll(claims))
                         .build();
 
-                // JwtAuthenticationTokenを作成
                 JwtAuthenticationToken authentication = new JwtAuthenticationToken(jwt, Collections.emptyList());
                 // セキュリティコンテキストに認証情報を設定
                 // これによりアプリケーション全体でこのリクエストは認証済みとして扱われる
