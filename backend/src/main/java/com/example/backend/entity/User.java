@@ -27,7 +27,7 @@ public class User {
     @Column(nullable = false, unique = true)
     private String cognitoSub;
 
-    // @Column(nullable = false)
+    @Column(nullable = false)
     private String email;
 
     public User(String cognitoSub, String email) {

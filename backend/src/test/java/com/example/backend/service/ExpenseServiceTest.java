@@ -35,8 +35,9 @@ class ExpenseServiceTest {
 
     @Test
     void getAllExpenses_リポジトリに2件あれば2件返す() {
-        Expense expense1 = new Expense("支出1", 1000, LocalDate.of(2024, 1, 1), "食費");
-        Expense expense2 = new Expense("支出2", 2000, LocalDate.of(2024, 1, 2), "交通費");
+        User user = new User("cognitoSub", "test@example.com");
+        Expense expense1 = new Expense("支出1", 1000, LocalDate.of(2024, 1, 1), "食費", user);
+        Expense expense2 = new Expense("支出2", 2000, LocalDate.of(2024, 1, 2), "交通費", user);
         ExpenseDto dto1 = new ExpenseDto();
         dto1.setDescription("支出1");
         dto1.setAmount(1000);
@@ -49,7 +50,6 @@ class ExpenseServiceTest {
         dto2.setCategory("交通費");
 
         // テスト用のユーザーを作成
-        User user = new User("cognitoSub", "test@example.com");
         when(expenseRepository.findByUser(user)).thenReturn(Arrays.asList(expense1, expense2));
         when(expenseMapper.toDto(expense1)).thenReturn(dto1);
         when(expenseMapper.toDto(expense2)).thenReturn(dto2);
@@ -69,8 +69,10 @@ class ExpenseServiceTest {
         requestDto.setDate(LocalDate.of(2024, 1, 1));
         requestDto.setCategory("食費");
 
-        Expense expense = new Expense("テスト支出", 1000, LocalDate.of(2024, 1, 1), "食費");
-        when(expenseMapper.toEntity(requestDto)).thenReturn(expense);
+        User user = new User("cognitoSub", "test@example.com");
+        Expense expense = new Expense("テスト支出", 1000, LocalDate.of(2024, 1, 1), "食費", user);
+        when(expenseMapper.toEntity(requestDto, user)).thenReturn(expense);
+        when(userService.getUser()).thenReturn(user);
 
         ExpenseDto expenseDto = new ExpenseDto();
         expenseDto.setDescription("テスト支出");
@@ -107,7 +109,8 @@ class ExpenseServiceTest {
         requestDto.setCategory("娯楽費");
 
         // 既存の支出エンティティをモック
-        Expense existingExpense = new Expense("元の支出", 1000, LocalDate.of(2024, 1, 1), "食費");
+        User user = new User("cognitoSub", "test@example.com");
+        Expense existingExpense = new Expense("元の支出", 1000, LocalDate.of(2024, 1, 1), "食費", user);
 
         // 更新後の支出DTOをモック
         ExpenseDto updatedDto = new ExpenseDto();
