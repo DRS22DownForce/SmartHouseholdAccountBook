@@ -10,12 +10,10 @@ import lombok.NoArgsConstructor;
 
 import jakarta.persistence.Column;
 import lombok.AccessLevel;
-import lombok.EqualsAndHashCode;
 
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@EqualsAndHashCode(exclude = "id") // idはDBの自動生成値なので、equalsとhashCodeでは除外する
 @Table(name = "users")
 public class User {
     // アプリ内でユーザーを管理するためのID
@@ -27,11 +25,24 @@ public class User {
     @Column(nullable = false, unique = true)
     private String cognitoSub;
 
-    // @Column(nullable = false)
+    @Column(nullable = false)
     private String email;
 
     public User(String cognitoSub, String email) {
+        validate(cognitoSub, email);
         this.cognitoSub = cognitoSub;
         this.email = email;
+    }
+
+    private static void validate(String cognitoSub, String email) {
+        if (cognitoSub == null || cognitoSub.trim().isEmpty()) {
+            throw new IllegalArgumentException("cognitoSubは必須です。");
+        }
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("emailは必須です。");
+        }
+        if (!email.contains("@")) {
+            throw new IllegalArgumentException("メールアドレスの形式が正しくありません。");
+        }
     }
 }

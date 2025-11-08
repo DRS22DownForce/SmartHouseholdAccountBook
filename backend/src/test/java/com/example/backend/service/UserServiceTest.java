@@ -15,7 +15,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.example.backend.auth.CurrentAuthProvider;
+import com.example.backend.auth.provider.CurrentAuthProvider;
 import com.example.backend.entity.User;
 import com.example.backend.repository.UserRepository;
 
