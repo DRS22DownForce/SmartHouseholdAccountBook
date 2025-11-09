@@ -169,14 +169,9 @@
 							<goal>generate</goal>
 						</goals>
 						<configuration>
-							<!-- 入力ファイル（OpenAPI仕様書のパス） -->
 							<inputSpec>${openapi.file}</inputSpec>
-							<!-- 生成するコードの種類（Spring用のコードを生成） -->
 							<generatorName>spring</generatorName>
-							<!-- 出力先ディレクトリ（生成されたコードを配置する場所） -->
-							<!-- targetディレクトリに生成し、Mavenビルドプロセスに統合 -->
 							<output>${project.build.directory}/generated-sources/openapi</output>
-							<!-- パッケージ名などのオプション -->
 							<apiPackage>com.example.backend.generated.api</apiPackage>
 							<modelPackage>com.example.backend.generated.model</modelPackage>
 							<configOptions>
@@ -184,13 +179,8 @@
 								<interfaceOnly>true</interfaceOnly>
 								<!-- タグを使用してAPIをグループ化 -->
 								<useTags>true</useTags>
-								<!-- Java 8の日付ライブラリを使用 -->
 								<dateLibrary>java8</dateLibrary>
-								<!-- Jakarta EEを使用（Spring Boot 3.xはJakarta EE準拠） -->
 								<useJakartaEe>true</useJakartaEe>
-								<!-- Spring Boot用のライブラリを指定 -->
-								<library>spring-boot</library>
-								<!-- Spring Boot 3.x用の設定を有効化 -->
 								<useSpringBoot3>true</useSpringBoot3>
 							</configOptions>
 						</configuration>
@@ -200,6 +190,9 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<mainClass>com.example.backend.BackendApplication</mainClass>
+				</configuration>
 			</plugin>
 			<!-- 生成されたソースをビルドパスに追加 -->
 			<plugin>
