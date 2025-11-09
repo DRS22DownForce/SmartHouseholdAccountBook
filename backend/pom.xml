@@ -128,12 +128,20 @@
 		<!-- ========================================
 		     開発ツール
 		     ボイラープレートコード削減（Lombok）
+		     ホットリロード機能（DevTools）
 		     ======================================== -->
 		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<!-- compile時のみ必要だが実行時には不要 -->
 			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<!-- 実行時のみ必要、optional=trueで本番ビルド時には除外される -->
+			<scope>runtime</scope>
+			<optional>true</optional>
 		</dependency>
 
 		<!-- ========================================

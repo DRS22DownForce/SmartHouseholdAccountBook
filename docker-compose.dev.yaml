@@ -1,0 +1,31 @@
+# ========================================
+# 開発環境用 Docker Compose 設定
+# MySQLのみ起動（Spring Bootはローカルで実行）
+# ========================================
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql-dev
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    volumes:
+      # データ永続化
+      - mysql_dev_data:/var/lib/mysql
+      # 初期化スクリプト
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      # MySQL設定
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  mysql_dev_data:
+    name: smart_household_mysql_dev_data
+
