@@ -6,8 +6,8 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.2.4</version>
-		<relativePath /> <!-- lookup parent from repository -->
+		<version>3.5.0</version>
+		<relativePath />
 	</parent>
 	<groupId>com.example</groupId>
 	<artifactId>backend</artifactId>
@@ -27,11 +27,25 @@
 		<tag />
 		<url />
 	</scm>
+
+	<!-- ========================================
+	     プロパティ設定
+	     ======================================== -->
 	<properties>
+		<!-- Javaバージョン -->
 		<java.version>21</java.version>
+		<!-- OpenAPI仕様ファイルのパス -->
 		<openapi.file>../openapi/openapi.yaml</openapi.file>
 	</properties>
+
+	<!-- ========================================
+	     依存関係
+	     ======================================== -->
 	<dependencies>
+		<!-- ========================================
+		     Spring Boot Core
+		     Web API とデータベースアクセス（JPA）の基本機能
+		     ======================================== -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -41,31 +55,47 @@
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
 
+		<!-- ========================================
+		     Security
+		     認証・認可機能（Spring Security、OAuth2、JWT）
+		     ======================================== -->
 		<dependency>
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
-			<scope>test</scope>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-oauth2-client</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.nimbusds</groupId>
+			<artifactId>nimbus-jose-jwt</artifactId>
+			<version>9.37.3</version>
+		</dependency>
+
+		<!-- ========================================
+		     Database
+		     本番環境用（MySQL）とテスト用（H2）
+		     ======================================== -->
 		<dependency>
 			<groupId>com.mysql</groupId>
 			<artifactId>mysql-connector-j</artifactId>
 			<scope>runtime</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-thymeleaf</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<!--compile時のみ必要だが実行時には不要-->
-			<scope>provided</scope>
-		</dependency>
+
+		<!-- ========================================
+		     Validation
+		     入力値検証機能
+		     ======================================== -->
 		<dependency>
 			<groupId>jakarta.validation</groupId>
 			<artifactId>jakarta.validation-api</artifactId>
@@ -74,6 +104,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-validation</artifactId>
 		</dependency>
+
+		<!-- ========================================
+		     OpenAPI / Swagger
+		     API仕様書の自動生成とSwagger UI
+		     ======================================== -->
 		<dependency>
 			<groupId>org.openapitools</groupId>
 			<artifactId>jackson-databind-nullable</artifactId>
@@ -85,37 +120,38 @@
 			<version>2.2.20</version>
 		</dependency>
 		<dependency>
-			<groupId>javax.annotation</groupId>
-			<artifactId>javax.annotation-api</artifactId>
-			<version>1.3.2</version>
-		</dependency>
-		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>javax.servlet-api</artifactId>
-			<version>4.0.1</version>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
 			<version>2.5.0</version>
 		</dependency>
+
+		<!-- ========================================
+		     開発ツール
+		     ボイラープレートコード削減（Lombok）
+		     ホットリロード機能（DevTools）
+		     ======================================== -->
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-security</artifactId>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<!-- compile時のみ必要だが実行時には不要 -->
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.nimbusds</groupId>
-			<artifactId>nimbus-jose-jwt</artifactId>
-			<version>9.37.3</version>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-devtools</artifactId>
+			<!-- 実行時のみ必要、optional=trueで本番ビルド時には除外される -->
+			<scope>runtime</scope>
+			<optional>true</optional>
 		</dependency>
+
+		<!-- ========================================
+		     テスト関連
+		     ユニットテストとセキュリティテスト
+		     ======================================== -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-oauth2-client</artifactId>
+			<artifactId>spring-boot-starter-test</artifactId>
+			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework.security</groupId>
@@ -123,16 +159,21 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+
+	<!-- ========================================
+	     プロファイル設定
+	     環境ごとに異なる設定を管理
+	     ======================================== -->
 	<profiles>
 		<profile>
-			<!--backendフォルダ下でのmvnコマンド実行時に使用-->
+			<!-- backendフォルダ下でのmvnコマンド実行時に使用 -->
 			<id>local</id>
 			<properties>
 				<openapi.file>../openapi/openapi.yaml</openapi.file>
 			</properties>
 		</profile>
 		<profile>
-			<!--docker-compose.yamlでのmvnコマンド実行時に使用-->
+			<!-- docker-compose.yamlでのmvnコマンド実行時に使用 -->
 			<id>docker</id>
 			<properties>
 				<openapi.file>openapi/openapi.yaml</openapi.file>
@@ -140,8 +181,53 @@
 		</profile>
 	</profiles>
 
+	<!-- ========================================
+	     ビルド設定
+	     ======================================== -->
 	<build>
+		<!-- ========================================
+		     Cursor（m2e）との統合設定
+		     m2eにOpenAPI Generatorを無視するよう指示
+		     ======================================== -->
+		
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<version>1.0.0</version>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<pluginExecutions>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.openapitools</groupId>
+										<artifactId>openapi-generator-maven-plugin</artifactId>
+										<versionRange>[7.0.0,)</versionRange>
+										<goals>
+											<goal>generate</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<!-- Cursor（m2e）の自動ビルド時は実行しない -->
+										<ignore />
+									</action>
+								</pluginExecution>
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
+
+		<!-- ========================================
+		     ビルドプラグイン
+		     ======================================== -->
 		<plugins>
+			<!-- ========================================
+			     OpenAPI Generator
+			     OpenAPI仕様書からAPIインターフェースとモデルクラスを自動生成
+			     ======================================== -->
 			<plugin>
 				<groupId>org.openapitools</groupId>
 				<artifactId>openapi-generator-maven-plugin</artifactId>
@@ -149,17 +235,14 @@
 				<executions>
 					<execution>
 						<id>generate-spring</id>
+						<phase>generate-sources</phase>
 						<goals>
 							<goal>generate</goal>
 						</goals>
 						<configuration>
-							<!-- 入力ファイル（OpenAPI仕様書のパス） -->
 							<inputSpec>${openapi.file}</inputSpec>
-							<!-- 生成するコードの種類（Spring用のコードを生成） -->
 							<generatorName>spring</generatorName>
-							<!-- 出力先ディレクトリ（生成されたコードを配置する場所） -->
-							<output>${project.basedir}/src/main/java-generated</output>
-							<!-- パッケージ名などのオプション -->
+							<output>${project.build.directory}/generated-sources/openapi</output>
 							<apiPackage>com.example.backend.generated.api</apiPackage>
 							<modelPackage>com.example.backend.generated.model</modelPackage>
 							<configOptions>
@@ -167,23 +250,56 @@
 								<interfaceOnly>true</interfaceOnly>
 								<!-- タグを使用してAPIをグループ化 -->
 								<useTags>true</useTags>
-								<!-- Java 8の日付ライブラリを使用 -->
 								<dateLibrary>java8</dateLibrary>
-								<!-- Jakarta EEを使用（Spring Boot 3.xはJakarta EE準拠） -->
 								<useJakartaEe>true</useJakartaEe>
-								<!-- Spring Boot用のライブラリを指定 -->
-								<library>spring-boot</library>
-								<!-- Spring Boot 3.x用の設定を有効化 -->
 								<useSpringBoot3>true</useSpringBoot3>
 							</configOptions>
 						</configuration>
 					</execution>
 				</executions>
 			</plugin>
+
+			<!-- ========================================
+			     Build Helper
+			     自動生成されたソースコードをビルドパスに追加
+			     ======================================== -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>3.5.0</version>
+				<executions>
+					<execution>
+						<id>add-source</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>add-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<!-- OpenAPI Generatorで生成されたソースを追加 -->
+								<source>${project.build.directory}/generated-sources/openapi/src/main/java</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- ========================================
+			     Spring Boot Maven Plugin
+			     Spring Bootアプリケーションの起動と実行可能JARの作成
+			     ======================================== -->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<mainClass>com.example.backend.BackendApplication</mainClass>
+				</configuration>
 			</plugin>
+
+			<!-- ========================================
+			     JaCoCo
+			     テストカバレッジの測定とレポート生成
+			     ======================================== -->
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>

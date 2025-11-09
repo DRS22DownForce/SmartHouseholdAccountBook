@@ -151,7 +151,6 @@ SmartHouseholdAccountBook/
 ### 1. リポジトリのクローン
 ```bash
 git clone https://github.com/your-username/SmartHouseholdAccountBook.git
-cd SmartHouseholdAccountBook
 ```
 
 ### 2. 環境変数の設定
@@ -159,53 +158,70 @@ cd SmartHouseholdAccountBook
 #### フロントエンド
 `frontend-nextjs/.env.local` を作成:
 ```env
-NEXT_PUBLIC_API_URL=http://localhost:8080
-NEXT_PUBLIC_AWS_REGION=your-aws-region
-NEXT_PUBLIC_USER_POOL_ID=your-user-pool-id
-NEXT_PUBLIC_CLIENT_ID=your-client-id
+NEXT_PUBLIC_API_URL=バックエンドAPIのベースURL
 ```
 
 #### バックエンド
-`backend/src/main/resources/application.properties` を編集:
-```properties
-spring.datasource.url=jdbc:mysql://mysql:3306/accountbook
-spring.datasource.username=root
-spring.datasource.password=password
-aws.cognito.region=your-aws-region
-aws.cognito.userPoolId=your-user-pool-id
-```
+プロジェクトルートに `.env` を作成し、以下の環境変数を設定します：
 
-### 3. Docker Composeで起動
+```env
+- `MYSQL_ROOT_PASSWORD`: MySQLのrootパスワード
+- `MYSQL_DATABASE`: データベース名（デフォルト: demo）
+- `SPRING_DATASOURCE_URL_DEV`: ローカル開発環境でのMySQL接続URL
+- `COGNITO_JWK_SET_URL`: AWS CognitoのJWK Set URL（実際のCognito URLに変更してください）
+```
+### 3. ローカル開発環境の起動
+
+最も効率的な開発方法です。MySQLのみDockerで起動し、Spring BootはローカルJVMで実行します。
+
+#### ステップ1: MySQLをDockerで起動
+
 ```bash
-# すべてのサービスを起動（バックエンド、フロントエンド、MySQL）
-docker-compose up -d
-
-# ログの確認
-docker-compose logs -f
-
-# サービスの停止
-docker-compose down
+# MySQLコンテナを起動
+docker-compose -f docker-compose.dev.yaml up -d
 ```
 
-### 4. 個別開発モード（推奨）
+#### ステップ2: Spring Bootをローカルで起動
 
-#### バックエンド
+**方法1: IDEから起動（推奨）**
+1. Cursor/VS Codeで **F5キー** を押す
+2. 「**Spring Boot (Local)**」を選択
+3. アプリケーションが起動します
+
+### 4. 本番環境での起動（Docker）
+
+本番環境ではMySQL は外部（RDS等）を使用し、Spring BootのみDockerで起動します。
+
+### 5. OpenAPI自動生成
+
+OpenAPI仕様を変更した場合、コードを再生成します：
+
 ```bash
 cd backend
-mvn spring-boot:run
+mvn generate-sources -Plocal
 ```
-バックエンドAPI: `http://localhost:8080`
 
-#### フロントエンド
+**自動生成されるファイル:**
+- `target/generated-sources/openapi/` 配下にAPIインターフェースとモデルクラスが生成されます
+
+### 開発環境と本番環境の違い
+
+| 項目 | ローカル開発（推奨） | 本番環境 |
+|------|---------------------|---------|
+| **MySQL** | Docker（localhost:3306） | 外部（RDS等） |
+| **Spring Boot** | ローカルJVM | Docker |
+| **起動方法** | Cursor F5キー | docker-compose up |
+| **DevTools** | ✅ 有効（1-2秒再起動） | ❌ 無効 |
+| **デバッグ** | IDEから直接 | リモートデバッグ（ポート5005） |
+| **ログ** | IDEコンソール | docker logs |
+| **ホットリロード** | 超高速 | なし |
+
+#### 本番用イメージのビルド:
 ```bash
-cd frontend-nextjs
-npm install
-npm run dev
+# 本番用Dockerfileを使用してビルド
+docker build -f backend/Dockerfile -t smart-household-backend:prod .
 ```
-フロントエンド: `http://localhost:3000`
 
-### 5. API仕様書の確認
-Swagger UI: `http://localhost:8080/swagger-ui.html`（開発環境）
 
 ## 🔒 セキュリティ実装
 

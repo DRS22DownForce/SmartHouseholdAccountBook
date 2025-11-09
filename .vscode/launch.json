@@ -1,0 +1,30 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      // ========================================
+      // ローカル開発: Spring Bootをローカルで起動（推奨）
+      // ========================================
+      "type": "java",
+      "name": "Spring Boot (Local)",
+      "request": "launch",
+      "mainClass": "com.example.backend.BackendApplication",
+      "projectName": "backend",
+      "cwd": "${workspaceFolder}/backend",
+      "envFile": "${workspaceFolder}/.env",
+      "vmArgs": "-Dspring.profiles.active=local"
+    },
+    {
+      // ========================================
+      // Docker内のSpring Bootにリモートデバッグで接続（本番環境用）
+      // ========================================
+      "type": "java",
+      "name": "Attach to Docker (Remote Debug)",
+      "request": "attach",
+      "hostName": "localhost",
+      "port": 5005,
+      "projectName": "backend"
+    }
+  ]
+}
+
