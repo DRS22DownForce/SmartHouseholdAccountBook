@@ -57,10 +57,6 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-thymeleaf</artifactId>
-		</dependency>
-		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<!--compile時のみ必要だが実行時には不要-->
@@ -130,6 +126,36 @@
 	</profiles>
 
 	<build>
+		<!-- Cursor（m2e）との統合設定 - m2eにOpenAPI Generatorを無視するよう指示 -->
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<version>1.0.0</version>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<pluginExecutions>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.openapitools</groupId>
+										<artifactId>openapi-generator-maven-plugin</artifactId>
+										<versionRange>[7.0.0,)</versionRange>
+										<goals>
+											<goal>generate</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<!-- Cursor（m2e）の自動ビルド時は実行しない -->
+										<ignore />
+									</action>
+								</pluginExecution>
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 		<plugins>
 			<plugin>
 				<groupId>org.openapitools</groupId>
@@ -138,6 +164,7 @@
 				<executions>
 					<execution>
 						<id>generate-spring</id>
+						<phase>generate-sources</phase>
 						<goals>
 							<goal>generate</goal>
 						</goals>
@@ -147,7 +174,8 @@
 							<!-- 生成するコードの種類（Spring用のコードを生成） -->
 							<generatorName>spring</generatorName>
 							<!-- 出力先ディレクトリ（生成されたコードを配置する場所） -->
-							<output>${project.basedir}/src/main/java-generated</output>
+							<!-- targetディレクトリに生成し、Mavenビルドプロセスに統合 -->
+							<output>${project.build.directory}/generated-sources/openapi</output>
 							<!-- パッケージ名などのオプション -->
 							<apiPackage>com.example.backend.generated.api</apiPackage>
 							<modelPackage>com.example.backend.generated.model</modelPackage>
@@ -172,6 +200,27 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<!-- 生成されたソースをビルドパスに追加 -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>3.5.0</version>
+				<executions>
+					<execution>
+						<id>add-source</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>add-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<!-- OpenAPI Generatorで生成されたソースを追加 -->
+								<source>${project.build.directory}/generated-sources/openapi/src/main/java</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
 			</plugin>
 			<plugin>
 				<groupId>org.jacoco</groupId>
