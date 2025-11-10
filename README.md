@@ -93,14 +93,26 @@ SmartHouseholdAccountBook/
 │   │   ├── main/
 │   │   │   ├── java/
 │   │   │   │   └── com/example/backend/
-│   │   │   │       ├── controller/      # REST API コントローラー
-│   │   │   │       ├── service/         # ビジネスロジック
-│   │   │   │       ├── entity/          # エンティティクラス
-│   │   │   │       ├── config/          # 設定クラス（セキュリティ等）
-│   │   │   │       └── generated/       # OpenAPI生成コード
+│   │   │   │       ├── controller/              # REST API コントローラー
+│   │   │   │       ├── application/             # アプリケーション層
+│   │   │   │       │   ├── service/             # アプリケーションサービス（ユースケース実装）
+│   │   │   │       │   └── mapper/              # DTO変換マッパー
+│   │   │   │       ├── domain/                  # ドメイン層（ビジネスロジック）
+│   │   │   │       │   ├── repository/          # リポジトリインターフェース
+│   │   │   │       │   └── valueobject/         # 値オブジェクト（金額や日付などの不変な値）
+│   │   │   │       ├── entity/                  # エンティティ（データベースのテーブルに対応するクラス。IDで管理され、可変である）
+│   │   │   │       ├── auth/                    # 認証・認可関連
+│   │   │   │       │   ├── filter/              # 認証フィルター
+│   │   │   │       │   └── provider/            # 認証プロバイダー
+│   │   │   │       ├── config/                  # 設定クラス
+│   │   │   │       │   └── security/            # セキュリティ設定
+│   │   │   │       ├── repository/              # リポジトリ実装（JPA）
+│   │   │   │       ├── service/                 # サービス層（未使用）
+│   │   │   │       └── api/                     # API関連（未使用）
 │   │   │   └── resources/
-│   │   │       └── application.properties
-│   │   └── pom.xml                       # Maven依存関係
+│   │   │       └── application.properties       # アプリケーション設定
+│   │   └── test/                                # テストコード
+│   ├── pom.xml                                  # Maven依存関係
 │   └── Dockerfile
 │
 ├── frontend-nextjs/           # Next.js アプリケーション
@@ -133,11 +145,15 @@ SmartHouseholdAccountBook/
 │   └── tsconfig.json
 │
 ├── docker/                     # Docker設定ファイル
+│   └── mysql/                  # MySQL設定ファイル
+│       ├── init.sql            # データベース初期化スクリプト
+│       └── my.cnf              # MySQL設定ファイル
 ├── openapi/                    # API仕様書
 │   └── openapi.yaml           # OpenAPI 3.0仕様
 ├── docs/                       # ドキュメント
 │   └── images/                # スクリーンショット画像
-├── docker-compose.yaml         # 開発環境構築用
+├── docker-compose.yaml         # 本番環境用（Spring Boot + MySQL）
+├── docker-compose.dev.yaml     # 開発環境用（MySQLのみ）
 └── README.md
 ```
 
