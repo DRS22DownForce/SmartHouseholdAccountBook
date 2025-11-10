@@ -1,11 +1,15 @@
 package com.example.backend.controller;
 
+import com.example.backend.application.service.ExpenseApplicationService;
+import com.example.backend.application.service.UserApplicationService;
+import com.example.backend.config.TestSecurityConfig;
+import com.example.backend.domain.repository.ExpenseRepository;
+import com.example.backend.domain.repository.UserRepository;
+import com.example.backend.domain.valueobject.Category;
+import com.example.backend.domain.valueobject.ExpenseAmount;
+import com.example.backend.domain.valueobject.ExpenseDate;
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.User;
-import com.example.backend.repository.ExpenseRepository;
-import com.example.backend.repository.UserRepository;
-import com.example.backend.service.ExpenseService;
-import com.example.backend.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -14,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -24,9 +29,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import com.example.backend.config.TestSecurityConfig;
-import org.springframework.context.annotation.Import;
 
+/**
+ * ExpenseControllerの統合テストクラス
+ * 
+ * コントローラーからデータベースまでの一貫した動作をテストします。
+ */
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test") // application-test.propertiesを使用
@@ -43,25 +51,26 @@ class ExpenseControllerIntegrationTest {
     private UserRepository userRepository;
 
     @MockBean
-    //SpringのBeanをMockに置き換える
-    private UserService userService;
+    // SpringのBeanをMockに置き換える
+    private UserApplicationService userApplicationService;
 
     @InjectMocks
-    private ExpenseService expenseService;
+    private ExpenseApplicationService expenseApplicationService;
 
     private User user;
 
     @BeforeEach
     void setUp() {
         // 毎回DBをクリア
-        expenseRepository.deleteAll();//外部キー制約のため、expenseを先に削除
+        expenseRepository.deleteAll(); // 外部キー制約のため、expenseを先に削除
         userRepository.deleteAll();
+        
         // テスト用のユーザーを作成し、DBに保存
         String cognitoSub = "cognitoSub";
         String email = "test@example.com";
         user = new User(cognitoSub, email);
         userRepository.save(user);
-        when(userService.getUser()).thenReturn(user);
+        when(userApplicationService.getUser()).thenReturn(user);
     }
 
     @Test
@@ -85,7 +94,7 @@ class ExpenseControllerIntegrationTest {
         // 2. DBに保存されたか確認
         assertThat(expenseRepository.count()).isEqualTo(1);
         Expense saved = expenseRepository.findByUser(user).get(0);
-        assertThat(saved.getCategory()).isEqualTo("食費");
+        assertThat(saved.getCategoryValue()).isEqualTo("食費");
 
         // 3. GETで家計簿データ一覧を取得
         mockMvc.perform(get("/api/expenses"))
@@ -97,7 +106,10 @@ class ExpenseControllerIntegrationTest {
     @DisplayName("家計簿削除API→DB削除まで一貫テスト")
     void testDeleteExpense() throws Exception {
         // 事前にデータを登録
-        Expense expense = new Expense("バス代", 500, LocalDate.now(), "交通費", user);
+        ExpenseAmount amount = new ExpenseAmount(500);
+        ExpenseDate date = new ExpenseDate(LocalDate.now());
+        Category category = new Category("交通費");
+        Expense expense = new Expense("バス代", amount, date, category, user);
         expense = expenseRepository.save(expense);
 
         // 1. DELETEで削除
@@ -112,7 +124,10 @@ class ExpenseControllerIntegrationTest {
     @DisplayName("家計簿更新API→DB更新まで一貫テスト")
     void testUpdateExpense() throws Exception {
         // 事前にデータを登録
-        Expense expense = new Expense("バス代", 500, LocalDate.now(), "交通費", user);
+        ExpenseAmount amount = new ExpenseAmount(500);
+        ExpenseDate date = new ExpenseDate(LocalDate.now());
+        Category category = new Category("交通費");
+        Expense expense = new Expense("バス代", amount, date, category, user);
         expense = expenseRepository.save(expense);
 
         // 1. PUTで更新
@@ -131,9 +146,9 @@ class ExpenseControllerIntegrationTest {
         // 2. DBに更新されたことを確認
         Expense updated = expenseRepository.findById(expense.getId()).orElse(null);
         assertThat(updated).isNotNull();
-        assertThat(updated.getCategory()).isEqualTo("食費");
-        assertThat(updated.getAmount()).isEqualTo(1000);
+        assertThat(updated.getCategoryValue()).isEqualTo("食費");
+        assertThat(updated.getAmountValue()).isEqualTo(1000);
         assertThat(updated.getDescription()).isEqualTo("テスト");
-        assertThat(updated.getDate()).isEqualTo(LocalDate.now());
+        assertThat(updated.getDateValue()).isEqualTo(LocalDate.now());
     }
 }

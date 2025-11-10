@@ -1,10 +1,14 @@
-package com.example.backend.service;
+package com.example.backend.application.service;
 
+import com.example.backend.application.mapper.ExpenseMapper;
+import com.example.backend.domain.repository.ExpenseRepository;
+import com.example.backend.domain.valueobject.Category;
+import com.example.backend.domain.valueobject.ExpenseAmount;
+import com.example.backend.domain.valueobject.ExpenseDate;
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.User;
 import com.example.backend.generated.model.ExpenseDto;
 import com.example.backend.generated.model.ExpenseRequestDto;
-import com.example.backend.repository.ExpenseRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -18,8 +22,13 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * ExpenseApplicationServiceのテストクラス
+ * 
+ * アプリケーションサービスのユースケースをテストします。
+ */
 @ExtendWith(MockitoExtension.class)
-class ExpenseServiceTest {
+class ExpenseApplicationServiceTest {
     @Mock
     private ExpenseRepository expenseRepository;
 
@@ -28,34 +37,47 @@ class ExpenseServiceTest {
     private ExpenseMapper expenseMapper;
 
     @Mock
-    private UserService userService;
+    private UserApplicationService userApplicationService;
 
     @InjectMocks
-    private ExpenseService expenseService;
+    private ExpenseApplicationService expenseApplicationService;
 
     @Test
     void getAllExpenses_リポジトリに2件あれば2件返す() {
+        // テストデータの準備
         User user = new User("cognitoSub", "test@example.com");
-        Expense expense1 = new Expense("支出1", 1000, LocalDate.of(2024, 1, 1), "食費", user);
-        Expense expense2 = new Expense("支出2", 2000, LocalDate.of(2024, 1, 2), "交通費", user);
+        ExpenseAmount amount1 = new ExpenseAmount(1000);
+        ExpenseDate date1 = new ExpenseDate(LocalDate.of(2024, 1, 1));
+        Category category1 = new Category("食費");
+        Expense expense1 = new Expense("支出1", amount1, date1, category1, user);
+        
+        ExpenseAmount amount2 = new ExpenseAmount(2000);
+        ExpenseDate date2 = new ExpenseDate(LocalDate.of(2024, 1, 2));
+        Category category2 = new Category("交通費");
+        Expense expense2 = new Expense("支出2", amount2, date2, category2, user);
+        
         ExpenseDto dto1 = new ExpenseDto();
         dto1.setDescription("支出1");
         dto1.setAmount(1000);
         dto1.setDate(LocalDate.of(2024, 1, 1));
         dto1.setCategory("食費");
+        
         ExpenseDto dto2 = new ExpenseDto();
         dto2.setDescription("支出2");
         dto2.setAmount(2000);
         dto2.setDate(LocalDate.of(2024, 1, 2));
         dto2.setCategory("交通費");
 
-        // テスト用のユーザーを作成
+        // モックの設定
         when(expenseRepository.findByUser(user)).thenReturn(Arrays.asList(expense1, expense2));
         when(expenseMapper.toDto(expense1)).thenReturn(dto1);
         when(expenseMapper.toDto(expense2)).thenReturn(dto2);
-        when(userService.getUser()).thenReturn(user);
-        List<ExpenseDto> result = expenseService.getExpenses();
+        when(userApplicationService.getUser()).thenReturn(user);
+        
+        // テスト実行
+        List<ExpenseDto> result = expenseApplicationService.getExpenses();
 
+        // 検証
         assertEquals(2, result.size());
         assertEquals("支出1", result.get(0).getDescription());
         assertEquals("支出2", result.get(1).getDescription());
@@ -63,6 +85,7 @@ class ExpenseServiceTest {
 
     @Test
     void addExpense_支出追加() {
+        // テストデータの準備
         ExpenseRequestDto requestDto = new ExpenseRequestDto();
         requestDto.setDescription("テスト支出");
         requestDto.setAmount(1000);
@@ -70,9 +93,13 @@ class ExpenseServiceTest {
         requestDto.setCategory("食費");
 
         User user = new User("cognitoSub", "test@example.com");
-        Expense expense = new Expense("テスト支出", 1000, LocalDate.of(2024, 1, 1), "食費", user);
+        ExpenseAmount amount = new ExpenseAmount(1000);
+        ExpenseDate date = new ExpenseDate(LocalDate.of(2024, 1, 1));
+        Category category = new Category("食費");
+        Expense expense = new Expense("テスト支出", amount, date, category, user);
+        
         when(expenseMapper.toEntity(requestDto, user)).thenReturn(expense);
-        when(userService.getUser()).thenReturn(user);
+        when(userApplicationService.getUser()).thenReturn(user);
 
         ExpenseDto expenseDto = new ExpenseDto();
         expenseDto.setDescription("テスト支出");
@@ -83,8 +110,10 @@ class ExpenseServiceTest {
 
         when(expenseRepository.save(expense)).thenReturn(expense);
 
-        ExpenseDto result = expenseService.addExpense(requestDto);
+        // テスト実行
+        ExpenseDto result = expenseApplicationService.addExpense(requestDto);
 
+        // 検証
         assertNotNull(result);
         assertEquals("テスト支出", result.getDescription());
         assertEquals(1000, result.getAmount());
@@ -95,7 +124,8 @@ class ExpenseServiceTest {
 
     @Test
     void addExpense_リクエストがnullなら例外() {
-        assertThrows(NullPointerException.class, () -> expenseService.addExpense(null));
+        // テスト実行と検証
+        assertThrows(NullPointerException.class, () -> expenseApplicationService.addExpense(null));
     }
 
     @Test
@@ -110,7 +140,10 @@ class ExpenseServiceTest {
 
         // 既存の支出エンティティをモック
         User user = new User("cognitoSub", "test@example.com");
-        Expense existingExpense = new Expense("元の支出", 1000, LocalDate.of(2024, 1, 1), "食費", user);
+        ExpenseAmount originalAmount = new ExpenseAmount(1000);
+        ExpenseDate originalDate = new ExpenseDate(LocalDate.of(2024, 1, 1));
+        Category originalCategory = new Category("食費");
+        Expense existingExpense = new Expense("元の支出", originalAmount, originalDate, originalCategory, user);
 
         // 更新後の支出DTOをモック
         ExpenseDto updatedDto = new ExpenseDto();
@@ -125,7 +158,7 @@ class ExpenseServiceTest {
         when(expenseMapper.toDto(existingExpense)).thenReturn(updatedDto);
 
         // テスト実行
-        ExpenseDto result = expenseService.updateExpense(expenseId, requestDto);
+        ExpenseDto result = expenseApplicationService.updateExpense(expenseId, requestDto);
 
         // 検証
         assertNotNull(result);
@@ -151,10 +184,10 @@ class ExpenseServiceTest {
         when(expenseRepository.findById(nonExistentId)).thenReturn(java.util.Optional.empty());
 
         // テスト実行と検証
-        RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> expenseService.updateExpense(nonExistentId, requestDto));
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> expenseApplicationService.updateExpense(nonExistentId, requestDto));
 
-        assertEquals("Expense not found with id: 999", exception.getMessage());
+        assertEquals("ID 999 の支出が見つかりません", exception.getMessage());
         verify(expenseRepository, times(1)).findById(nonExistentId);
         verify(expenseRepository, never()).save(any());
     }
@@ -163,10 +196,11 @@ class ExpenseServiceTest {
     void updateExpense_リクエストがnullなら例外() {
         // テスト実行と検証
         assertThrows(NullPointerException.class,
-                () -> expenseService.updateExpense(1L, null));
+                () -> expenseApplicationService.updateExpense(1L, null));
 
         // リポジトリは呼ばれないことを確認
         verify(expenseRepository, never()).findById(any());
         verify(expenseRepository, never()).save(any());
     }
 }
+

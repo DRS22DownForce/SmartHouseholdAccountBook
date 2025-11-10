@@ -1,16 +1,15 @@
 package com.example.backend.auth.filter;
 
-import java.io.IOException;
-import org.springframework.stereotype.Component;
-import org.springframework.lang.NonNull;
-import org.springframework.web.filter.OncePerRequestFilter;
-
-import com.example.backend.service.UserService;
-
+import com.example.backend.application.service.UserApplicationService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.lang.NonNull;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
 
 /**
  * ユーザー登録フィルター
@@ -21,10 +20,15 @@ import jakarta.servlet.http.HttpServletResponse;
  */
 @Component
 public class UserRegistrationFilter extends OncePerRequestFilter {
-    private final UserService userService;
+    private final UserApplicationService userApplicationService;
 
-    public UserRegistrationFilter(UserService userService) {
-        this.userService = userService;
+    /**
+     * コンストラクタ
+     * 
+     * @param userApplicationService ユーザーアプリケーションサービス
+     */
+    public UserRegistrationFilter(UserApplicationService userApplicationService) {
+        this.userApplicationService = userApplicationService;
     }
 
     @Override
@@ -41,7 +45,7 @@ public class UserRegistrationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         // ユーザーが存在しない場合はデータベースに保存
-        userService.createUserIfNotExists();
+        userApplicationService.createUserIfNotExists();
         filterChain.doFilter(request, response);
     }
 }
