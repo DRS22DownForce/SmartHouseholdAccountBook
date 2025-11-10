@@ -152,10 +152,20 @@ class ExpenseApplicationServiceTest {
         updatedDto.setDate(LocalDate.of(2024, 1, 15));
         updatedDto.setCategory("娯楽費");
 
+        // 更新用の値オブジェクトを準備
+        ExpenseAmount updatedAmount = new ExpenseAmount(1500);
+        ExpenseDate updatedDate = new ExpenseDate(LocalDate.of(2024, 1, 15));
+        Category updatedCategory = new Category("娯楽費");
+        ExpenseMapper.ValueObjectsForUpdate valueObjectsForUpdate = 
+            new ExpenseMapper.ValueObjectsForUpdate(updatedAmount, updatedDate, updatedCategory);
+
         // モックの設定
         when(expenseRepository.findById(expenseId)).thenReturn(java.util.Optional.of(existingExpense));
         when(expenseRepository.save(existingExpense)).thenReturn(existingExpense);
         when(expenseMapper.toDto(existingExpense)).thenReturn(updatedDto);
+        // toValueObjectsForUpdateメソッドのモック設定を追加
+        // これがないと、updateExpenseメソッド内でnullが返されてNullPointerExceptionが発生します
+        when(expenseMapper.toValueObjectsForUpdate(requestDto)).thenReturn(valueObjectsForUpdate);
 
         // テスト実行
         ExpenseDto result = expenseApplicationService.updateExpense(expenseId, requestDto);
@@ -171,6 +181,8 @@ class ExpenseApplicationServiceTest {
         verify(expenseRepository, times(1)).findById(expenseId);
         verify(expenseRepository, times(1)).save(existingExpense);
         verify(expenseMapper, times(1)).toDto(existingExpense);
+        // toValueObjectsForUpdateメソッドが呼ばれたことを確認
+        verify(expenseMapper, times(1)).toValueObjectsForUpdate(requestDto);
     }
 
     @Test
