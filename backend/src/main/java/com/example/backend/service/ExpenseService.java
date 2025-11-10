@@ -32,7 +32,7 @@ public class ExpenseService {
      * @return 支出リスト
      */
     public List<ExpenseDto> getExpenses() {
-        User user = userService.getUser();
+        User user = Objects.requireNonNull(userService.getUser(), "ユーザー情報の取得に失敗しました");
         List<Expense> expenses = expenseRepository.findByUser(user);
         return expenses.stream()
                 .map(expenseMapper::toDto)
@@ -46,10 +46,12 @@ public class ExpenseService {
      * @return 追加した支出エンティティ
      */
     public ExpenseDto addExpense(ExpenseRequestDto expenseRequestDto) {
-        if (expenseRequestDto == null)
-            throw new NullPointerException("requestDto is null");
-        User user = userService.getUser();
-        Expense expense = expenseMapper.toEntity(expenseRequestDto, user);
+        Objects.requireNonNull(expenseRequestDto, "支出リクエストDTOはnullであってはなりません");
+        User user = Objects.requireNonNull(userService.getUser(), "ユーザー情報の取得に失敗しました");
+        Expense expense = Objects.requireNonNull(
+            expenseMapper.toEntity(expenseRequestDto, user),
+            "エンティティの生成に失敗しました"
+        );
         Expense savedExpense = expenseRepository.save(expense);
         return expenseMapper.toDto(savedExpense);
     }
@@ -60,6 +62,7 @@ public class ExpenseService {
      * @param id 支出ID
      */
     public void deleteExpense(Long id) {
+        Objects.requireNonNull(id, "支出IDはnullであってはなりません");
         expenseRepository.deleteById(id);
     }
 
@@ -71,11 +74,11 @@ public class ExpenseService {
      * @return 更新された支出DTO
      */
     public ExpenseDto updateExpense(Long id, ExpenseRequestDto expenseRequestDto) {
-        Objects.requireNonNull(expenseRequestDto, "requestDto is null");
-
+        Objects.requireNonNull(expenseRequestDto, "支出リクエストDTOはnullであってはなりません");
+        Objects.requireNonNull(id, "支出IDはnullであってはなりません");
         // 既存の支出を取得
         Expense existingExpense = expenseRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Expense not found with id: " + id));
+                .orElseThrow(() -> new IllegalArgumentException("ID " + id + " の支出が見つかりません"));
 
         // 既存のエンティティを直接更新（IDは変更しない）
         existingExpense.changeDescription(expenseRequestDto.getDescription());
