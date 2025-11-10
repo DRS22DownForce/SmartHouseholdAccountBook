@@ -1,8 +1,8 @@
 // UserRegistrationIntegrationTest.java
 package com.example.backend.config;
 
+import com.example.backend.domain.repository.UserRepository;
 import com.example.backend.entity.User;
-import com.example.backend.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
