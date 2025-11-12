@@ -7,7 +7,7 @@
 
 // OpenAPI生成型を再エクスポート
 // これにより、他のファイルから簡単にインポートできます
-export type { ExpenseDto, ExpenseRequestDto } from '@/api/generated/api'
+export type { ExpenseDto, ExpenseRequestDto, MonthlySummaryDto } from '@/api/generated/api'
 
 // UI用の支出データ型
 // use-expensesフックで使用されます

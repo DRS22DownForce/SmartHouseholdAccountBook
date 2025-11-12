@@ -1,6 +1,13 @@
 "use client"
 
-import { useState } from "react"
+/**
+ * 支出リストコンポーネント
+ * 
+ * このコンポーネントは、バックエンドAPIから月別支出を取得して表示します。
+ * フロントエンドでのフィルタリングを削減し、通信量を最適化するために使用します。
+ */
+
+import { useState, useMemo, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import {
@@ -16,18 +23,37 @@ import {
 } from "@/components/ui/alert-dialog"
 import { ExpenseForm } from "./expense-form"
 import { Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
-import type { Expense, ExpenseFormData } from "@/lib/types"
+import type { ExpenseFormData } from "@/lib/types"
 import { getCategoryColor } from "@/lib/category-colors"
 import { formatCurrency } from "@/lib/formatters"
+import { useMonthlyExpenses } from "@/hooks/use-monthly-expenses"
 
 interface ExpenseListProps {
-  expenses: Expense[]
   onUpdate: (id: string, data: ExpenseFormData) => void
   onDelete: (id: string) => void
+  refreshTrigger?: number // 支出更新・削除後に再取得するためのトリガー
 }
 
-export function ExpenseList({ expenses, onUpdate, onDelete }: ExpenseListProps) {
+export function ExpenseList({ onUpdate, onDelete, refreshTrigger }: ExpenseListProps) {
   const [selectedDate, setSelectedDate] = useState(new Date())
+
+  // 選択された月をYYYY-MM形式に変換
+  const selectedMonth = useMemo(() => {
+    const year = selectedDate.getFullYear()
+    const month = String(selectedDate.getMonth() + 1).padStart(2, "0")
+    return `${year}-${month}`
+  }, [selectedDate])
+  
+
+  // バックエンドAPIから月別支出を取得
+  const { expenses, isLoaded, fetchMonthlyExpenses } = useMonthlyExpenses(selectedMonth)
+
+  // refreshTriggerが変更されたときに再取得
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      fetchMonthlyExpenses()
+    }
+  }, [refreshTrigger, fetchMonthlyExpenses])
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString)
@@ -37,13 +63,6 @@ export function ExpenseList({ expenses, onUpdate, onDelete }: ExpenseListProps) 
       day: "numeric",
     }).format(date)
   }
-
-  const filteredExpenses = expenses.filter((expense) => {
-    const expenseDate = new Date(expense.date)
-    return (
-      expenseDate.getFullYear() === selectedDate.getFullYear() && expenseDate.getMonth() === selectedDate.getMonth()
-    )
-  })
 
   const goToPreviousMonth = () => {
     setSelectedDate((prev) => {
@@ -77,7 +96,22 @@ export function ExpenseList({ expenses, onUpdate, onDelete }: ExpenseListProps) 
     return selectedDate.getFullYear() === now.getFullYear() && selectedDate.getMonth() === now.getMonth()
   }
 
-  const monthTotal = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0)
+  const monthTotal = useMemo(() => {
+    return expenses.reduce((sum, expense) => sum + expense.amount, 0)
+  }, [expenses])
+
+  // 読み込み中の表示
+  if (!isLoaded) {
+    return (
+      <div className="space-y-6">
+        <Card className="border-border/50 shadow-sm bg-gradient-to-r from-card to-card/95">
+          <div className="flex items-center justify-center p-8">
+            <p className="text-muted-foreground">読み込み中...</p>
+          </div>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -125,13 +159,13 @@ export function ExpenseList({ expenses, onUpdate, onDelete }: ExpenseListProps) 
         </div>
       )}
 
-      {filteredExpenses.length === 0 ? (
+      {expenses.length === 0 ? (
         <Card className="p-16 md:p-20 text-center border-2 border-dashed border-muted-foreground/20 shadow-sm bg-muted/30">
           <p className="text-muted-foreground text-lg md:text-xl font-medium">この月の支出はありません</p>
         </Card>
       ) : (
         <div className="max-h-[600px] overflow-y-auto pr-2 space-y-4 scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
-          {filteredExpenses.map((expense) => (
+          {expenses.map((expense) => (
             <Card
               key={expense.id}
               className="group p-5 md:p-6 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300 border-border/60 bg-gradient-to-br from-card to-card/95 hover:border-primary/20"

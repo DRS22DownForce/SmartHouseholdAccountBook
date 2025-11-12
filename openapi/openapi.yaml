@@ -11,6 +11,15 @@ paths:
   /api/expenses:
     get:
       summary: 家計簿データ一覧取得
+      parameters:
+        - name: month
+          in: query
+          required: false
+          description: 月別フィルタリング（YYYY-MM形式）。指定しない場合は全データを取得
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+            example: '2024-01'
       responses:
         '200':
           description: 家計簿データ一覧取得成功
@@ -84,7 +93,81 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorResponse'          
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/expenses/summary:
+    get:
+      summary: 月別サマリー取得
+      parameters:
+        - name: month
+          in: query
+          required: true
+          description: 対象月（YYYY-MM形式）
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+            example: '2024-01'
+      responses:
+        '200':
+          description: 月別サマリー取得成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MonthlySummaryDto'
+        '400':
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/expenses/summary/range:
+    get:
+      summary: 範囲指定で月別サマリー取得
+      parameters:
+        - name: startMonth
+          in: query
+          required: true
+          description: 開始月（YYYY-MM形式）
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+            example: '2024-01'
+        - name: endMonth
+          in: query
+          required: true
+          description: 終了月（YYYY-MM形式）
+          schema:
+            type: string
+            pattern: '^\d{4}-\d{2}$'
+            example: '2024-06'
+      responses:
+        '200':
+          description: 範囲指定で月別サマリー取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MonthlySummaryDto'
+        '400':
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/expenses/months:
+    get:
+      summary: 利用可能な月のリスト取得
+      responses:
+        '200':
+          description: 利用可能な月のリスト取得成功
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  pattern: '^\d{4}-\d{2}$'
+                  example: '2024-01'
 components:
   schemas:
     ExpenseDto:
@@ -147,3 +230,36 @@ components:
           type: string
           format: date-time
           description: エラー発生時刻
+    MonthlySummaryDto:
+      type: object
+      description: 月別サマリー用DTO
+      required:
+        - total
+        - count
+        - byCategory
+      properties:
+        total:
+          type: integer
+          description: 合計支出金額
+          example: 50000
+        count:
+          type: integer
+          description: 支出件数
+          example: 15
+        byCategory:
+          type: array
+          description: カテゴリー別集計（金額の降順でソート済み）
+          items:
+            type: object
+            required:
+              - category
+              - amount
+            properties:
+              category:
+                type: string
+                description: カテゴリー名
+                example: '食費'
+              amount:
+                type: integer
+                description: カテゴリー別の合計金額
+                example: 20000
