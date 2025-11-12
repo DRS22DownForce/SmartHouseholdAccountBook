@@ -1,16 +1,25 @@
 "use client"
 
-import { useMemo, useState } from "react"
+/**
+ * 支出の推移チャートコンポーネント
+ * 
+ * このコンポーネントは、バックエンドAPIから範囲指定で月別サマリーを取得してチャートを表示します。
+ * 全expensesデータからではなく、範囲指定APIから取得した月別サマリーから作成することで、
+ * 通信量を削減し、フロントエンドでの計算を削減します。
+ */
+
+import { useMemo, useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
-import type { Expense } from "@/lib/types"
 import { getCategoryColor } from "@/lib/category-colors"
 import { formatMonthForChart, formatCurrencyForChart } from "@/lib/formatters"
 import { MONTH_RANGES } from "@/lib/constants"
+import { useMonthlySummaryRange } from "@/hooks/use-monthly-summary-range"
 
 interface ExpenseTrendChartProps {
-  expenses: Expense[]
+  // expensesプロップは削除（バックエンドAPIから取得するため）
+  refreshTrigger?: number // 支出追加後に再取得するためのトリガー
 }
 
 interface TooltipProps {
@@ -62,6 +71,28 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
   )
 }
 
+/**
+ * 月の範囲を計算する（開始月と終了月をYYYY-MM形式で返す）
+ * 
+ * @param monthsToShow 表示する月数
+ * @returns 開始月と終了月のタプル [startMonth, endMonth]
+ */
+function calculateMonthRange(monthsToShow: number): [string, string] {
+  const now = new Date()
+  const endMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`
+  
+  const startDate = new Date(now.getFullYear(), now.getMonth() - (monthsToShow - 1), 1)
+  const startMonth = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}`
+  
+  return [startMonth, endMonth]
+}
+
+/**
+ * 月のキーリストを生成する（YYYY-MM形式）
+ * 
+ * @param monthsToShow 表示する月数
+ * @returns 月のキーリスト
+ */
 function generateMonthKeys(monthsToShow: number): string[] {
   const now = new Date()
   const monthKeys: string[] = []
@@ -75,43 +106,67 @@ function generateMonthKeys(monthsToShow: number): string[] {
   return monthKeys
 }
 
-function aggregateMonthlyExpenses(expenses: Expense[]): Record<string, Record<string, number>> {
-  const monthlyData: Record<string, Record<string, number>> = {}
-
-  expenses.forEach((expense) => {
-    const month = expense.date.substring(0, 7)
-    if (!monthlyData[month]) {
-      monthlyData[month] = {}
-    }
-    monthlyData[month][expense.category] =
-      (monthlyData[month][expense.category] || 0) + expense.amount
-  })
-
-  return monthlyData
-}
-
-export function ExpenseTrendChart({ expenses }: ExpenseTrendChartProps) {
+export function ExpenseTrendChart({ refreshTrigger }: ExpenseTrendChartProps) {
   const [monthRange, setMonthRange] = useState("6")
 
-  const categories = useMemo(() => Array.from(new Set(expenses.map((e) => e.category))), [expenses])
+  // 表示する月数を取得
+  const monthsToShow = Number.parseInt(monthRange)
+  
+  // 開始月と終了月を計算
+  const [startMonth, endMonth] = useMemo(
+    () => calculateMonthRange(monthsToShow),
+    [monthsToShow]
+  )
 
+  // バックエンドAPIから範囲指定で月別サマリーを取得
+  const { monthlySummaries, isLoaded, refetch } = useMonthlySummaryRange(startMonth, endMonth)
+
+  // refreshTriggerが変更されたときに再取得
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      refetch()
+    }
+  }, [refreshTrigger, refetch])
+
+  // 月のキーリストを生成
+  const allMonths = useMemo(() => generateMonthKeys(monthsToShow), [monthsToShow])
+
+  // カテゴリーのリストを取得（月別サマリーから抽出）
+  const categories = useMemo(() => {
+    const categorySet = new Set<string>()
+    monthlySummaries.forEach((summary) => {
+      summary.byCategory.forEach((item) => {
+        categorySet.add(item.category)
+      })
+    })
+    return Array.from(categorySet)
+  }, [monthlySummaries])
+
+  // チャート用のデータを準備（バックエンドから取得した月別サマリーを使用）
   const chartData = useMemo(() => {
-    const monthsToShow = Number.parseInt(monthRange)
-    const allMonths = generateMonthKeys(monthsToShow)
-    const monthlyData = aggregateMonthlyExpenses(expenses)
+    // 月別サマリーを月のキーでマップ
+    const summaryMap = new Map<string, typeof monthlySummaries[0]>()
+    monthlySummaries.forEach((summary, index) => {
+      if (index < allMonths.length) {
+        summaryMap.set(allMonths[index], summary)
+      }
+    })
 
     return allMonths.map((month) => {
       const data: Record<string, string | number> = {
         month: formatMonthForChart(month),
       }
 
+      // 各カテゴリーの金額を設定
       categories.forEach((category) => {
-        data[category] = monthlyData[month]?.[category] || 0
+        const summary = summaryMap.get(month)
+        const categoryItem = summary?.byCategory.find((item) => item.category === category)
+        data[category] = categoryItem?.amount ?? 0
       })
 
       return data
     })
-  }, [expenses, monthRange, categories])
+  }, [monthlySummaries, allMonths, categories])
 
   return (
     <Card className="border-border/50 shadow-md hover:shadow-xl hover:scale-[1.01] transition-all duration-300 bg-gradient-to-br from-card to-card/95 hover:border-primary/30">
@@ -135,7 +190,11 @@ export function ExpenseTrendChart({ expenses }: ExpenseTrendChartProps) {
         </div>
       </CardHeader>
       <CardContent className="pt-0">
-        {chartData.length > 0 ? (
+        {!isLoaded ? (
+          <div className="flex h-[220px] items-center justify-center">
+            <p className="text-sm md:text-base text-muted-foreground font-medium">読み込み中...</p>
+          </div>
+        ) : chartData.length > 0 ? (
           <ResponsiveContainer width="100%" height={220}>
             <BarChart
               data={chartData}

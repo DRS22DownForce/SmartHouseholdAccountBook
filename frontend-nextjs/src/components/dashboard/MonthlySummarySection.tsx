@@ -1,68 +1,71 @@
 "use client"
 
-import { useMemo } from "react"
+/**
+ * 月別サマリーセクションコンポーネント
+ * 
+ * このコンポーネントは、バックエンドAPIから月別サマリーを取得して表示します。
+ * フロントエンドでの計算を削減し、通信量を最適化するために使用します。
+ */
+
+import { useState, useMemo, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts"
-import type { Expense } from "@/lib/types"
 import { getCategoryColor } from "@/lib/category-colors"
-import { formatCurrency, formatMonth } from "@/lib/formatters"
+import { formatCurrency, formatMonth, getCurrentMonthString } from "@/lib/formatters"
+import { useMonthlySummary } from "@/hooks/use-monthly-summary"
+import { useAvailableMonths } from "@/hooks/use-available-months"
 
 interface SummarySectionProps {
-  expenses: Expense[]
-  selectedMonth: string
-  onMonthChange: (month: string) => void
-}
-
-function extractMonthFromDate(date: string): string {
-  return date.substring(0, 7)
-}
-
-function getAvailableMonths(expenses: Expense[]): string[] {
-  const months = new Set<string>()
-  expenses.forEach((expense) => {
-    months.add(extractMonthFromDate(expense.date))
-  })
-  return Array.from(months).sort().reverse()
-}
-
-function calculateMonthlyData(expenses: Expense[], selectedMonth: string) {
-  const filtered = expenses.filter((expense) => expense.date.startsWith(selectedMonth))
-  const total = filtered.reduce((sum, expense) => sum + expense.amount, 0)
-  const byCategory = filtered.reduce(
-    (acc, expense) => {
-      acc[expense.category] = (acc[expense.category] || 0) + expense.amount
-      return acc
-    },
-    {} as Record<string, number>
-  )
-
-  return {
-    total,
-    count: filtered.length,
-    byCategory: Object.entries(byCategory).sort((a, b) => b[1] - a[1]),
-  }
+  refreshTrigger?: number // 支出追加後に再取得するためのトリガー
 }
 
 export function MonthlySummarySection({
-  expenses,
-  selectedMonth,
-  onMonthChange,
+  refreshTrigger,
 }: SummarySectionProps) {
-  const availableMonths = useMemo(() => getAvailableMonths(expenses), [expenses])
+  const [selectedMonth, setSelectedMonth] = useState(() => getCurrentMonthString())
+  
+  // バックエンドAPIから月別サマリーを取得
+  const { monthlySummary, isLoaded: isSummaryLoaded, fetchMonthlySummary } = useMonthlySummary(selectedMonth)
+  
+  // バックエンドAPIから利用可能な月のリストを取得
+  const { availableMonths, isLoaded: isMonthsLoaded, fetchAvailableMonths } = useAvailableMonths()
 
-  const monthlyData = useMemo(
-    () => calculateMonthlyData(expenses, selectedMonth),
-    [expenses, selectedMonth]
-  )
+  // refreshTriggerが変更されたときに再取得
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      fetchMonthlySummary()
+      fetchAvailableMonths()
+    }
+  }, [refreshTrigger, fetchMonthlySummary, fetchAvailableMonths])
 
+  // チャート用のデータを準備（バックエンドから取得したデータを使用）
   const chartData = useMemo(() => {
-    return monthlyData.byCategory.map(([name, value]) => ({
-      name,
-      value,
-      color: getCategoryColor(name),
+    if (!monthlySummary || !monthlySummary.byCategory) {
+      return []
+    }
+    return monthlySummary.byCategory.map((item) => ({
+      name: item.category,
+      value: item.amount,
+      color: getCategoryColor(item.category),
     }))
-  }, [monthlyData.byCategory])
+  }, [monthlySummary])
+
+  // 読み込み中の表示
+  if (!isSummaryLoaded || !isMonthsLoaded) {
+    return (
+      <div className="space-y-1.5 md:space-y-2">
+        <div className="flex items-center justify-between gap-4 mb-1">
+          <h2 className="text-base md:text-lg font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent tracking-tight">
+            月別サマリー
+          </h2>
+        </div>
+        <div className="flex h-[200px] items-center justify-center">
+          <p className="text-muted-foreground">読み込み中...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-1.5 md:space-y-2">
@@ -70,7 +73,7 @@ export function MonthlySummarySection({
         <h2 className="text-base md:text-lg font-semibold bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent tracking-tight">
           月別サマリー
         </h2>
-        <Select value={selectedMonth} onValueChange={onMonthChange}>
+        <Select value={selectedMonth} onValueChange={setSelectedMonth}>
           <SelectTrigger className="w-40 md:w-48 rounded-lg border-border/60 hover:border-primary/40 transition-colors">
             <SelectValue />
           </SelectTrigger>
@@ -93,10 +96,10 @@ export function MonthlySummarySection({
           </CardHeader>
           <CardContent className="pt-0">
             <p className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
-              {formatCurrency(monthlyData.total)}
+              {formatCurrency(monthlySummary?.total ?? 0)}
             </p>
             <p className="text-xs md:text-sm text-muted-foreground mt-1 font-medium">
-              {monthlyData.count}件の支出
+              {monthlySummary?.count ?? 0}件の支出
             </p>
           </CardContent>
         </Card>
@@ -108,21 +111,21 @@ export function MonthlySummarySection({
             </CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            {monthlyData.byCategory.length > 0 ? (
+            {monthlySummary && monthlySummary.byCategory.length > 0 ? (
               <div className="space-y-1.5">
-                {monthlyData.byCategory.slice(0, 3).map(([category, amount]) => (
+                {monthlySummary.byCategory.slice(0, 3).map((item) => (
                   <div
-                    key={category}
+                    key={item.category}
                     className="flex items-center justify-between p-1 rounded-lg hover:bg-muted/50 transition-colors"
                   >
                     <div className="flex items-center gap-1.5">
                       <div
                         className="w-3 h-3 rounded-full shadow-sm"
-                        style={{ backgroundColor: getCategoryColor(category) }}
+                        style={{ backgroundColor: getCategoryColor(item.category) }}
                       />
-                      <span className="text-xs md:text-sm font-semibold text-foreground">{category}</span>
+                      <span className="text-xs md:text-sm font-semibold text-foreground">{item.category}</span>
                     </div>
-                    <span className="text-xs md:text-sm font-bold text-foreground">{formatCurrency(amount)}</span>
+                    <span className="text-xs md:text-sm font-bold text-foreground">{formatCurrency(item.amount)}</span>
                   </div>
                 ))}
               </div>

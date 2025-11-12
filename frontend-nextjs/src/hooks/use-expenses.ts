@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { getApiClient, withAuthHeader } from "@/api/expenseApi"
 import type { ExpenseDto, ExpenseRequestDto } from "@/api/generated/api"
 import type { Expense, ExpenseFormData } from "@/lib/types"
+import { showApiErrorMessage } from "@/lib/api-error-handler"
 
 function toExpense(dto: ExpenseDto): Expense {
   return {
@@ -26,21 +27,6 @@ function toRequestDto(data: ExpenseFormData): ExpenseRequestDto {
   }
 }
 
-function showApiErrorMessage(error: unknown, defaultMessage: string): void {
-  if (error && typeof error === "object" && "response" in error) {
-    const apiError = error as { response?: { status?: number } }
-    if (apiError.response?.status === 401) {
-      toast.error("認証エラー: 再ログインしてください")
-      return
-    }
-    if (apiError.response?.status === 404) {
-      toast.error("データが見つかりませんでした")
-      return
-    }
-  }
-  toast.error(defaultMessage)
-}
-
 export function useExpenses() {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [isLoaded, setIsLoaded] = useState(false)
@@ -50,7 +36,8 @@ export function useExpenses() {
   const fetchExpenses = useCallback(async () => {
     try {
       const options = await withAuthHeader()
-      const response = await api.apiExpensesGet(options)
+      // monthパラメータをundefinedにして全データを取得（既存の機能を維持）
+      const response = await api.apiExpensesGet(undefined, options)
       const expenseList = response.data.map(toExpense)
       setExpenses(expenseList)
       setIsLoaded(true)

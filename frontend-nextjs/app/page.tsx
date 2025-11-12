@@ -1,12 +1,18 @@
 "use client"
 
-import { useState, useMemo, memo } from "react"
+/**
+ * ホームページコンポーネント
+ * 
+ * 支出追加後に月別サマリーと支出の推移を自動的に再取得します。
+ */
+
+import { useState, useMemo, memo, useCallback } from "react"
 import { useAuthenticator } from "@aws-amplify/ui-react"
 import { useExpenses } from "@/hooks/use-expenses"
 import { Header } from "@/components/dashboard/Header"
 import { ExpenseTrendChart } from "@/components/expense-trend-chart"
 import { MonthlySummarySection } from "@/components/dashboard/MonthlySummarySection"
-import { getCurrentMonthString } from "@/lib/formatters"
+import type { ExpenseFormData } from "@/lib/types"
 
 function LoadingSpinner() {
   return (
@@ -21,14 +27,28 @@ function getUserDisplayName(user: ReturnType<typeof useAuthenticator>["user"]): 
 }
 
 const MemoizedHeader = memo(Header)
-const MemoizedExpenseTrendChart = memo(ExpenseTrendChart)
+// ExpenseTrendChartはrefreshTriggerプロップを受け取るため、memo化しない
 
 export default function HomePage() {
   const { user, signOut } = useAuthenticator((context) => [context.user])
   const { expenses, addExpense, addExpenses, isLoaded } = useExpenses()
-  const currentMonth = useMemo(() => getCurrentMonthString(), [])
-  const [selectedMonth, setSelectedMonth] = useState(currentMonth)
   const username = useMemo(() => getUserDisplayName(user), [user])
+  
+  // 支出追加後に月別サマリーと支出の推移を再取得するためのトリガー
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+
+  // 支出追加後にrefetchを呼び出すラッパー関数
+  const handleAddExpense = useCallback(async (data: ExpenseFormData) => {
+    await addExpense(data)
+    // 月別サマリーと支出の推移を再取得するためにトリガーを更新
+    setRefreshTrigger(prev => prev + 1)
+  }, [addExpense])
+
+  const handleAddExpenses = useCallback(async (dataArray: ExpenseFormData[]) => {
+    await addExpenses(dataArray)
+    // 月別サマリーと支出の推移を再取得するためにトリガーを更新
+    setRefreshTrigger(prev => prev + 1)
+  }, [addExpenses])
 
   if (!isLoaded) {
     return <LoadingSpinner />
@@ -40,18 +60,15 @@ export default function HomePage() {
         expenses={expenses}
         username={username}
         onLogout={signOut}
-        onAddExpense={addExpense}
-        onAddExpenses={addExpenses}
+        onAddExpense={handleAddExpense}
+        onAddExpenses={handleAddExpenses}
       />
 
       <main className="container mx-auto max-w-7xl px-6 md:px-8 lg:px-12 py-1 md:py-2">
         <div className="space-y-2 md:space-y-2.5">
-          <MemoizedExpenseTrendChart expenses={expenses} />
+          <ExpenseTrendChart refreshTrigger={refreshTrigger} key={`trend-${refreshTrigger}`} />
           <MonthlySummarySection
-            expenses={expenses}
-            selectedMonth={selectedMonth}
-            onMonthChange={setSelectedMonth}
-          />
+            refreshTrigger={refreshTrigger} key={`summary-${refreshTrigger}`} />
         </div>
       </main>
     </div>
