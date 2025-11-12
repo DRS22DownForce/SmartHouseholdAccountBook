@@ -45,7 +45,8 @@ class ExpenseMapperTest {
     @Test
     void toDto_nullならnull() {
         // テスト実行と検証
-        assertNull(mapper.toDto(null));
+        // Expense型のnullを明示的に指定（MonthlySummaryのtoDtoメソッドとの曖昧さを回避）
+        assertNull(mapper.toDto((Expense) null));
     }
 
     @Test

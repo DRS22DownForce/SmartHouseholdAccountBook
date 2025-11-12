@@ -214,5 +214,76 @@ class ExpenseApplicationServiceTest {
         verify(expenseRepository, never()).findById(any());
         verify(expenseRepository, never()).save(any());
     }
+
+    @Test
+    void getMonthlySummary_正常に取得できる() {
+        // テストデータの準備
+        String month = "2024-01";
+        User user = new User("cognitoSub", "test@example.com");
+        ExpenseAmount amount1 = new ExpenseAmount(1000);
+        ExpenseDate date1 = new ExpenseDate(LocalDate.of(2024, 1, 1));
+        Category category1 = new Category("食費");
+        Expense expense1 = new Expense("支出1", amount1, date1, category1, user);
+        
+        ExpenseAmount amount2 = new ExpenseAmount(2000);
+        ExpenseDate date2 = new ExpenseDate(LocalDate.of(2024, 1, 2));
+        Category category2 = new Category("交通費");
+        Expense expense2 = new Expense("支出2", amount2, date2, category2, user);
+
+        // モックの設定
+        when(userApplicationService.getUser()).thenReturn(user);
+        when(expenseRepository.findByUserAndDateBetween(
+            eq(user),
+            eq(LocalDate.of(2024, 1, 1)),
+            eq(LocalDate.of(2024, 1, 31))
+        )).thenReturn(Arrays.asList(expense1, expense2));
+
+        // テスト実行
+        com.example.backend.domain.valueobject.MonthlySummary result = 
+            expenseApplicationService.getMonthlySummary(month);
+
+        // 検証
+        assertNotNull(result);
+        assertEquals(3000, result.getTotal());
+        assertEquals(2, result.getCount());
+        assertEquals(2, result.getByCategory().size());
+        // 金額の降順でソートされていることを確認
+        assertTrue(result.getByCategory().get(0).getAmount() >= 
+                   result.getByCategory().get(1).getAmount());
+    }
+
+    @Test
+    void getMonthlySummary_月の形式が不正なら例外() {
+        // テスト実行と検証
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> expenseApplicationService.getMonthlySummary("2024-1"));
+
+        assertTrue(exception.getMessage().contains("月の形式が不正です"));
+    }
+
+    @Test
+    void getAvailableMonths_正常に取得できる() {
+        // テストデータの準備
+        User user = new User("cognitoSub", "test@example.com");
+        // H2とMySQLの両方で動作するように、LocalDateのリストを返すように変更
+        List<LocalDate> distinctDates = Arrays.asList(
+            LocalDate.of(2024, 3, 15),
+            LocalDate.of(2024, 2, 10),
+            LocalDate.of(2024, 1, 5),
+            LocalDate.of(2024, 3, 20) // 同じ月の別の日付（重複除去のテスト用）
+        );
+
+        // モックの設定
+        when(userApplicationService.getUser()).thenReturn(user);
+        when(expenseRepository.findDistinctDatesByUser(user)).thenReturn(distinctDates);
+
+        // テスト実行
+        List<String> result = expenseApplicationService.getAvailableMonths();
+
+        // 検証
+        assertNotNull(result);
+        assertEquals(3, result.size()); // 同じ月の重複が除去されるため、3つになる
+        assertEquals("2024-03", result.get(0));
+    }
 }
 

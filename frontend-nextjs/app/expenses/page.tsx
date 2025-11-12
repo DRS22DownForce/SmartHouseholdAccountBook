@@ -1,10 +1,17 @@
 "use client"
 
-import { useMemo } from "react"
+/**
+ * 支出一覧ページコンポーネント
+ * 
+ * 支出更新・削除後に画面を自動的に再取得します。
+ */
+
+import { useMemo, useState, useCallback } from "react"
 import { useAuthenticator } from "@aws-amplify/ui-react"
 import { useExpenses } from "@/hooks/use-expenses"
 import { Header } from "@/components/dashboard/Header"
 import { ExpenseList } from "@/components/expense-list"
+import type { ExpenseFormData } from "@/lib/types"
 
 function LoadingSpinner() {
   return (
@@ -24,6 +31,37 @@ export default function ExpensesPage() {
     useExpenses()
   const username = useMemo(() => getUserDisplayName(user), [user])
 
+
+  // 支出更新・削除後に画面を再取得するためのトリガー
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+  // 支出追加後にrefetchを呼び出すラッパー関数
+  const handleAddExpense = useCallback(async (data: ExpenseFormData) => {
+    await addExpense(data)
+    // 月別支出を再取得するためにトリガーを更新
+    setRefreshTrigger(prev => prev + 1)
+  }, [addExpense])
+
+  // 支出一括追加後にrefetchを呼び出すラッパー関数
+  const handleAddExpenses = useCallback(async (dataArray: ExpenseFormData[]) => {
+    await addExpenses(dataArray)
+    // 月別支出を再取得するためにトリガーを更新
+    setRefreshTrigger(prev => prev + 1)
+  }, [addExpenses])
+
+  // 支出更新後にrefetchを呼び出すラッパー関数
+  const handleUpdateExpense = useCallback(async (id: string, data: ExpenseFormData) => {
+    await updateExpense(id, data)
+    // 月別支出を再取得するためにトリガーを更新
+    setRefreshTrigger(prev => prev + 1)
+  }, [updateExpense])
+
+  // 支出削除後にrefetchを呼び出すラッパー関数
+  const handleDeleteExpense = useCallback(async (id: string) => {
+    await deleteExpense(id)
+    // 月別支出を再取得するためにトリガーを更新
+    setRefreshTrigger(prev => prev + 1)
+  }, [deleteExpense])
+
   if (!isLoaded) {
     return <LoadingSpinner />
   }
@@ -34,8 +72,8 @@ export default function ExpensesPage() {
         expenses={expenses}
         username={username}
         onLogout={signOut}
-        onAddExpense={addExpense}
-        onAddExpenses={addExpenses}
+        onAddExpense={handleAddExpense}
+        onAddExpenses={handleAddExpenses}
       />
 
       <main className="container mx-auto max-w-7xl px-6 md:px-8 lg:px-12 py-8 md:py-12">
@@ -46,7 +84,11 @@ export default function ExpensesPage() {
           <p className="text-muted-foreground">全ての支出を確認し、編集・削除できます</p>
         </div>
 
-        <ExpenseList expenses={expenses} onUpdate={updateExpense} onDelete={deleteExpense} />
+        <ExpenseList 
+          onUpdate={handleUpdateExpense} 
+          onDelete={handleDeleteExpense}
+          refreshTrigger={refreshTrigger}
+        />
       </main>
     </div>
   )
