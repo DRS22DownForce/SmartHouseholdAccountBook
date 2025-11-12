@@ -1,13 +1,19 @@
 package com.example.backend.application.mapper;
 
 import com.example.backend.domain.valueobject.Category;
+import com.example.backend.domain.valueobject.CategorySummary;
 import com.example.backend.domain.valueobject.ExpenseAmount;
 import com.example.backend.domain.valueobject.ExpenseDate;
+import com.example.backend.domain.valueobject.MonthlySummary;
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.User;
 import com.example.backend.generated.model.ExpenseDto;
 import com.example.backend.generated.model.ExpenseRequestDto;
+import com.example.backend.generated.model.MonthlySummaryDto;
 import org.springframework.stereotype.Component;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 支出エンティティとDTO間の変換を行うマッパー
@@ -138,5 +144,38 @@ public class ExpenseMapper {
         ExpenseDate date,
         Category category
     ) {}
+
+    /**
+     * MonthlySummary値オブジェクトからDTOへ変換
+     * 
+     * DDDの原則に従い、ドメイン層の値オブジェクトをDTOに変換します。
+     * 
+     * @param monthlySummary 月別サマリー値オブジェクト
+     * @return 月別サマリーDTO（monthlySummaryがnullの場合はnull）
+     */
+    public MonthlySummaryDto toDto(MonthlySummary monthlySummary) {
+        if (monthlySummary == null) {
+            return null;
+        }
+        
+        MonthlySummaryDto dto = new MonthlySummaryDto();
+        dto.setTotal(monthlySummary.getTotal());
+        dto.setCount(monthlySummary.getCount());
+        
+        // CategorySummaryのリストをDTOのリストに変換
+        List<com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner> byCategoryList = new ArrayList<>();
+        if (monthlySummary.getByCategory() != null) {
+            for (CategorySummary categorySummary : monthlySummary.getByCategory()) {
+                com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner categoryDto = 
+                    new com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner();
+                categoryDto.setCategory(categorySummary.getCategoryValue());
+                categoryDto.setAmount(categorySummary.getAmount());
+                byCategoryList.add(categoryDto);
+            }
+        }
+        dto.setByCategory(byCategoryList);
+        
+        return dto;
+    }
 }
 

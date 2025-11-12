@@ -2,11 +2,20 @@ package com.example.backend.domain.repository;
 
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.time.LocalDate;
 import java.util.List;
 
 /**
  * 支出エンティティのリポジトリインターフェース
+ * 
+ * DDDの原則に従い、ドメイン層のリポジトリインターフェースとして定義します。
+ * Spring Data JPAの命名規則に従ってメソッドを定義します。
  */
 public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     /**
@@ -16,5 +25,50 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
      * @return 該当ユーザーの支出リスト
      */
     List<Expense> findByUser(User user);
+
+    /**
+     * ユーザーと日付範囲を指定して支出を取得
+     * 
+     * @param user ユーザーエンティティ
+     * @param start 開始日（含む）
+     * @param end 終了日（含む）
+     * @return 該当ユーザーの指定期間内の支出リスト
+     */
+    @Query("SELECT e FROM Expense e WHERE e.user = :user AND e.date.value >= :start AND e.date.value <= :end ORDER BY e.date.value DESC")
+    List<Expense> findByUserAndDateBetween(
+        @Param("user") User user,
+        @Param("start") LocalDate start,
+        @Param("end") LocalDate end
+    );
+
+    /**
+     * ユーザーを指定して、利用可能な月（YYYY-MM形式）のリストを取得
+     * 
+     * H2とMySQLの両方で動作するように、YEARとMONTH関数を使用してJavaコードでフォーマットします。
+     * 
+     * @param user ユーザーエンティティ
+     * @return 利用可能な月のリスト（YYYY-MM形式、降順でソート済み）
+     */
+    @Query("SELECT DISTINCT e.date.value FROM Expense e WHERE e.user = :user ORDER BY e.date.value DESC")
+    List<LocalDate> findDistinctDatesByUser(@Param("user") User user);
+
+    /**
+     * ユーザーと月を指定して支出を取得（ページネーション対応）
+     * 
+     * H2とMySQLの両方で動作するように、日付範囲を使用してクエリします。
+     * 
+     * @param user ユーザーエンティティ
+     * @param startDate 月の開始日（含む）
+     * @param endDate 月の終了日（含む）
+     * @param pageable ページネーション情報
+     * @return 該当ユーザーの指定月の支出ページ
+     */
+    @Query("SELECT e FROM Expense e WHERE e.user = :user AND e.date.value >= :startDate AND e.date.value <= :endDate ORDER BY e.date.value DESC, e.id DESC")
+    Page<Expense> findByUserAndDateRange(
+        @Param("user") User user,
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate,
+        Pageable pageable
+    );
 }
 
