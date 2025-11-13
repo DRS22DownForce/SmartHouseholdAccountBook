@@ -57,16 +57,13 @@ public class ExpenseApplicationService {
      */
     @Transactional(readOnly = true)
     public List<ExpenseDto> getExpenses() {
-        // 1. 現在のユーザーを取得
         User user = Objects.requireNonNull(
             userApplicationService.getUser(),
             "ユーザー情報の取得に失敗しました"
         );
         
-        // 2. ユーザーの支出を取得
         List<Expense> expenses = expenseRepository.findByUser(user);
         
-        // 3. DTOに変換して返す
         return expenses.stream()
                 .map(expenseMapper::toDto)
                 .collect(Collectors.toList());
@@ -81,25 +78,20 @@ public class ExpenseApplicationService {
      * @return 追加した支出DTO
      */
     public ExpenseDto addExpense(ExpenseRequestDto expenseRequestDto) {
-        // 1. 入力検証
         Objects.requireNonNull(expenseRequestDto, "支出リクエストDTOはnullであってはなりません");
         
-        // 2. 現在のユーザーを取得
         User user = Objects.requireNonNull(
             userApplicationService.getUser(),
             "ユーザー情報の取得に失敗しました"
         );
         
-        // 3. DTOからエンティティへ変換（マッパーが値オブジェクトを作成）
         Expense expense = Objects.requireNonNull(
             expenseMapper.toEntity(expenseRequestDto, user),
             "エンティティの生成に失敗しました"
         );
         
-        // 4. データベースに保存
         Expense savedExpense = expenseRepository.save(expense);
         
-        // 5. DTOに変換して返す
         return expenseMapper.toDto(savedExpense);
     }
 
@@ -111,10 +103,8 @@ public class ExpenseApplicationService {
      * @param id 支出ID
      */
     public void deleteExpense(Long id) {
-        // 1. 入力検証
         Objects.requireNonNull(id, "支出IDはnullであってはなりません");
         
-        // 2. データベースから削除
         expenseRepository.deleteById(id);
     }
 
@@ -160,25 +150,19 @@ public class ExpenseApplicationService {
      */
     @Transactional(readOnly = true)
     public Page<ExpenseDto> getExpensesByMonth(String month, Pageable pageable) {
-        // 1. 入力検証
         Objects.requireNonNull(month, "月はnullであってはなりません");
-        validateMonthFormat(month);
+        YearMonth yearMonth = parseAndValidateMonth(month);
         
-        // 2. 現在のユーザーを取得
         User user = Objects.requireNonNull(
             userApplicationService.getUser(),
             "ユーザー情報の取得に失敗しました"
         );
         
-        // 3. 月の開始日と終了日を計算（H2とMySQLの両方で動作するように）
-        YearMonth yearMonth = YearMonth.parse(month, DateTimeFormatter.ofPattern("yyyy-MM"));
         LocalDate startDate = yearMonth.atDay(1);
         LocalDate endDate = yearMonth.atEndOfMonth();
         
-        // 4. ユーザーの指定月の支出を取得（ページネーション対応）
         Page<Expense> expensePage = expenseRepository.findByUserAndDateRange(user, startDate, endDate, pageable);
         
-        // 5. DTOに変換して返す
         return expensePage.map(expenseMapper::toDto);
     }
 
@@ -192,25 +176,19 @@ public class ExpenseApplicationService {
      */
     @Transactional(readOnly = true)
     public MonthlySummary getMonthlySummary(String month) {
-        // 1. 入力検証
         Objects.requireNonNull(month, "月はnullであってはなりません");
-        validateMonthFormat(month);
+        YearMonth yearMonth = parseAndValidateMonth(month);
         
-        // 2. 現在のユーザーを取得
         User user = Objects.requireNonNull(
             userApplicationService.getUser(),
             "ユーザー情報の取得に失敗しました"
         );
         
-        // 3. 月の開始日と終了日を計算
-        YearMonth yearMonth = YearMonth.parse(month, DateTimeFormatter.ofPattern("yyyy-MM"));
         LocalDate startDate = yearMonth.atDay(1);
         LocalDate endDate = yearMonth.atEndOfMonth();
         
-        // 4. 指定月の支出を取得
         List<Expense> expenses = expenseRepository.findByUserAndDateBetween(user, startDate, endDate);
         
-        // 5. 集計処理（ドメイン層のファクトリーメソッドを使用）
         return MonthlySummary.from(expenses);
     }
 
@@ -225,40 +203,31 @@ public class ExpenseApplicationService {
      */
     @Transactional(readOnly = true)
     public List<MonthlySummary> getMonthlySummaryRange(String startMonth, String endMonth) {
-        // 1. 入力検証
         Objects.requireNonNull(startMonth, "開始月はnullであってはなりません");
         Objects.requireNonNull(endMonth, "終了月はnullであってはなりません");
-        validateMonthFormat(startMonth);
-        validateMonthFormat(endMonth);
+        YearMonth start = parseAndValidateMonth(startMonth);
+        YearMonth end = parseAndValidateMonth(endMonth);
         
-        // 2. 月の範囲を検証
-        YearMonth start = YearMonth.parse(startMonth, DateTimeFormatter.ofPattern("yyyy-MM"));
-        YearMonth end = YearMonth.parse(endMonth, DateTimeFormatter.ofPattern("yyyy-MM"));
         if (start.isAfter(end)) {
             throw new IllegalArgumentException("開始月は終了月以前でなければなりません。");
         }
         
-        // 3. 現在のユーザーを取得
         User user = Objects.requireNonNull(
             userApplicationService.getUser(),
             "ユーザー情報の取得に失敗しました"
         );
         
-        // 4. 範囲内の各月のサマリーを計算
         List<MonthlySummary> summaries = new ArrayList<>();
         YearMonth current = start;
         while (!current.isAfter(end)) {
             LocalDate monthStart = current.atDay(1);
             LocalDate monthEnd = current.atEndOfMonth();
             
-            // 指定月の支出を取得
             List<Expense> expenses = expenseRepository.findByUserAndDateBetween(user, monthStart, monthEnd);
             
-            // 集計処理（ドメイン層のファクトリーメソッドを使用）
             MonthlySummary summary = MonthlySummary.from(expenses);
             summaries.add(summary);
             
-            // 次の月へ
             current = current.plusMonths(1);
         }
         
@@ -275,21 +244,17 @@ public class ExpenseApplicationService {
      */
     @Transactional(readOnly = true)
     public List<String> getAvailableMonths() {
-        // 1. 現在のユーザーを取得
         User user = Objects.requireNonNull(
             userApplicationService.getUser(),
             "ユーザー情報の取得に失敗しました"
         );
         
-        // 2. ユーザーの支出がある日付のリストを取得
         List<LocalDate> distinctDates = expenseRepository.findDistinctDatesByUser(user);
         
-        // 3. 日付から月（YYYY-MM形式）を抽出し、重複を除去してソート
-        // YearMonthを使用して月を抽出し、文字列にフォーマット
         return distinctDates.stream()
             .map(date -> YearMonth.from(date).format(DateTimeFormatter.ofPattern("yyyy-MM")))
-            .distinct() // 同じ月が複数回出現する可能性があるため、重複を除去
-            .sorted(Comparator.reverseOrder()) // 降順でソート
+            .distinct()
+            .sorted(Comparator.reverseOrder())
             .collect(Collectors.toList());
     }
 
@@ -297,17 +262,14 @@ public class ExpenseApplicationService {
      * 月の形式を検証する
      * 
      * @param month 月（YYYY-MM形式）
+     * @return YearMonthオブジェクト
      * @throws IllegalArgumentException 月の形式が不正な場合
      */
-    private void validateMonthFormat(String month) {
+    private YearMonth parseAndValidateMonth(String month) {
         if (!month.matches("^\\d{4}-\\d{2}$")) {
             throw new IllegalArgumentException("月の形式が不正です。YYYY-MM形式で指定してください。");
         }
-        try {
-            YearMonth.parse(month, DateTimeFormatter.ofPattern("yyyy-MM"));
-        } catch (Exception e) {
-            throw new IllegalArgumentException("月の形式が不正です。YYYY-MM形式で指定してください。", e);
-        }
+        return YearMonth.parse(month, DateTimeFormatter.ofPattern("yyyy-MM"));
     }
 }
 
