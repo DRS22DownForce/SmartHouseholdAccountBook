@@ -31,24 +31,24 @@ const MemoizedHeader = memo(Header)
 
 export default function HomePage() {
   const { user, signOut } = useAuthenticator((context) => [context.user])
-  const { expenses, addExpense, addExpenses, isLoaded } = useExpenses()
+  const { expenseItems, addExpenseItem, addExpenseItems, isLoaded } = useExpenses()
   const username = useMemo(() => getUserDisplayName(user), [user])
-  
+
   // 支出追加後に月別サマリーと支出の推移を再取得するためのトリガー
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   // 支出追加後にrefetchを呼び出すラッパー関数
   const handleAddExpense = useCallback(async (data: ExpenseFormData) => {
-    await addExpense(data)
+    await addExpenseItem(data)
     // 月別サマリーと支出の推移を再取得するためにトリガーを更新
     setRefreshTrigger(prev => prev + 1)
-  }, [addExpense])
+  }, [addExpenseItem])
 
   const handleAddExpenses = useCallback(async (dataArray: ExpenseFormData[]) => {
-    await addExpenses(dataArray)
+    await addExpenseItems(dataArray)
     // 月別サマリーと支出の推移を再取得するためにトリガーを更新
     setRefreshTrigger(prev => prev + 1)
-  }, [addExpenses])
+  }, [addExpenseItems])
 
   if (!isLoaded) {
     return <LoadingSpinner />
@@ -57,7 +57,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <MemoizedHeader
-        expenses={expenses}
+        expenses={expenseItems}
         username={username}
         onLogout={signOut}
         onAddExpense={handleAddExpense}

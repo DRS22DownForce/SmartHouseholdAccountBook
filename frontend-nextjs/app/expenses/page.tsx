@@ -27,7 +27,7 @@ function getUserDisplayName(user: ReturnType<typeof useAuthenticator>["user"]): 
 
 export default function ExpensesPage() {
   const { user, signOut } = useAuthenticator((context) => [context.user])
-  const { expenses, addExpense, addExpenses, updateExpense, deleteExpense, isLoaded } =
+  const { expenseItems, addExpenseItem, addExpenseItems, updateExpenseItem, deleteExpenseItem, isLoaded } =
     useExpenses()
   const username = useMemo(() => getUserDisplayName(user), [user])
 
@@ -36,31 +36,31 @@ export default function ExpensesPage() {
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   // 支出追加後にrefetchを呼び出すラッパー関数
   const handleAddExpense = useCallback(async (data: ExpenseFormData) => {
-    await addExpense(data)
+    await addExpenseItem(data)
     // 月別支出を再取得するためにトリガーを更新
     setRefreshTrigger(prev => prev + 1)
-  }, [addExpense])
+  }, [addExpenseItem])
 
   // 支出一括追加後にrefetchを呼び出すラッパー関数
   const handleAddExpenses = useCallback(async (dataArray: ExpenseFormData[]) => {
-    await addExpenses(dataArray)
+    await addExpenseItems(dataArray)
     // 月別支出を再取得するためにトリガーを更新
     setRefreshTrigger(prev => prev + 1)
-  }, [addExpenses])
+  }, [addExpenseItems])
 
   // 支出更新後にrefetchを呼び出すラッパー関数
   const handleUpdateExpense = useCallback(async (id: string, data: ExpenseFormData) => {
-    await updateExpense(id, data)
+    await updateExpenseItem(id, data)
     // 月別支出を再取得するためにトリガーを更新
     setRefreshTrigger(prev => prev + 1)
-  }, [updateExpense])
+  }, [updateExpenseItem])
 
   // 支出削除後にrefetchを呼び出すラッパー関数
   const handleDeleteExpense = useCallback(async (id: string) => {
-    await deleteExpense(id)
+    await deleteExpenseItem(id)
     // 月別支出を再取得するためにトリガーを更新
     setRefreshTrigger(prev => prev + 1)
-  }, [deleteExpense])
+  }, [deleteExpenseItem])
 
   if (!isLoaded) {
     return <LoadingSpinner />
@@ -69,7 +69,7 @@ export default function ExpensesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <Header
-        expenses={expenses}
+        expenses={expenseItems}
         username={username}
         onLogout={signOut}
         onAddExpense={handleAddExpense}
@@ -84,8 +84,8 @@ export default function ExpensesPage() {
           <p className="text-muted-foreground">全ての支出を確認し、編集・削除できます</p>
         </div>
 
-        <ExpenseList 
-          onUpdate={handleUpdateExpense} 
+        <ExpenseList
+          onUpdate={handleUpdateExpense}
           onDelete={handleDeleteExpense}
           refreshTrigger={refreshTrigger}
         />

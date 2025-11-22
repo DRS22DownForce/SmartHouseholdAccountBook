@@ -1,77 +1,110 @@
 /**
  * Expense API クライアント
- * 
- * このファイルは支出データのCRUD操作に必要なAPIクライアントとJWT認証機能を提供します。
- * 
- * 主な機能:
- * 1. JWTトークンの取得 - Cognitoから認証トークンを取得
- * 2. APIクライアントの作成 - OpenAPI生成コードを使用
- * 3. 認証ヘッダーの付与 - 全てのAPI呼び出しにJWTトークンを自動付与
- * 
- * セキュリティ:
- * - JWTトークンはリクエストごとに取得（最新の状態を保証）
- * - IDトークンを使用（ユーザー情報を含む）
- * - Bearer認証形式でトークンを送信
  */
 
-import { fetchAuthSession } from 'aws-amplify/auth';
-import { Configuration } from './generated/configuration';
-import { ExpensesApi } from './generated/api';
+import { getExpenseApiClient } from './apiClient';
+import { withAuthHeader } from './authUtils';
+import {
+    toExpense,
+    toExpenseRequestDto,
+    toMonthlySummary,
+} from './expenseMappers';
+import type { MonthlySummary } from './expenseMappers';
+import type { Expense, ExpenseFormData } from '@/lib/types';
+
 
 /**
- * CognitoからJWTトークン（IDトークン）を取得
- * 
- * バックエンドでユーザーを識別するため、IDトークンを使用します。
- * 
- * @returns JWTトークン文字列
- * @throws 認証セッションが存在しない場合にエラーをスロー
+ * 全支出を取得
  */
-export async function getJwtToken(): Promise<string> {
-    try {
-        // Cognitoから現在の認証セッションを取得
-        const session = await fetchAuthSession();
-
-        // IDトークンを文字列として取得
-        const token = session.tokens?.idToken?.toString();
-
-        // デバッグ用: トークンの情報を出力
-        if (!token) {
-            throw new Error('認証トークンの取得に失敗しました');
-        }
-        return token;
-    } catch (error) {
-        throw new Error('認証トークンの取得に失敗しました');
-    }
+export async function fetchExpenses(): Promise<Expense[]> {
+    const api = getExpenseApiClient();
+    const options = await withAuthHeader();
+    const response = await api.apiExpensesGet(undefined, options);
+    return response.data.map(toExpense);
 }
 
 /**
- * APIクライアントのインスタンスを作成
- * 
- * @returns API呼び出し用のクライアントインスタンス
+ * 月別支出を取得
  */
-export function getApiClient(): ExpensesApi {
-    // 環境変数からベースURLを取得（設定されていない場合は空文字列）
-    const basePath = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-
-    return new ExpensesApi(new Configuration({
-        basePath: basePath
-    }));
+export async function fetchMonthlyExpenses(month: string): Promise<Expense[]> {
+    const api = getExpenseApiClient();
+    const options = await withAuthHeader();
+    const response = await api.apiExpensesGet(month, options);
+    return response.data.map(toExpense);
 }
 
 /**
- * Authorizationヘッダーを付与したオプションオブジェクトを作成
- * 
- * API呼び出し時にJWTトークンを含むAuthorizationヘッダーを自動的に追加します。
- * 
- * @returns Authorizationヘッダーが追加されたオプション
+ * 支出を作成
  */
-export async function withAuthHeader(): Promise<{ headers: { Authorization: string } }> {
-    // 現在のJWTトークンを取得
-    const token = await getJwtToken();
-    return {
-        headers: {
-            Authorization: `Bearer ${token}`,
-        },
-    };
+export async function createExpense(data: ExpenseFormData): Promise<Expense> {
+    const api = getExpenseApiClient();
+    const options = await withAuthHeader();
+    const requestDto = toExpenseRequestDto(data);
+    const response = await api.apiExpensesPost(requestDto, options);
+    return toExpense(response.data);
 }
 
+/**
+ * 複数の支出を一括作成
+ */
+export async function createExpenses(dataArray: ExpenseFormData[]): Promise<Expense[]> {
+    const api = getExpenseApiClient();
+    const options = await withAuthHeader();
+    const responses = await Promise.all(
+        dataArray.map((data) => api.apiExpensesPost(toExpenseRequestDto(data), options))
+    );
+    return responses.map((response) => toExpense(response.data));
+}
+
+/**
+ * 支出を更新
+ */
+export async function updateExpense(id: string, data: ExpenseFormData): Promise<Expense> {
+    const api = getExpenseApiClient();
+    const options = await withAuthHeader();
+    const requestDto = toExpenseRequestDto(data);
+    const response = await api.apiExpensesIdPut(Number(id), requestDto, options);
+    return toExpense(response.data);
+}
+
+/**
+ * 支出を削除
+ */
+export async function deleteExpense(id: string): Promise<void> {
+    const api = getExpenseApiClient();
+    const options = await withAuthHeader();
+    await api.apiExpensesIdDelete(Number(id), options);
+}
+
+/**
+ * 利用可能な月のリストを取得
+ */
+export async function fetchAvailableMonths(): Promise<string[]> {
+    const api = getExpenseApiClient();
+    const options = await withAuthHeader();
+    const response = await api.apiExpensesMonthsGet(options);
+    return response.data ?? [];
+}
+
+/**
+ * 月別サマリーを取得
+ */
+export async function fetchMonthlySummary(month: string): Promise<MonthlySummary> {
+    const api = getExpenseApiClient();
+    const options = await withAuthHeader();
+    const response = await api.apiExpensesSummaryGet(month, options);
+    return toMonthlySummary(response.data);
+}
+
+/**
+ * 範囲指定で月別サマリーを取得
+ */
+export async function fetchMonthlySummaryRange(
+    startMonth: string,
+    endMonth: string
+): Promise<MonthlySummary[]> {
+    const api = getExpenseApiClient();
+    const options = await withAuthHeader();
+    const response = await api.apiExpensesSummaryRangeGet(startMonth, endMonth, options);
+    return response.data.map(toMonthlySummary);
+}
