@@ -32,7 +32,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
      * @param user ユーザーエンティティ
      * @param start 開始日（含む）
      * @param end 終了日（含む）
-     * @return 該当ユーザーの指定期間内の支出リスト
+     * @return 該当ユーザーの指定期間内の支出リスト(降順でソート)
      */
     @Query("SELECT e FROM Expense e WHERE e.user = :user AND e.date.value >= :start AND e.date.value <= :end ORDER BY e.date.value DESC")
     List<Expense> findByUserAndDateBetween(
@@ -43,8 +43,6 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 
     /**
      * ユーザーを指定して、利用可能な月（YYYY-MM形式）のリストを取得
-     * 
-     * H2とMySQLの両方で動作するように、YEARとMONTH関数を使用してJavaコードでフォーマットします。
      * 
      * @param user ユーザーエンティティ
      * @return 利用可能な月のリスト（YYYY-MM形式、降順でソート済み）

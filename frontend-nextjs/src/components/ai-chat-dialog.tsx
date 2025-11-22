@@ -42,25 +42,9 @@ export function AiChatDialog({ expenses }: AiChatDialogProps) {
     setIsLoading(true)
 
     try {
-      const response = await fetch("/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messages: [...messages, userMessage].map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-          expenses,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error("Failed to get response")
-      }
-
-      const data = await response.json()
+      // Chat APIを使用してメッセージを送信
+      const { sendChatMessage } = await import("@/api/chatApi")
+      const data = await sendChatMessage(userMessage.content)
 
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -108,9 +92,8 @@ export function AiChatDialog({ expenses }: AiChatDialogProps) {
             {messages.map((message) => (
               <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                    message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
-                  }`}
+                  className={`max-w-[80%] rounded-lg px-4 py-2 ${message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+                    }`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
                 </div>
