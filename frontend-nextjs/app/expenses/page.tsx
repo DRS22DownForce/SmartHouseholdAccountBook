@@ -34,31 +34,25 @@ export default function ExpensesPage() {
 
   // 支出更新・削除後に画面を再取得するためのトリガー
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+
   // 支出追加後にrefetchを呼び出すラッパー関数
   const handleAddExpense = useCallback(async (data: ExpenseFormData) => {
     await addExpenseItem(data)
-    // 月別支出を再取得するためにトリガーを更新
     setRefreshTrigger(prev => prev + 1)
   }, [addExpenseItem])
 
-  // 支出一括追加後にrefetchを呼び出すラッパー関数
   const handleAddExpenses = useCallback(async (dataArray: ExpenseFormData[]) => {
     await addExpenseItems(dataArray)
-    // 月別支出を再取得するためにトリガーを更新
     setRefreshTrigger(prev => prev + 1)
   }, [addExpenseItems])
 
-  // 支出更新後にrefetchを呼び出すラッパー関数
   const handleUpdateExpense = useCallback(async (id: string, data: ExpenseFormData) => {
     await updateExpenseItem(id, data)
-    // 月別支出を再取得するためにトリガーを更新
     setRefreshTrigger(prev => prev + 1)
   }, [updateExpenseItem])
 
-  // 支出削除後にrefetchを呼び出すラッパー関数
   const handleDeleteExpense = useCallback(async (id: string) => {
     await deleteExpenseItem(id)
-    // 月別支出を再取得するためにトリガーを更新
     setRefreshTrigger(prev => prev + 1)
   }, [deleteExpenseItem])
 
