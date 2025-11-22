@@ -7,8 +7,8 @@
  * 月別サマリーや月別支出の表示で使用する月の選択肢を提供します。
  */
 
-import { useState, useEffect, useCallback, useMemo } from "react"
-import { getApiClient, withAuthHeader } from "@/api/expenseApi"
+import { useState, useEffect, useCallback } from "react"
+import { fetchAvailableMonths } from "@/api/expenseApi"
 import { showApiErrorMessage } from "@/lib/api-error-handler"
 
 /**
@@ -20,28 +20,25 @@ export function useAvailableMonths() {
   const [availableMonths, setAvailableMonths] = useState<string[]>([])
   const [isLoaded, setIsLoaded] = useState(false)
 
-  const api = useMemo(() => getApiClient(), [])
-
-  const fetchAvailableMonths = useCallback(async () => {
+  const fetchMonths = useCallback(async () => {
     try {
-      const options = await withAuthHeader()
-      const response = await api.apiExpensesMonthsGet(options)
-      setAvailableMonths(response.data ?? [])
+      const months = await fetchAvailableMonths()
+      setAvailableMonths(months)
       setIsLoaded(true)
     } catch (error) {
       showApiErrorMessage(error, "利用可能な月の取得に失敗しました")
       setIsLoaded(true)
     }
-  }, [api])
+  }, [])
 
   useEffect(() => {
-    fetchAvailableMonths()
-  }, [fetchAvailableMonths])
+    fetchMonths()
+  }, [fetchMonths])
 
   return {
     availableMonths,
     isLoaded,
-    fetchAvailableMonths
+    fetchAvailableMonths: fetchMonths
   }
 }
 

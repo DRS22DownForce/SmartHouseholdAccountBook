@@ -74,7 +74,7 @@ export function Header({
           </div>
 
           <div className="flex items-center gap-1.5 md:gap-2.5 flex-shrink-0">
-            <AiChatDialog expenses={expenses} />
+            <AiChatDialog />
             <CsvUploadDialog onUpload={onAddExpenses} />
             <ExpenseForm onSubmit={onAddExpense} />
             <UserMenu username={username} onLogout={onLogout} />
