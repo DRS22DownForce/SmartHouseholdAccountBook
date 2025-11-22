@@ -16,7 +16,7 @@
 
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { Configuration } from './generated/configuration';
-import { DefaultApi } from './generated/api';
+import { ExpensesApi } from './generated/api';
 
 /**
  * CognitoからJWTトークン（IDトークン）を取得
@@ -49,11 +49,11 @@ export async function getJwtToken(): Promise<string> {
  * 
  * @returns API呼び出し用のクライアントインスタンス
  */
-export function getApiClient(): DefaultApi {
+export function getApiClient(): ExpensesApi {
     // 環境変数からベースURLを取得（設定されていない場合は空文字列）
     const basePath = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
-    return new DefaultApi(new Configuration({
+    return new ExpensesApi(new Configuration({
         basePath: basePath
     }));
 }
