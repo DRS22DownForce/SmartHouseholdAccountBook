@@ -1,96 +1,66 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { toast } from "sonner"
-import { getApiClient, withAuthHeader } from "@/api/expenseApi"
-import type { ExpenseDto, ExpenseRequestDto } from "@/api/generated/api"
+import {
+  fetchExpenses,
+  createExpense,
+  createExpenses,
+  updateExpense,
+  deleteExpense,
+} from "@/api/expenseApi"
 import type { Expense, ExpenseFormData } from "@/lib/types"
 import { showApiErrorMessage } from "@/lib/api-error-handler"
 
-function toExpense(dto: ExpenseDto): Expense {
-  return {
-    id: String(dto.id),
-    amount: dto.amount,
-    category: dto.category,
-    description: dto.description,
-    date: dto.date,
-    createdAt: new Date().toISOString(),
-  }
-}
-
-function toRequestDto(data: ExpenseFormData): ExpenseRequestDto {
-  return {
-    date: data.date,
-    category: data.category,
-    amount: data.amount,
-    description: data.description,
-  }
-}
-
 export function useExpenses() {
-  const [expenses, setExpenses] = useState<Expense[]>([])
+  const [expenseItems, setExpenses] = useState<Expense[]>([])
   const [isLoaded, setIsLoaded] = useState(false)
 
-  const api = useMemo(() => getApiClient(), [])
-
-  const fetchExpenses = useCallback(async () => {
+  const fetchExpensesList = useCallback(async () => {
     try {
-      const options = await withAuthHeader()
-      // monthパラメータをundefinedにして全データを取得（既存の機能を維持）
-      const response = await api.apiExpensesGet(undefined, options)
-      const expenseList = response.data.map(toExpense)
+      const expenseList = await fetchExpenses()
       setExpenses(expenseList)
       setIsLoaded(true)
     } catch (error) {
       showApiErrorMessage(error, "支出データの取得に失敗しました")
       setIsLoaded(true)
     }
-  }, [api])
+  }, [])
 
   useEffect(() => {
-    fetchExpenses()
-  }, [fetchExpenses])
+    fetchExpensesList()
+  }, [fetchExpensesList])
 
-  const addExpense = useCallback(
+  const addExpenseItem = useCallback(
     async (data: ExpenseFormData) => {
       try {
-        const requestDto = toRequestDto(data)
-        const options = await withAuthHeader()
-        const response = await api.apiExpensesPost(requestDto, options)
-        const newExpense = toExpense(response.data)
+        const newExpense = await createExpense(data)
         setExpenses((prev) => [newExpense, ...prev])
         toast.success("支出を追加しました")
       } catch (error) {
         showApiErrorMessage(error, "支出の追加に失敗しました")
       }
     },
-    [api]
+    []
   )
 
-  const addExpenses = useCallback(
+  const addExpenseItems = useCallback(
     async (dataArray: ExpenseFormData[]) => {
       try {
-        const options = await withAuthHeader()
-        const responses = await Promise.all(
-          dataArray.map((data) => api.apiExpensesPost(toRequestDto(data), options))
-        )
-        const newExpenses = responses.map((response) => toExpense(response.data))
+        const newExpenses = await createExpenses(dataArray)
         setExpenses((prev) => [...newExpenses, ...prev])
         toast.success(`${newExpenses.length}件の支出を追加しました`)
       } catch (error) {
         showApiErrorMessage(error, "支出の一括追加に失敗しました")
       }
     },
-    [api]
+    []
   )
 
-  const updateExpense = useCallback(
+  const updateExpenseItem = useCallback(
     async (id: string, data: ExpenseFormData) => {
       try {
-        const requestDto = toRequestDto(data)
-        const options = await withAuthHeader()
-        const response = await api.apiExpensesIdPut(Number(id), requestDto, options)
-        const updatedExpense = toExpense(response.data)
+        const updatedExpense = await updateExpense(id, data)
         setExpenses((prev) =>
           prev.map((expense) => (expense.id === id ? updatedExpense : expense))
         )
@@ -99,29 +69,28 @@ export function useExpenses() {
         showApiErrorMessage(error, "支出の更新に失敗しました")
       }
     },
-    [api]
+    []
   )
 
-  const deleteExpense = useCallback(
+  const deleteExpenseItem = useCallback(
     async (id: string) => {
       try {
-        const options = await withAuthHeader()
-        await api.apiExpensesIdDelete(Number(id), options)
+        await deleteExpense(id)
         setExpenses((prev) => prev.filter((expense) => expense.id !== id))
         toast.success("支出を削除しました")
       } catch (error) {
         showApiErrorMessage(error, "支出の削除に失敗しました")
       }
     },
-    [api]
+    []
   )
 
   return {
-    expenses,
-    addExpense,
-    addExpenses,
-    updateExpense,
-    deleteExpense,
+    expenseItems,
+    addExpenseItem,
+    addExpenseItems,
+    updateExpenseItem,
+    deleteExpenseItem,
     isLoaded,
   }
 }

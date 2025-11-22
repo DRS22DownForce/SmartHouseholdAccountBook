@@ -3,7 +3,7 @@ package com.example.backend.controller;
 import com.example.backend.application.mapper.ExpenseMapper;
 import com.example.backend.application.service.ExpenseApplicationService;
 import com.example.backend.domain.valueobject.MonthlySummary;
-import com.example.backend.generated.api.DefaultApi;
+import com.example.backend.generated.api.ExpensesApi;
 import com.example.backend.generated.model.ExpenseDto;
 import com.example.backend.generated.model.ExpenseRequestDto;
 import com.example.backend.generated.model.MonthlySummaryDto;
@@ -24,7 +24,7 @@ import java.util.stream.Collectors;
  * アプリケーションサービスを呼び出してビジネスロジックを実行します。
  */
 @RestController
-public class ExpenseController implements DefaultApi {
+public class ExpenseController implements ExpensesApi {
     private final ExpenseApplicationService expenseApplicationService;
     private final ExpenseMapper expenseMapper;
 
@@ -32,7 +32,7 @@ public class ExpenseController implements DefaultApi {
      * コンストラクタ
      * 
      * @param expenseApplicationService 支出アプリケーションサービス
-     * @param expenseMapper 支出マッパー
+     * @param expenseMapper             支出マッパー
      */
     public ExpenseController(
             ExpenseApplicationService expenseApplicationService,
@@ -45,7 +45,7 @@ public class ExpenseController implements DefaultApi {
     public ResponseEntity<List<ExpenseDto>> apiExpensesGet(String month) {
         // monthパラメータが指定されている場合は月別フィルタリング、指定されていない場合は全データ取得
         if (month != null && !month.isEmpty()) {
-            //TODO　現状ではページネーションに対応できていない。今後対応予定。
+            // TODO 現状ではページネーションに対応できていない。今後対応予定。
             Pageable pageable = PageRequest.of(0, Integer.MAX_VALUE);
             Page<ExpenseDto> expensePage = expenseApplicationService.getExpensesByMonth(month, pageable);
             return ResponseEntity.ok(expensePage.getContent());
@@ -86,10 +86,10 @@ public class ExpenseController implements DefaultApi {
     public ResponseEntity<MonthlySummaryDto> apiExpensesSummaryGet(String month) {
         // 1. ServiceからMonthlySummary値オブジェクトを取得
         MonthlySummary monthlySummary = expenseApplicationService.getMonthlySummary(month);
-        
+
         // 2. MapperでDTOに変換
         MonthlySummaryDto dto = expenseMapper.toDto(monthlySummary);
-        
+
         // 3. レスポンスを返す
         return ResponseEntity.ok(dto);
     }
@@ -100,19 +100,19 @@ public class ExpenseController implements DefaultApi {
      * DDDの原則に従い、ServiceからMonthlySummary値オブジェクトのリストを取得し、MapperでDTOのリストに変換します。
      * 
      * @param startMonth 開始月（YYYY-MM形式）
-     * @param endMonth 終了月（YYYY-MM形式）
+     * @param endMonth   終了月（YYYY-MM形式）
      * @return 月別サマリーDTOのリスト
      */
     @Override
     public ResponseEntity<List<MonthlySummaryDto>> apiExpensesSummaryRangeGet(String startMonth, String endMonth) {
         // 1. ServiceからMonthlySummary値オブジェクトのリストを取得
         List<MonthlySummary> monthlySummaries = expenseApplicationService.getMonthlySummaryRange(startMonth, endMonth);
-        
+
         // 2. MapperでDTOのリストに変換
         List<MonthlySummaryDto> dtos = monthlySummaries.stream()
-            .map(expenseMapper::toDto)
-            .collect(Collectors.toList());
-        
+                .map(expenseMapper::toDto)
+                .collect(Collectors.toList());
+
         // 3. レスポンスを返す
         return ResponseEntity.ok(dtos);
     }
@@ -126,7 +126,7 @@ public class ExpenseController implements DefaultApi {
     public ResponseEntity<List<String>> apiExpensesMonthsGet() {
         // 1. Serviceから利用可能な月のリストを取得
         List<String> months = expenseApplicationService.getAvailableMonths();
-        
+
         // 2. レスポンスを返す
         return ResponseEntity.ok(months);
     }
