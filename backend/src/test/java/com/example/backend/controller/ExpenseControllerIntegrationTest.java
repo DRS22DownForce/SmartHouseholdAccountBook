@@ -1,6 +1,5 @@
 package com.example.backend.controller;
 
-import com.example.backend.application.service.ExpenseApplicationService;
 import com.example.backend.application.service.UserApplicationService;
 import com.example.backend.config.TestSecurityConfig;
 import com.example.backend.domain.repository.ExpenseRepository;
@@ -13,11 +12,10 @@ import com.example.backend.entity.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
@@ -37,8 +35,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @SpringBootTest
 @AutoConfigureMockMvc
-@ActiveProfiles("test") // application-test.propertiesを使用
-@Import(TestSecurityConfig.class) // test時にはセキュリティを無効化する
+@ActiveProfiles("test")
+@Import(TestSecurityConfig.class)
+@SuppressWarnings("null")
 class ExpenseControllerIntegrationTest {
 
     @Autowired
@@ -50,12 +49,8 @@ class ExpenseControllerIntegrationTest {
     @Autowired
     private UserRepository userRepository;
 
-    @MockBean
-    // SpringのBeanをMockに置き換える
+    @MockitoBean
     private UserApplicationService userApplicationService;
-
-    @InjectMocks
-    private ExpenseApplicationService expenseApplicationService;
 
     private User user;
 
