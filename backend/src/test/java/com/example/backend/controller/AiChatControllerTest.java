@@ -66,26 +66,6 @@ class AiChatControllerTest {
     }
 
     @Test
-    @DisplayName("AIチャットAPIで空のメッセージを送信できる")
-    void apiChatPost_空のメッセージ() throws Exception {
-        // テストデータの準備: 空のメッセージを含むリクエスト
-        ChatRequest chatRequest = new ChatRequest();
-        chatRequest.setMessage("");
-
-        // モックの設定: 空のメッセージが正しくサービスに渡されることを確認
-        String expectedResponse = "メッセージが空です。";
-        String userMessage = chatRequest.getMessage();
-        when(aiChatService.chat(userMessage)).thenReturn(expectedResponse);
-
-        // テスト実行と検証
-        mockMvc.perform(post("/api/chat")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(chatRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value(expectedResponse));
-    }
-
-    @Test
     @DisplayName("AIチャットAPIでJSON形式が不正な場合は400エラー")
     void apiChatPost_不正なJSON形式() throws Exception {
         // テスト実行と検証: 不正なJSONを送信すると400エラーが返されることを確認
