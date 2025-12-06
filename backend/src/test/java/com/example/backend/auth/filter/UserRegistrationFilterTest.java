@@ -1,6 +1,7 @@
 // UserRegistrationIntegrationTest.java
-package com.example.backend.config;
+package com.example.backend.auth.filter;
 
+import com.example.backend.config.TestSecurityConfig;
 import com.example.backend.domain.repository.UserRepository;
 import com.example.backend.entity.User;
 import org.junit.jupiter.api.Test;
@@ -26,6 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional // テストごとにDBをロールバック
 @ActiveProfiles("test") //application-test.propertiesを読み込む
 @Import(TestSecurityConfig.class) //テスト用のセキュリティ設定を読み込む
+@SuppressWarnings("null")
 class UserRegistrationFilterTest {
 
     @Autowired

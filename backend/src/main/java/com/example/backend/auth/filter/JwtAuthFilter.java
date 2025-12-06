@@ -29,6 +29,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import com.example.backend.config.security.JwtProperties;
 
 /**
@@ -41,7 +43,8 @@ import com.example.backend.config.security.JwtProperties;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
-    private final ConfigurableJWTProcessor<SecurityContext> jwtProcessor;
+    @VisibleForTesting
+    ConfigurableJWTProcessor<SecurityContext> jwtProcessor;
     private final JWKSource<SecurityContext> remoteJwkSet;
 
     public JwtAuthFilter(JwtProperties jwtProperties) {
