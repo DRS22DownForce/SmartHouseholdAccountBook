@@ -29,6 +29,8 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtAut
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.google.common.annotations.VisibleForTesting;
+
 import com.example.backend.config.security.JwtProperties;
 
 /**
@@ -41,7 +43,8 @@ import com.example.backend.config.security.JwtProperties;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
-    private final ConfigurableJWTProcessor<SecurityContext> jwtProcessor;
+    @VisibleForTesting
+    ConfigurableJWTProcessor<SecurityContext> jwtProcessor;
     private final JWKSource<SecurityContext> remoteJwkSet;
 
     public JwtAuthFilter(JwtProperties jwtProperties) {
@@ -99,18 +102,24 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
     private Jwt buildSpringSecurityJwt(String jwtToken, Map<String, Object> headerMap, JWTClaimsSet claimsSet) {
         Jwt.Builder builder = Jwt.withTokenValue(jwtToken).headers(h -> h.putAll(headerMap));
-
+        
+        //日時をInstant型に変型
         Date issuedAt = claimsSet.getIssueTime();
-        if (issuedAt != null) builder.issuedAt(issuedAt.toInstant());
+        if (issuedAt != null)
+            builder.issuedAt(issuedAt.toInstant());
         Date expiresAt = claimsSet.getExpirationTime();
-        if (expiresAt != null) builder.expiresAt(expiresAt.toInstant());
+        if (expiresAt != null)
+            builder.expiresAt(expiresAt.toInstant());
         Date notBefore = claimsSet.getNotBeforeTime();
-        if (notBefore != null) builder.notBefore(notBefore.toInstant());
-
+        if (notBefore != null)
+            builder.notBefore(notBefore.toInstant());
+        
         Map<String, Object> claims = new HashMap<>(claimsSet.getClaims());
+        //Date型の日時を削除
         claims.remove("iat");
         claims.remove("exp");
         claims.remove("nbf");
+        
         builder.claims(c -> c.putAll(claims));
 
         return builder.build();
@@ -123,4 +132,3 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
 }
-
