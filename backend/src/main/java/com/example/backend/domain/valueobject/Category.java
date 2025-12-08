@@ -21,7 +21,7 @@ import java.util.List;
 @ToString
 @EqualsAndHashCode
 public class Category {
-
+    //TODO カテゴリーはEnumで管理する
     private static final List<String> VALID_CATEGORIES = Arrays.asList(
         "食費", "光熱費", "住居費", "交通費", "娯楽費", "日用品", "その他"
     );
