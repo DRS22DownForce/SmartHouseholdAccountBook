@@ -183,6 +183,20 @@ paths:
                   pattern: '^\d{4}-\d{2}$'
                   example: '2024-01'
   /api/chat:
+    get:
+      tags:
+        - chat
+      summary: 会話履歴取得
+      description: 現在のユーザーの会話履歴を時系列順（古い順）で取得します。
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatHistoryResponse'
+        '500':
+          description: サーバーエラー
     post:
       tags:
         - chat
@@ -317,3 +331,36 @@ components:
         message:
           type: string
           description: AIからの応答メッセージ
+    ChatHistoryResponse:
+      type: object
+      required:
+        - messages
+      properties:
+        messages:
+          type: array
+          description: 会話履歴のリスト（時系列順、古い順）
+          items:
+            $ref: '#/components/schemas/ChatMessageDto'
+    ChatMessageDto:
+      type: object
+      required:
+        - id
+        - role
+        - content
+        - createdAt
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: メッセージID
+        role:
+          type: string
+          description: メッセージのロール（user/assistant/system）
+          example: 'user'
+        content:
+          type: string
+          description: メッセージの内容
+        createdAt:
+          type: string
+          format: date-time
+          description: 作成日時
