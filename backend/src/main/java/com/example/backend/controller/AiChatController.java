@@ -70,7 +70,7 @@ public class AiChatController implements ChatApi {
     private ChatMessageDto toDto(ChatMessage message) {
         ChatMessageDto dto = new ChatMessageDto();
         dto.setId(message.getId());
-        dto.setRole(message.getRole());
+        dto.setRole(message.getRole().name());
         dto.setContent(message.getContent());
         // LocalDateTimeをOffsetDateTimeに変換（システムのタイムゾーンを使用）
         OffsetDateTime offsetDateTime = message.getCreatedAt().atOffset(ZoneOffset.systemDefault().getRules().getOffset(message.getCreatedAt()));

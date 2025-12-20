@@ -57,28 +57,10 @@ public class AiChatService {
         User user = userApplicationService.getUser();
 
         // 1. ユーザーメッセージをデータベースに保存
-        ChatMessage userChatMessage = new ChatMessage("user", userMessage, user);
+        ChatMessage userChatMessage = new ChatMessage(ChatMessage.Role.USER, userMessage, user);
         chatMessageRepository.save(userChatMessage);
 
-        // 2. 過去30日間の支出データを取得
-        LocalDate end = LocalDate.now();
-        LocalDate start = end.minusDays(30);
-        List<Expense> expenses = expenseRepository.findByUserAndDateBetween(user, start, end);
-
-        // 3. システムプロンプトを構築（支出データを含む）
-        String systemPrompt = "あなたは親切な家計簿アドバイザーです。以下の過去30日間の支出データを分析し、ユーザーの質問に答えてください。\n\n" +
-                "支出データ:\n" +
-                expenses.stream()
-                        .map(e -> String.format("- %s: %s (%d円) %s", e.getDate().getValue(), e.getCategory().getValue(),
-                                e.getAmount().getValue(), e.getDescription()))
-                        .collect(Collectors.joining("\n"));
-
-        // 4. OpenAI APIを呼び出し
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", "gpt-4o-mini"); // コスト効率の良いモデルを使用
-        requestBody.put("messages", List.of(
-                Map.of("role", "system", "content", systemPrompt),
-                Map.of("role", "user", "content", userMessage)));
+        Map<String, Object> requestBody = createRequestBody(userMessage, user);
 
         String assistantResponse = null;
         try {
@@ -109,10 +91,33 @@ public class AiChatService {
         }
 
         // 6. AI応答をデータベースに保存
-        ChatMessage assistantChatMessage = new ChatMessage("assistant", assistantResponse, user);
+        ChatMessage assistantChatMessage = new ChatMessage(ChatMessage.Role.ASSISTANT, assistantResponse, user);
         chatMessageRepository.save(assistantChatMessage);
 
         return assistantResponse;
+    }
+
+    private Map<String, Object> createRequestBody(String userMessage, User user) {
+        // 2. 過去30日間の支出データを取得
+        LocalDate end = LocalDate.now();
+        LocalDate start = end.minusDays(30);
+        List<Expense> expenses = expenseRepository.findByUserAndDateBetween(user, start, end);
+
+        // 3. システムプロンプトを構築（支出データを含む）
+        String systemPrompt = "あなたは親切な家計簿アドバイザーです。以下の過去30日間の支出データを分析し、ユーザーの質問に答えてください。\n\n" +
+                "支出データ:\n" +
+                expenses.stream()
+                        .map(e -> String.format("- %s: %s (%d円) %s", e.getDate().getValue(), e.getCategory().getValue(),
+                                e.getAmount().getValue(), e.getDescription()))
+                        .collect(Collectors.joining("\n"));
+
+        // 4. OpenAI APIを呼び出し
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", "gpt-4o-mini"); // コスト効率の良いモデルを使用
+        requestBody.put("messages", List.of(
+                Map.of("role", "system", "content", systemPrompt),
+                Map.of("role", "user", "content", userMessage)));
+        return requestBody;
     }
 
     /**

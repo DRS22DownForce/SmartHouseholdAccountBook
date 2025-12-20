@@ -12,7 +12,7 @@ import { MessageCircle, Send, Loader2 } from "lucide-react"
 
 interface Message {
   id: string
-  role: "user" | "assistant"
+  role: "USER" | "ASSISTANT"
   content: string
 }
 
@@ -48,7 +48,7 @@ export function AiChatDialog() {
       // バックエンドから取得した履歴をMessage形式に変換
       const historyMessages: Message[] = history.map((msg) => ({
         id: msg.id?.toString() || crypto.randomUUID(),
-        role: msg.role === "user" ? "user" : "assistant",
+        role: msg.role === "USER" ? "USER" : "ASSISTANT",
         content: msg.content || "",
       }))
       setMessages(historyMessages)
@@ -68,7 +68,7 @@ export function AiChatDialog() {
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
-      role: "user",
+      role: "USER",
       content: input.trim(),
     }
 
@@ -80,7 +80,7 @@ export function AiChatDialog() {
       const data = await sendChatMessage(userMessage.content)
       const assistantMessage: Message = {
         id: crypto.randomUUID(),
-        role: "assistant",
+        role: "ASSISTANT",
         content: data.message,
       }
       setMessages((prev) => [...prev, assistantMessage])
@@ -88,7 +88,7 @@ export function AiChatDialog() {
       console.error("Chat error:", error)
       const errorMessage: Message = {
         id: crypto.randomUUID(),
-        role: "assistant",
+        role: "ASSISTANT",
         content: "申し訳ございません。エラーが発生しました。もう一度お試しください。",
       }
       setMessages((prev) => [...prev, errorMessage])
@@ -127,9 +127,9 @@ export function AiChatDialog() {
             )}
 
             {messages.map((message) => (
-              <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div key={message.id} className={`flex ${message.role === "USER" ? "justify-end" : "justify-start"}`}>
                 <div
-                  className={`max-w-[80%] rounded-lg px-4 py-2 ${message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
+                  className={`max-w-[80%] rounded-lg px-4 py-2 ${message.role === "USER" ? "bg-primary text-primary-foreground" : "bg-muted text-foreground"
                     }`}
                 >
                   <p className="text-sm whitespace-pre-wrap">{message.content}</p>
