@@ -1,5 +1,6 @@
 package com.example.backend.application.service;
 
+import com.example.backend.domain.repository.ChatMessageRepository;
 import com.example.backend.domain.repository.ExpenseRepository;
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.User;
@@ -32,6 +33,9 @@ class AiChatServiceTest {
     private ExpenseRepository expenseRepository;
 
     @Mock
+    private ChatMessageRepository chatMessageRepository;
+
+    @Mock
     private UserApplicationService userApplicationService;
 
     // RestClientはfinalフィールドなので、ReflectionTestUtilsを使用して設定を変更します
@@ -51,6 +55,9 @@ class AiChatServiceTest {
         // これにより、実際の外部APIを呼び出さずにテストできます
         ReflectionTestUtils.setField(aiChatService, "openAiApiKey", testOpenAiApiKey);
         ReflectionTestUtils.setField(aiChatService, "openAiApiUrl", testOpenAiApiUrl);
+
+        // chatMessageRepositoryのsave()メソッドのモックが使われなくても、テストが正常に実行されるようにlenient()を使用
+        lenient().when(chatMessageRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
@@ -115,21 +122,14 @@ class AiChatServiceTest {
     }
 
     @Test
-    @DisplayName("空のメッセージでもチャット応答を取得できる")
+    @DisplayName("空のメッセージで例外が発生する")
     void chat_空のメッセージ() {
         // テストデータの準備
-        LocalDate end = LocalDate.now();
-        LocalDate start = end.minusDays(30);
-        List<Expense> expenses = new ArrayList<>();
         when(userApplicationService.getUser()).thenReturn(testUser);
-        when(expenseRepository.findByUserAndDateBetween(testUser, start, end)).thenReturn(expenses);
-
-        // テスト実行: 空のメッセージを送信
         String userMessage = "";
-        String result = aiChatService.chat(userMessage);
-
-        // 検証: 空のメッセージでも例外が発生しないことを確認
-        assertNotNull(result);
+        // テスト実行: 空のメッセージを送信
+        // 検証: 空のメッセージで例外が発生することを確認
+        assertThrows(IllegalArgumentException.class, () -> aiChatService.chat(userMessage));
     }
 
     @Test

@@ -42,7 +42,7 @@ class ChatMessageRepositoryTest {
     @Test
     @DisplayName("ユーザーを指定してメッセージを取得できる")
     void findByUserOrderByCreatedAtDesc_正常に取得() {
-        ChatMessage message1 = new ChatMessage("user", "こんにちは", testUser);
+        ChatMessage message1 = new ChatMessage(ChatMessage.Role.USER, "こんにちは", testUser);
         chatMessageRepository.save(message1);
 
         // 少し待ってから次のメッセージを作成（作成日時を分けるため）
@@ -52,7 +52,7 @@ class ChatMessageRepositoryTest {
             Thread.currentThread().interrupt();
         }
 
-        ChatMessage message2 = new ChatMessage("assistant", "こんにちは！何かお手伝いできることはありますか？", testUser);
+        ChatMessage message2 = new ChatMessage(ChatMessage.Role.ASSISTANT, "こんにちは！何かお手伝いできることはありますか？", testUser);
         chatMessageRepository.save(message2);
 
         // テスト実行: ユーザーを指定してメッセージを取得
@@ -73,11 +73,11 @@ class ChatMessageRepositoryTest {
         otherUser = userRepository.save(otherUser);
 
         // テストユーザーのメッセージを作成
-        ChatMessage message1 = new ChatMessage("user", "テストユーザーのメッセージ", testUser);
+        ChatMessage message1 = new ChatMessage(ChatMessage.Role.USER, "テストユーザーのメッセージ", testUser);
         chatMessageRepository.save(message1);
 
         // 別のユーザーのメッセージを作成
-        ChatMessage message2 = new ChatMessage("user", "別ユーザーのメッセージ", otherUser);
+        ChatMessage message2 = new ChatMessage(ChatMessage.Role.USER, "別ユーザーのメッセージ", otherUser);
         chatMessageRepository.save(message2);
 
         // テスト実行: テストユーザーのメッセージのみを取得
@@ -103,7 +103,7 @@ class ChatMessageRepositoryTest {
     @DisplayName("複数のメッセージが時系列順（降順）で取得される")
     void findByUserOrderByCreatedAtDesc_時系列順で取得される() {
         // テストデータの準備: 複数のメッセージを作成
-        ChatMessage message1 = new ChatMessage("user", "1番目のメッセージ", testUser);
+        ChatMessage message1 = new ChatMessage(ChatMessage.Role.USER, "1番目のメッセージ", testUser);
         chatMessageRepository.save(message1);
 
         try {
@@ -112,7 +112,7 @@ class ChatMessageRepositoryTest {
             Thread.currentThread().interrupt();
         }
 
-        ChatMessage message2 = new ChatMessage("assistant", "2番目のメッセージ", testUser);
+        ChatMessage message2 = new ChatMessage(ChatMessage.Role.ASSISTANT, "2番目のメッセージ", testUser);
         chatMessageRepository.save(message2);
 
         try {
@@ -121,7 +121,7 @@ class ChatMessageRepositoryTest {
             Thread.currentThread().interrupt();
         }
 
-        ChatMessage message3 = new ChatMessage("user", "3番目のメッセージ", testUser);
+        ChatMessage message3 = new ChatMessage(ChatMessage.Role.USER, "3番目のメッセージ", testUser);
         chatMessageRepository.save(message3);
 
         // テスト実行: メッセージを取得

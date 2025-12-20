@@ -29,12 +29,10 @@ public class ChatMessage {
 
     /**
      * メッセージのロール
-     * - "user": ユーザーが送信したメッセージ
-     * - "assistant": AIが返答したメッセージ
-     * - "system": システムメッセージ（将来の拡張用）
      */
-    @Column(nullable = false, length = 20)
-    private String role; // メッセージのロール
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private Role role;
 
     /**
      * メッセージの内容
@@ -64,7 +62,7 @@ public class ChatMessage {
      * @param content メッセージの内容
      * @param user ユーザーエンティティ
      */
-    public ChatMessage(String role, String content, User user) {
+    public ChatMessage(Role role, String content, User user) {
         validate(role, content, user);
         this.role = role;
         this.content = content;
@@ -77,13 +75,9 @@ public class ChatMessage {
      * 
      * エンティティレベルでの整合性チェックを行います。
      */
-    private static void validate(String role, String content, User user) {
-        if (role == null || role.trim().isEmpty()) {
+    private static void validate(Role role, String content, User user) {
+        if (role == null) {
             throw new IllegalArgumentException("ロールは必須です。");
-        }
-        // ロールの値が有効かチェック
-        if (!role.equals("user") && !role.equals("assistant") && !role.equals("system")) {
-            throw new IllegalArgumentException("ロールは'user'、'assistant'、'system'のいずれかである必要があります。");
         }
         if (content == null || content.trim().isEmpty()) {
             throw new IllegalArgumentException("メッセージ内容は必須です。");
@@ -91,6 +85,18 @@ public class ChatMessage {
         if (user == null) {
             throw new IllegalArgumentException("ユーザーは必須です。");
         }
+    }
+    /**
+     * ChatMessageのロール
+     * 
+     * - "user": ユーザーが送信したメッセージ
+     * - "assistant": AIが返答したメッセージ
+     * - "system": システムメッセージ（将来の拡張用）
+     */
+    public enum Role {
+        USER,
+        ASSISTANT,
+        SYSTEM;
     }
 }
 

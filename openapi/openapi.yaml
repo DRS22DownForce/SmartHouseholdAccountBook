@@ -355,8 +355,8 @@ components:
           description: メッセージID
         role:
           type: string
-          description: メッセージのロール（user/assistant/system）
-          example: 'user'
+          description: メッセージのロール（USER/ASSISTANT/SYSTEM）
+          example: 'USER'
         content:
           type: string
           description: メッセージの内容
