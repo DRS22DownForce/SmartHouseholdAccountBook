@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { sendChatMessage } from "@/api/chatApi"
+import { sendChatMessage, getChatHistory } from "@/api/chatApi"
 import { MessageCircle, Send, Loader2 } from "lucide-react"
 
 interface Message {
@@ -21,13 +21,45 @@ export function AiChatDialog() {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
+  // ダイアログが開いた時に会話履歴を取得
+  useEffect(() => {
+    if (open && messages.length === 0) {
+      loadChatHistory()
+    }
+  }, [open])
+
+  // メッセージが更新されたらスクロール
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollIntoView({ behavior: "smooth" })
     }
   }, [messages, isLoading])
+
+  /**
+   * 会話履歴を取得して表示する
+   */
+  const loadChatHistory = async () => {
+    setIsLoadingHistory(true)
+    try {
+      const history = await getChatHistory()
+      // バックエンドから取得した履歴をMessage形式に変換
+      const historyMessages: Message[] = history.map((msg) => ({
+        id: msg.id?.toString() || crypto.randomUUID(),
+        role: msg.role === "user" ? "user" : "assistant",
+        content: msg.content || "",
+      }))
+      setMessages(historyMessages)
+    } catch (error) {
+      console.error("Failed to load chat history:", error)
+      // エラーが発生しても空の配列を設定（新規会話として開始）
+      setMessages([])
+    } finally {
+      setIsLoadingHistory(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -80,7 +112,13 @@ export function AiChatDialog() {
 
         <ScrollArea className="flex-1 pr-4 min-h-0">
           <div className="space-y-4">
-            {messages.length === 0 && (
+            {isLoadingHistory && (
+              <div className="text-center py-8 text-muted-foreground">
+                <Loader2 className="h-8 w-8 mx-auto mb-4 animate-spin opacity-50" />
+                <p className="text-sm">会話履歴を読み込んでいます...</p>
+              </div>
+            )}
+            {!isLoadingHistory && messages.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 <MessageCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
                 <p className="text-sm">支出の改善方法について相談してみましょう</p>
