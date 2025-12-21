@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.example.backend.exception.ExpenseNotFoundException;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -196,10 +197,10 @@ class ExpenseApplicationServiceTest {
         when(expenseRepository.findById(nonExistentId)).thenReturn(java.util.Optional.empty());
 
         // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+        ExpenseNotFoundException exception = assertThrows(ExpenseNotFoundException.class,
                 () -> expenseApplicationService.updateExpense(nonExistentId, requestDto));
 
-        assertEquals("ID 999 の支出が見つかりません", exception.getMessage());
+        assertEquals("ID: " + nonExistentId + " の支出が見つかりませんでした", exception.getMessage());
         verify(expenseRepository, times(1)).findById(nonExistentId);
         verify(expenseRepository, never()).save(any());
     }
