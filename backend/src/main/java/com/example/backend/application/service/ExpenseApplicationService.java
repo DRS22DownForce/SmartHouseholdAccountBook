@@ -11,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.backend.exception.ExpenseNotFoundException;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -122,7 +123,7 @@ public class ExpenseApplicationService {
         Objects.requireNonNull(id, "支出IDはnullであってはなりません");
         
         Expense existingExpense = expenseRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("ID " + id + " の支出が見つかりません"));
+                .orElseThrow(() -> new ExpenseNotFoundException(id));
 
         ExpenseMapper.ValueObjectsForUpdate valueObjectsForUpdate = 
             expenseMapper.toValueObjectsForUpdate(expenseRequestDto);
