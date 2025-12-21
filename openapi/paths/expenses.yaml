@@ -7,7 +7,7 @@
       - name: month
         in: query
         required: false
-        description: 月別フィルタリング（YYYY-MM形式）。指定しない場合は全データを取得
+        description: データ取得する月を指定する。指定しない場合は全データを取得
         schema:
           type: string
           pattern: '^\d{4}-\d{2}$'

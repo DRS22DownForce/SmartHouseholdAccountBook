@@ -30,6 +30,7 @@ ExpenseRequestDto:
     - date
     - category
     - amount
+    - description
   properties:
     date:
       type: string
