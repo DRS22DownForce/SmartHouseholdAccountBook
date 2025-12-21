@@ -1,0 +1,174 @@
+/api/expenses:
+  get:
+    tags:
+      - expenses
+    summary: 家計簿データ一覧取得
+    parameters:
+      - name: month
+        in: query
+        required: false
+        description: 月別フィルタリング（YYYY-MM形式）。指定しない場合は全データを取得
+        schema:
+          type: string
+          pattern: '^\d{4}-\d{2}$'
+          example: '2024-01'
+    responses:
+      '200':
+        description: 家計簿データ一覧取得成功
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas/expense.yaml#/ExpenseDto'
+  post:
+    tags:
+      - expenses
+    summary: 家計簿データ追加
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/expense.yaml#/ExpenseRequestDto'
+    responses:
+      '201':
+        description: 家計簿データ追加成功
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ExpenseDto'
+/api/expenses/{id}:
+  delete:
+    tags:
+      - expenses
+    summary: 家計簿データ削除
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    responses:
+      '204':
+        description: 家計簿データ削除成功
+      '404':
+        description: 家計簿データが見つからない
+  put:
+    tags:
+      - expenses
+    summary: 家計簿データ更新
+    description: 指定されたIDの家計簿データを更新します
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: integer
+          format: int64
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/expense.yaml#/ExpenseRequestDto'
+    responses:
+      '200':
+        description: 家計簿データ更新成功
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ExpenseDto'
+      '400':
+        description: バリデーションエラー
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'
+      '404':
+        description: 家計簿データが見つからない
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'
+/api/expenses/summary:
+  get:
+    tags:
+      - expenses
+    summary: 月別サマリー取得
+    parameters:
+      - name: month
+        in: query
+        required: true
+        description: 対象月（YYYY-MM形式）
+        schema:
+          type: string
+          pattern: '^\d{4}-\d{2}$'
+          example: '2024-01'
+    responses:
+      '200':
+        description: 月別サマリー取得成功
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/MonthlySummaryDto'
+      '400':
+        description: バリデーションエラー
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'
+/api/expenses/summary/range:
+  get:
+    tags:
+      - expenses
+    summary: 範囲指定で月別サマリー取得
+    parameters:
+      - name: startMonth
+        in: query
+        required: true
+        description: 開始月（YYYY-MM形式）
+        schema:
+          type: string
+          pattern: '^\d{4}-\d{2}$'
+          example: '2024-01'
+      - name: endMonth
+        in: query
+        required: true
+        description: 終了月（YYYY-MM形式）
+        schema:
+          type: string
+          pattern: '^\d{4}-\d{2}$'
+          example: '2024-06'
+    responses:
+      '200':
+        description: 範囲指定で月別サマリー取得成功
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas/expense.yaml#/MonthlySummaryDto'
+      '400':
+        description: バリデーションエラー
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'
+/api/expenses/months:
+  get:
+    tags:
+      - expenses
+    summary: 利用可能な月のリスト取得
+    responses:
+      '200':
+        description: 利用可能な月のリスト取得成功
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: string
+                pattern: '^\d{4}-\d{2}$'
+                example: '2024-01'

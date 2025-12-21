@@ -1,0 +1,93 @@
+ExpenseDto:
+    type: object
+    required:
+      - id
+      - date
+      - category
+      - amount
+      - description
+    properties:
+      id:
+        type: integer
+        format: int64
+        description: 家計簿データの一意ID
+      date:
+        type: string
+        format: date
+        description: 支出日
+      category:
+        type: string
+        description: 支出カテゴリ
+      amount:
+        type: integer
+        description: 支出金額
+      description:
+        type: string
+        description: 支出の詳細説明
+ExpenseRequestDto:
+  type: object
+  required:
+    - date
+    - category
+    - amount
+  properties:
+    date:
+      type: string
+      format: date 
+      description: 支出日
+    category:
+      type: string
+      description: 支出カテゴリ
+    amount:
+      type: integer
+      description: 支出金額
+    description:
+      type: string
+      description: 支出の詳細説明
+ErrorResponse:
+  type: object
+  description: エラーレスポンス用の共通スキーマ
+  required:
+    - message
+    - timestamp
+  properties:
+    message:
+      type: string
+      description: エラーメッジ
+    timestamp:
+      type: string
+      format: date-time
+      description: エラー発生時刻
+MonthlySummaryDto:
+  type: object
+  description: 月別サマリー用DTO
+  required:
+    - total
+    - count
+    - byCategory
+  properties:
+    total:
+      type: integer
+      description: 合計支出金額
+      example: 50000
+    count:
+      type: integer
+      description: 支出件数
+      example: 15
+    byCategory:
+      type: array
+      description: カテゴリー別集計（金額の降順でソート済み）
+      items:
+        type: object
+        required:
+          - category
+          - amount
+        properties:
+          category:
+            type: string
+            description: カテゴリー名
+            example: '食費'
+          amount:
+            type: integer
+            description: カテゴリー別の合計金額
+            example: 20000
