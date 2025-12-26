@@ -270,6 +270,205 @@ public class ExpenseApplicationService {
 
 ---
 
+#### 動的プロキシとJDBCドライバーの関係
+
+**動的プロキシとは**:
+
+動的プロキシは、実行時に生成される「代理オブジェクト」です。インターフェースの実装クラスを自動生成し、メソッド呼び出しを横取り（インターセプト）して独自の処理を実行します。
+
+**動作の流れ（詳細版）**:
+
+```
+1. コードでメソッドを呼び出す
+   expenseRepository.findByUser(user)
+   ↓
+2. 動的プロキシがメソッド呼び出しを「横取り（インターセプト）」
+   「findByUserというメソッドが呼ばれたな。メソッド名を解析しよう」
+   ↓
+3. Spring Data JPAがメソッド名を解析
+   「findByUser」→ 「Userで検索する」という意味だと理解
+   ↓
+4. Hibernate（JPA実装）がSQLを生成
+   SELECT * FROM expenses WHERE user_id = ?
+   ↓
+5. HibernateがJDBCドライバーを使用してデータベースに接続
+   ↓
+6. JDBCドライバーがSQLをデータベースに送信
+   ↓
+7. データベースがSQLを実行
+   ↓
+8. 結果をJDBCドライバーが受け取る
+   ↓
+9. Hibernateが結果をJavaオブジェクト（List<Expense>）に変換
+   ↓
+10. 動的プロキシが結果を返す
+    ↓
+11. 元のコードに結果が返る
+    List<Expense> expenses = ...（結果）
+```
+
+**役割分担**:
+
+| 役割 | 担当者 | 説明 |
+|------|--------|------|
+| **メソッド呼び出しの横取り** | 動的プロキシ（Spring Data JPA） | メソッド名を解析して、何をしたいのか理解する |
+| **SQLの生成** | Hibernate（JPA実装） | メソッド名から適切なSQLを生成 |
+| **データベース接続** | JDBCドライバー | 実際にデータベースに接続してSQLを送信 |
+| **SQLの実行** | データベース（MySQL/H2など） | SQLを実行して結果を返す |
+
+**重要なポイント**:
+- **動的プロキシの実装はJDBCドライバーの種類によって変化しない**: 動的プロキシの生成方法や動作は、H2でもMySQLでも同じです
+- **動的プロキシはHibernateに直接依頼するのではなく、内部実装の一部としてHibernateを使う**: 動的プロキシ（Spring Data JPAの実装）が、内部でHibernateを使ってSQLを生成・実行します
+
+---
+
+#### JDBCドライバーの設定
+
+**JDBCドライバーとは**:
+
+JDBCドライバーは、Javaアプリケーションとデータベースを接続するための橋渡し役です。データベースごとに専用のJDBCドライバーが必要です。
+
+**pom.xmlでの指定（必須）**:
+
+JDBCドライバーは、`pom.xml`で依存関係として指定する必要があります。
+
+```xml
+<!-- MySQL用のJDBCドライバー -->
+<dependency>
+    <groupId>com.mysql</groupId>
+    <artifactId>mysql-connector-j</artifactId>
+    <scope>runtime</scope>
+</dependency>
+
+<!-- H2用のJDBCドライバー（テスト用） -->
+<dependency>
+    <groupId>com.h2database</groupId>
+    <artifactId>h2</artifactId>
+    <scope>test</scope>
+</dependency>
+```
+
+**動作の仕組み**:
+
+1. **依存関係の追加**: `pom.xml`にJDBCドライバーの依存関係を追加
+2. **自動ダウンロード**: Mavenが初回ビルド時にJDBCドライバーのJARファイルを自動的にダウンロード（`~/.m2/repository/`に保存）
+3. **クラスパスに追加**: ビルド時にJDBCドライバーのJARファイルがクラスパスに自動的に追加される
+4. **自動検出**: Spring Bootがクラスパス上のJDBCドライバーを自動的に検出して使用
+
+**application.propertiesでの指定（オプション）**:
+
+通常は`spring.datasource.url`から自動検出されますが、明示的に指定することもできます：
+
+```properties
+# データベース接続URL（JDBCドライバーを自動検出）
+spring.datasource.url=jdbc:mysql://localhost:3306/mydb
+
+# または、明示的にJDBCドライバークラスを指定（通常は不要）
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+```
+
+**自動検出の仕組み**:
+
+Spring Bootは、`spring.datasource.url`のプロトコル部分（`jdbc:mysql`、`jdbc:h2`など）からデータベースの種類を判断し、クラスパス上にある対応するJDBCドライバーを自動的に検出・使用します。
+
+```
+1. URLのプロトコル部分を解析
+   jdbc:mysql://... → MySQL用のJDBCドライバーが必要
+   jdbc:h2:... → H2用のJDBCドライバーが必要
+   ↓
+2. クラスパス上にあるJDBCドライバーを検索
+   → 対応するJDBCドライバーのJARファイルが見つかる
+   ↓
+3. 適切なJDBCドライバークラスを自動的に選択
+   → com.mysql.cj.jdbc.Driver や org.h2.Driver を使用
+```
+
+**重要なポイント**:
+- **pom.xmlで取得するJARファイルがJDBCドライバーに該当する**: `mysql-connector-j`や`h2`のJARファイルに、JDBCドライバークラスが含まれています
+- **どのJDBCドライバーを使うかはpom.xmlで指定する**: 依存関係として追加することで、JDBCドライバーのJARファイルがクラスパスに追加されます
+
+---
+
+#### H2とMySQLの違い
+
+**動的プロキシの実装は変わらない**:
+
+動的プロキシの生成方法や動作は、H2でもMySQLでも同じです。違いは、その内部で使われる設定とコンポーネントです。
+
+**主な違い**:
+
+| 項目 | H2（テスト環境） | MySQL（本番環境） |
+|------|----------------|-----------------|
+| **JDBCドライバー** | `org.h2.Driver` | `com.mysql.cj.jdbc.Driver` |
+| **接続URL** | `jdbc:h2:mem:testdb` | `jdbc:mysql://localhost:3306/...` |
+| **Hibernate Dialect** | `H2Dialect` | `MySQLDialect` |
+| **データの保存場所** | メモリ内（揮発性） | ディスク（永続化） |
+| **用途** | テスト実行時のみ | 本番・開発環境 |
+
+**設定の違い**:
+
+**H2（テスト環境）**:
+```properties
+# JDBCドライバー
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+
+# HibernateのDialect（SQL方言）
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+```
+
+**MySQL（本番環境）**:
+```properties
+# JDBCドライバー
+spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+spring.datasource.url=${SPRING_DATASOURCE_URL_DEV}
+
+# HibernateのDialect（SQL方言）
+spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect
+
+# タイムゾーン設定（MySQL特有）
+spring.jpa.properties.hibernate.jdbc.time_zone=Asia/Tokyo
+```
+
+**重要なポイント**:
+- **動的プロキシの実装**: H2でもMySQLでも同じ
+- **HibernateのDialect**: データベースの種類に応じて異なるSQLが生成される
+- **JDBCドライバー**: データベースごとに異なるドライバーが必要
+
+---
+
+#### データベースの起動方法
+
+**H2（テスト環境）: 自動起動（サーバー不要）**:
+
+H2はインメモリデータベースのため、別途サーバーを起動する必要はありません。
+
+**起動の仕組み**:
+```
+1. テストクラスが実行される
+   ↓
+2. Spring Bootが起動
+   ↓
+3. application-test.propertiesが読み込まれる
+   spring.datasource.url=jdbc:h2:mem:testdb
+   ↓
+4. H2のJDBCドライバーが検出される（クラスパス上にあるため）
+   ↓
+5. JDBCドライバーが自動的にインメモリデータベースを作成
+   → データベースサーバーを起動する必要がない！
+   ↓
+6. テストが実行される
+   ↓
+7. テスト終了後、メモリから自動的に削除される
+```
+
+**重要なポイント**:
+- **サーバー不要**: データベースサーバーを起動する必要がない
+- **自動起動**: Spring Bootが自動的にインメモリデータベースを作成
+- **自動削除**: テスト終了後に自動的にメモリから削除される
+
+---
+
 #### クエリメソッド
 
 **クエリメソッド**: メソッド名から自動的にSQLを生成します。
