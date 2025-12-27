@@ -776,7 +776,7 @@ mockMvc.perform(delete("/api/expenses/1"))
 **このプロジェクトでの使用箇所**:
 - `pom.xml`のMavenプラグイン設定
 
-**実際の設定例**:
+#### 設定例
 
 `backend/pom.xml` (308-326行目):
 
@@ -802,13 +802,92 @@ mockMvc.perform(delete("/api/expenses/1"))
 </plugin>
 ```
 
-**JaCoCoの動作の仕組み**:
+#### Mavenの基本概念
 
-1. **`prepare-agent`**: テスト実行時に、コードの実行を追跡するエージェントを準備
-2. **テスト実行**: テストが実行され、どのコードが実行されたかが記録される
-3. **`report`**: テスト実行後、カバレッジレポートを生成
+この設定を理解するために、Mavenの3つの重要な概念を理解する必要があります：
 
-**カバレッジレポートの確認方法**:
+**1. Phase（フェーズ）**: Mavenのビルドプロセスの段階
+
+- Mavenには標準的なビルドライフサイクルがあり、以下のようなフェーズがあります：
+  - `compile`: ソースコードをコンパイル
+  - `test`: テストを実行
+  - `package`: コンパイル済みコードをJARなどのパッケージにまとめる
+  - `install`: ローカルリポジトリにインストール
+- `<phase>test</phase>`は、「testフェーズの時に実行する」という意味です
+
+**2. Goal（ゴール）**: プラグインが実行する具体的なタスク
+
+- 各プラグインは独自の複数のゴールを持っています
+- `prepare-agent`ゴール: JaCoCoエージェントを準備するタスク
+- `report`ゴール: カバレッジレポートを生成するタスク
+
+**3. Execution（実行）**: 特定のフェーズで特定のゴールを実行する設定
+
+- `<execution>`タグで、いつ（phase）何を（goal）実行するかを定義します
+- 複数の`<execution>`を定義することで、異なるタイミングで異なるゴールを実行できます
+
+#### Mavenの役割分担
+
+- **Maven本体**: オーケストレーター（指揮者）
+  - Phaseの順序を管理
+  - 各Phaseでどのプラグインを実行するかを決定
+  - 実際の作業は行わない
+
+- **プラグイン**: 実作業者
+  - コンパイル、テスト実行、パッケージングなどの作業を実行
+  - 各Phaseで必要な作業を担当
+
+#### 設定の詳細説明
+
+**1つ目の実行ブロック（prepare-agent）**:
+
+```xml
+<execution>
+    <goals>
+        <goal>prepare-agent</goal>
+    </goals>
+</execution>
+```
+
+- **意味**: 最初の実行ブロック
+- **phaseが指定されていない場合**: デフォルトで`test`フェーズの前に自動的に実行されます
+- **何をするか**: `prepare-agent`ゴールを実行して、テスト実行時にコードカバレッジを追跡するためのエージェントを準備します
+- **なぜ必要か**: テストを実行する前に、カバレッジを記録する仕組みを準備しておく必要があるため
+
+**2つ目の実行ブロック（report）**:
+
+```xml
+<execution>
+    <id>report</id>
+    <phase>test</phase>
+    <goals>
+        <goal>report</goal>
+    </goals>
+</execution>
+```
+
+- **意味**: 2番目の実行ブロック
+- **`<id>report</id>`**: この実行ブロックに名前を付けています（識別用）
+- **`<phase>test</phase>`**: `test`フェーズの時に実行することを明示的に指定
+- **何をするか**: `report`ゴールを実行して、テスト実行後にカバレッジレポートを生成します
+- **実行タイミング**: `test`フェーズの後（テストが完了した後）に自動的に実行されます
+
+#### JaCoCoの動作の仕組み（時系列）
+
+1. **`prepare-agent`ゴール実行**（testフェーズの前）
+   - テスト実行時に、コードの実行を追跡するエージェントを準備
+   - このエージェントが、テスト中にどのコード行が実行されたかを記録します
+
+2. **テスト実行**（testフェーズ）
+   - Mavenが通常通りテストを実行
+   - その間、JaCoCoエージェントが静かに動作を記録
+   - カバレッジデータが一時ファイルに保存されます
+
+3. **`report`ゴール実行**（testフェーズの後）
+   - テスト実行後、記録されたカバレッジデータからレポートを生成
+   - HTML形式のレポートが`target/site/jacoco/index.html`に生成されます
+
+#### カバレッジレポートの確認方法
 
 ```bash
 # テストを実行
@@ -818,7 +897,7 @@ mvn test
 # レポートの場所: backend/target/site/jacoco/index.html
 ```
 
-**カバレッジの種類**:
+#### カバレッジの種類
 
 | カバレッジ | 説明 |
 |----------|------|
@@ -827,164 +906,11 @@ mvn test
 | **メソッドカバレッジ** | 実行されたメソッドの割合 |
 | **クラスカバレッジ** | 実行されたクラスの割合 |
 
-**学習ポイント**:
+#### 学習ポイント
+
 - **品質管理**: テストが不足している箇所を特定できる
 - **目標設定**: プロジェクトごとにカバレッジの目標を設定（例: 80%以上）
 - **継続的な改善**: カバレッジレポートを確認して、テストを追加
-
-**参考資料**:
-- [JaCoCo公式ドキュメント](https://www.jacoco.org/jacoco/)
-
----
-
-## テストの種類と実装例
-
-### ユニットテスト
-
-**役割**: 個々のクラスやメソッドを独立してテストします。依存関係はモックで置き換えます。
-
-**実際のコード例**:
-
-`backend/src/test/java/com/example/backend/domain/valueobject/ExpenseAmountTest.java` (16-29行目):
-
-```java
-/**
- * ExpenseAmount値オブジェクトのテストクラス
- * 
- * 支出金額を表現する値オブジェクトのバリデーションとビジネスロジックをテストします。
- * 値オブジェクトは不変（immutable）であり、バリデーションによって不正な値の作成を防ぎます。
- */
-class ExpenseAmountTest {
-
-    @Test
-    @DisplayName("正常な金額を作成できる")
-    void createExpenseAmount_正常な値() {
-        // テストデータの準備: 1以上の正の整数
-        Integer value = 1000;
-
-        // テスト実行: ExpenseAmountオブジェクトを作成
-        ExpenseAmount amount = new ExpenseAmount(value);
-
-        // 検証: 正常に作成され、値が正しく設定されていることを確認
-        assertNotNull(amount);
-        assertEquals(1000, amount.getValue());
-        assertEquals(1000, amount.toInteger());
-    }
-}
-```
-
-**ユニットテストの特徴**:
-- **独立性**: 他のクラスに依存しない
-- **高速**: モックを使用するため、テストが高速に実行される
-- **単一責任**: 1つのクラスやメソッドのみをテスト
-
-### 統合テスト
-
-**役割**: 複数のレイヤー（コントローラー、サービス、リポジトリ、データベース）をまたいだ動作をテストします。
-
-**実際のコード例**:
-
-`backend/src/test/java/com/example/backend/controller/ExpenseControllerIntegrationTest.java` (71-98行目):
-
-```java
-/**
- * ExpenseControllerの統合テストクラス
- * 
- * コントローラーからデータベースまでの一貫した動作をテストします。
- */
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-@Import(TestSecurityConfig.class)
-class ExpenseControllerIntegrationTest {
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private ExpenseRepository expenseRepository;
-
-    @Test
-    @DisplayName("家計簿追加API→DB保存→取得APIまで一貫テスト")
-    void testAddAndGetExpense() throws Exception {
-        // 1. POSTで家計簿データを追加
-        String json = """
-                {
-                  "date": "%s",
-                  "category": "食費",
-                  "amount": 1000,
-                  "description": "テスト"
-                }
-                """.formatted(LocalDate.now());
-
-        mockMvc.perform(post("/api/expenses")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(json))
-                .andExpect(status().isCreated());
-
-        // 2. DBに保存されたか確認
-        assertThat(expenseRepository.count()).isEqualTo(1);
-        Expense saved = expenseRepository.findByUser(user).get(0);
-        assertThat(saved.getCategoryValue()).isEqualTo("食費");
-
-        // 3. GETで家計簿データ一覧を取得
-        mockMvc.perform(get("/api/expenses"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].category").value("食費"));
-    }
-}
-```
-
-**統合テストの特徴**:
-- **一貫性**: 複数のレイヤーをまたいだ動作を確認
-- **実際の環境**: 実際のデータベース（H2）を使用
-- **エンドツーエンド**: APIからデータベースまでの一連の流れをテスト
-
-### リポジトリテスト
-
-**役割**: リポジトリ（データアクセス層）のクエリメソッドをテストします。
-
-**実際のコード例**:
-
-`backend/src/test/java/com/example/backend/domain/repository/ExpenseRepositoryTest.java` (53-74行目):
-
-```java
-/**
- * ExpenseRepositoryのテストクラス
- * 
- * 支出リポジトリのクエリメソッドをテストします。
- * @DataJpaTestアノテーションにより、JPAレイヤーのみをテストします（実際のデータベースを使用）。
- */
-@DataJpaTest
-@ActiveProfiles("test")
-class ExpenseRepositoryTest {
-
-    @Autowired
-    private ExpenseRepository expenseRepository;
-
-    @Test
-    @DisplayName("ユーザーを指定して支出を取得できる")
-    void findByUser_正常に取得() {
-        // テストデータの準備: 支出データを作成して保存
-        ExpenseAmount amount1 = new ExpenseAmount(1000);
-        ExpenseDate date1 = new ExpenseDate(LocalDate.of(2024, 1, 15));
-        Category category1 = new Category("食費");
-        Expense expense1 = new Expense("支出1", amount1, date1, category1, testUser);
-        expenseRepository.save(expense1);
-
-        // テスト実行: ユーザーを指定して支出を取得
-        List<Expense> expenses = expenseRepository.findByUser(testUser);
-
-        // 検証: 2件の支出が取得できることを確認
-        assertEquals(2, expenses.size());
-    }
-}
-```
-
-**リポジトリテストの特徴**:
-- **JPAレイヤーのみ**: リポジトリとデータベースのみが起動される
-- **高速**: アプリケーション全体を起動しないため、テストが高速に実行される
-- **クエリの検証**: データベースクエリが正しく動作することを確認
 
 ---
 
@@ -1005,18 +931,6 @@ mvn test -Dtest=ExpenseAmountTest#createExpenseAmount_正常な値
 # テストをスキップしてビルド
 mvn package -DskipTests
 ```
-
-### IDE（Cursor/IntelliJ IDEA）でテストを実行
-
-1. **テストクラスを開く**: `ExpenseAmountTest.java`を開く
-2. **テストメソッドの横の実行ボタンをクリック**: 個別のテストメソッドを実行
-3. **テストクラス名の横の実行ボタンをクリック**: クラス内のすべてのテストを実行
-
-### テストの結果の確認
-
-- **成功**: テストが正常に完了した場合、緑色のチェックマークが表示される
-- **失敗**: テストが失敗した場合、赤色の×マークが表示され、エラーメッセージが表示される
-- **カバレッジレポート**: `backend/target/site/jacoco/index.html`をブラウザで開く
 
 ---
 
@@ -1053,22 +967,4 @@ mvn package -DskipTests
 3. **手を動かす**: 小さなテストを書いて実践する
 4. **カバレッジを確認**: テストカバレッジレポートを確認して、テストが不足している箇所を特定する
 
----
-
-## 参考資料
-
-### 公式ドキュメント
-- [JUnit 5公式ドキュメント](https://junit.org/junit5/)
-- [Mockito公式ドキュメント](https://site.mockito.org/)
-- [AssertJ公式ドキュメント](https://assertj.github.io/doc/)
-- [Spring Boot Test公式ドキュメント](https://docs.spring.io/spring-boot/docs/current/reference/html/features.html#features.testing)
-- [JaCoCo公式ドキュメント](https://www.jacoco.org/jacoco/)
-
-### 書籍
-- [JUnit実践入門](https://www.shoeisha.co.jp/book/detail/9784798126706)
-- [テスト駆動開発](https://www.ohmsha.co.jp/book/9784274217883/)
-
----
-
-**最終更新日**: 2024年
 
