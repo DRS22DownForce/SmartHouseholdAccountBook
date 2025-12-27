@@ -51,104 +51,8 @@
 
 ## フレームワーク・ライブラリ
 
-### 5. OpenAPI Generator
+> **📌 ライブラリの詳細**: OpenAPI Generator、Lombok、Jakarta Validationなどの詳細は、[バックエンドライブラリ詳細資料](./libraries.md)を参照してください。
 
-**役割**: OpenAPI仕様書（`openapi.yaml`）からJavaのインターフェースとモデルクラスを自動生成するツール。
-
-**このプロジェクトでの使用箇所**:
-- `pom.xml`のMavenプラグイン設定
-- 生成されたコード: `target/generated-sources/openapi/`配下
-
-**主な機能**:
-- **APIインターフェース生成**: `ExpensesApi`インターフェースを自動生成
-- **モデルクラス生成**: `ExpenseDto`, `ExpenseRequestDto`などを自動生成
-- **型安全性**: 仕様書とコードが常に同期
-
-**実際のコード例**:
-
-`backend/pom.xml` (236-265行目):
-
-```xml
-			<plugin>
-				<groupId>org.openapitools</groupId>
-				<artifactId>openapi-generator-maven-plugin</artifactId>
-				<version>7.13.0</version>
-				<executions>
-					<execution>
-						<id>generate-spring</id>
-						<phase>generate-sources</phase>
-						<goals>
-							<goal>generate</goal>
-						</goals>
-						<configuration>
-							<inputSpec>${openapi.file}</inputSpec>
-							<generatorName>spring</generatorName>
-							<output>${project.build.directory}/generated-sources/openapi</output>
-							<apiPackage>com.example.backend.generated.api</apiPackage>
-							<modelPackage>com.example.backend.generated.model</modelPackage>
-							<configOptions>
-								<!-- インターフェースのみ生成（実装クラスは生成しない） -->
-								<interfaceOnly>true</interfaceOnly>
-								<!-- タグを使用してAPIをグループ化 -->
-								<useTags>true</useTags>
-								<dateLibrary>java8</dateLibrary>
-								<useJakartaEe>true</useJakartaEe>
-								<useSpringBoot3>true</useSpringBoot3>
-							</configOptions>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-```
-
-**学習ポイント**:
-- **コード生成**: 仕様書からコードを自動生成することで、手動のミスを防ぐ
-- **型安全性**: インターフェースを実装することで、API仕様に準拠したコードを書ける
-- **Mavenプラグイン**: ビルド時に自動的にコードを生成
-
-**参考資料**:
-- [OpenAPI Generator公式ドキュメント](https://openapi-generator.tech/)
-- [OpenAPI Specification](https://swagger.io/specification/)
-
----
-
-### 6. Lombok
-
-**役割**: ボイラープレートコード（繰り返し書く必要があるコード）を削減するライブラリ。アノテーションで自動的にコードを生成します。
-
-**このプロジェクトでの使用箇所**:
-- エンティティクラス（`@Getter`, `@NoArgsConstructor`など）
-- 値オブジェクト（`@EqualsAndHashCode`, `@ToString`など）
-
-**主なアノテーション**:
-- `@Getter`: getterメソッドを自動生成
-- `@Setter`: setterメソッドを自動生成
-- `@NoArgsConstructor`: 引数なしコンストラクタを自動生成
-- `@EqualsAndHashCode`: `equals()`と`hashCode()`を自動生成
-- `@ToString`: `toString()`を自動生成
-
-**実際のコード例**:
-
-`backend/src/main/java/com/example/backend/entity/Expense.java` (35-39行目):
-
-```java
-@Entity
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "expenses")
-public class Expense {
-```
-
-**学習ポイント**:
-- **ボイラープレート削減**: 手動でgetter/setterを書く必要がない
-- **可読性向上**: コードが簡潔になり、意図が明確になる
-- **IDEサポート**: IDE（Cursor/IntelliJ IDEA）でLombokプラグインが必要
-
-**参考資料**:
-- [Lombok公式サイト](https://projectlombok.org/)
-- [Lombokアノテーション一覧](https://projectlombok.org/features/all)
-
----
 
 ### 7. Jakarta Validation
 
@@ -164,8 +68,7 @@ public class Expense {
 - `@Size`: 文字列やコレクションのサイズを検証
 - `@Email`: メールアドレスの形式を検証
 
-**参考資料**:
-- [Jakarta Bean Validation](https://beanvalidation.org/)
+> **詳細はこちら**: [Jakarta Validationの詳細](./libraries.md#jakarta-validation)を参照してください。
 
 ---
 
@@ -300,63 +203,6 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
 ---
 
-### 15. JaCoCo
-
-**役割**: テストカバレッジ（テストでカバーされているコードの割合）を測定するツール。
-
-**このプロジェクトでの使用箇所**:
-- `pom.xml`のMavenプラグイン設定
-
-**実際のコード例**:
-
-`backend/pom.xml` (308-326行目):
-
-```xml
-			<plugin>
-				<groupId>org.jacoco</groupId>
-				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.11</version>
-				<executions>
-					<execution>
-						<goals>
-							<goal>prepare-agent</goal>
-						</goals>
-					</execution>
-					<execution>
-						<id>report</id>
-						<phase>test</phase>
-						<goals>
-							<goal>report</goal>
-						</goals>
-					</execution>
-				</executions>
-			</plugin>
-```
-
-**学習ポイント**:
-- **テストカバレッジ**: どのコードがテストされているかを可視化
-- **品質管理**: テストが不足している箇所を特定
-
-**参考資料**:
-- [JaCoCo公式ドキュメント](https://www.jacoco.org/jacoco/)
-
----
-
-### 16. JUnit 5
-
-**役割**: Javaのユニットテストフレームワーク。
-
-**このプロジェクトでの使用箇所**:
-- すべてのテストクラス（`*Test.java`）
-
-**学習ポイント**:
-- **ユニットテスト**: 個々のメソッドやクラスをテスト
-- **アサーション**: 期待値と実際の値を比較
-
-**参考資料**:
-- [JUnit 5公式ドキュメント](https://junit.org/junit5/)
-
----
 
 ### 17. Maven
 
