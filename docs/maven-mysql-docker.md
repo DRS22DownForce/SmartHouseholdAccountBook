@@ -382,6 +382,7 @@ CREATE TABLE IF NOT EXISTS expenses (
 **外部キー制約**:
 - `user_id`は`users`テーブルの`id`を参照
 - `ON DELETE CASCADE`: ユーザーが削除されると、そのユーザーの支出も自動的に削除される
+- `CONSTRAINT fk_expenses_user`: 外部キー制約の名前を指定
 
 **文字コード設定**:
 - `utf8mb4`: UTF-8の完全なサポート（絵文字なども保存可能）
