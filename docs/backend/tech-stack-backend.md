@@ -9,9 +9,8 @@
 3. [フレームワーク・ライブラリ](#フレームワークライブラリ)
 4. [データベース・インフラ](#データベースインフラ)
 5. [認証・セキュリティ](#認証セキュリティ)
-6. [開発ツール](#開発ツール)
-7. [アーキテクチャパターン](#アーキテクチャパターン)
-8. [実際のコード例](#実際のコード例)
+6. [アーキテクチャパターン](#アーキテクチャパターン)
+7. [実際のコード例](#実際のコード例)
 
 > **📌 Springフレームワークについて**: Spring Boot、Spring Data JPA、Spring Securityなどの詳細は、[Springフレームワーク詳細資料](./spring-framework.md)を参照してください。
 
@@ -53,91 +52,19 @@
 
 > **📌 ライブラリの詳細**: OpenAPI Generator、Lombok、Jakarta Validationなどの詳細は、[バックエンドライブラリ詳細資料](./libraries.md)を参照してください。
 
-
-### 7. Jakarta Validation
-
-**役割**: 入力値の検証を行うフレームワーク。アノテーションでバリデーションルールを定義します。
-
-**このプロジェクトでの使用箇所**:
-- DTOクラス（`@NotNull`, `@Min`, `@Max`など）
-- 値オブジェクト（コンストラクタでバリデーション）
-
-**主なアノテーション**:
-- `@NotNull`: nullでないことを検証
-- `@Min`, `@Max`: 数値の範囲を検証
-- `@Size`: 文字列やコレクションのサイズを検証
-- `@Email`: メールアドレスの形式を検証
-
-> **詳細はこちら**: [Jakarta Validationの詳細](./libraries.md#jakarta-validation)を参照してください。
-
 ---
 
 ## データベース・インフラ
 
-### 9. MySQL 8.0
+> **📌 データベース・インフラの詳細**: MySQL、Docker、Mavenなどの詳細は、[Maven・MySQL・Docker詳細資料](./maven-mysql-docker.md)を参照してください。
 
-**役割**: リレーショナルデータベース管理システム（RDBMS）。データを永続化します。
-
-**このプロジェクトでの使用箇所**:
-- 支出データ、ユーザーデータの保存
-- `application.properties`で接続設定
-
-**実際の設定例**:
-
-`backend/src/main/resources/application.properties` (3-7行目):
-
-```properties
-# MySQLの接続設定（ローカル開発用）
-spring.datasource.url=${SPRING_DATASOURCE_URL_DEV}
-spring.datasource.username=${MYSQL_ROOT_USER}
-spring.datasource.password=${MYSQL_ROOT_PASSWORD}
-spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
-```
-
-**学習ポイント**:
-- **リレーショナルデータベース**: テーブル間の関係を定義
-- **SQL**: データの取得、追加、更新、削除を行う言語
-- **トランザクション**: 複数の操作を1つの単位として実行
-
-**参考資料**:
-- [MySQL公式ドキュメント](https://dev.mysql.com/doc/)
-
----
-
-### 10. H2 Database（テスト用）
-
-**役割**: メモリ内データベース。テスト時に使用します。
-
-**このプロジェクトでの使用箇所**:
-- ユニットテスト、統合テスト
-
-**学習ポイント**:
-- **テスト用データベース**: 本番環境のデータベースを使わずにテストできる
-- **メモリ内**: ディスクに保存されないため、高速
-
----
-
-### 11. Docker & Docker Compose
-
-**役割**: アプリケーションをコンテナ化して実行環境を統一します。
-
-**このプロジェクトでの使用箇所**:
-- `docker-compose.yaml`: 本番環境用の設定
-- `docker-compose.dev.yaml`: 開発環境用の設定（MySQLのみ）
-
-**学習ポイント**:
-- **コンテナ**: アプリケーションとその依存関係をパッケージ化
-- **Docker Compose**: 複数のコンテナをまとめて管理
-
-**参考資料**:
-- [Docker公式ドキュメント](https://docs.docker.com/)
-- [Docker Compose公式ドキュメント](https://docs.docker.com/compose/)
+> **📌 テスト用データベースの詳細**: H2 Databaseの詳細は、[テスト関連技術資料](./testing.md)を参照してください。
 
 ---
 
 ## 認証・セキュリティ
 
-### 12. AWS Cognito
+### 1. AWS Cognito
 
 **役割**: マネージド認証サービス。ユーザー認証・認可を管理します。
 
@@ -155,7 +82,7 @@ spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
 
 ---
 
-### 13. Nimbus JOSE + JWT
+### 2. Nimbus JOSE + JWT
 
 **役割**: JWTトークンの検証を行うライブラリ。
 
@@ -203,32 +130,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
 
 ---
 
-
-### 17. Maven
-
-**役割**: Javaプロジェクトのビルドツール。依存関係の管理、コンパイル、テスト、パッケージングを行います。
-
-**このプロジェクトでの使用箇所**:
-- `pom.xml`: プロジェクトの設定と依存関係
-
-**主な機能**:
-- **依存関係管理**: 必要なライブラリを自動的にダウンロード
-- **ビルド**: コンパイル、テスト、パッケージングを自動化
-- **プラグイン**: OpenAPI Generator、JaCoCoなどのプラグインを使用
-
-**学習ポイント**:
-- **pom.xml**: プロジェクトの設定ファイル
-- **ライフサイクル**: `mvn clean`, `mvn compile`, `mvn test`, `mvn package`など
-- **依存関係**: `<dependencies>`セクションでライブラリを定義
-
-**参考資料**:
-- [Maven公式ドキュメント](https://maven.apache.org/)
-
----
-
 ## アーキテクチャパターン
 
-### 18. ドメイン駆動設計（DDD）
+### ドメイン駆動設計（DDD）
 
 **役割**: ビジネスロジックを明確に表現する設計手法。ドメイン（ビジネスの核心）を中心に設計します。
 
@@ -442,6 +346,7 @@ public class GlobalExceptionHandler {
 - **Spring Data JPA**: データベースアクセス
   - 詳細: [Spring Data JPAの詳細](./spring-framework.md#spring-data-jpa)
 - **MySQL 8.0**: リレーショナルデータベース
+  - 詳細: [MySQLの詳細](./maven-mysql-docker.md#mysqlデータベース)
 
 ### セキュリティ
 - **Spring Security**: 認証・認可
@@ -451,9 +356,13 @@ public class GlobalExceptionHandler {
 
 ### 開発ツール
 - **Maven**: ビルドツール
+  - 詳細: [Mavenの詳細](./maven-mysql-docker.md#mavenビルドツール)
 - **Lombok**: ボイラープレート削減
+  - 詳細: [Lombokの詳細](./libraries.md#lombok)
 - **OpenAPI Generator**: コード自動生成
+  - 詳細: [OpenAPI Generatorの詳細](./libraries.md#openapi-generator)
 - **JaCoCo**: テストカバレッジ測定
+  - 詳細: [JaCoCoの詳細](./testing.md#6-jacoco)
 - **Spring Boot DevTools**: 開発時の生産性向上
   - 詳細: [Spring Boot DevToolsの詳細](./spring-framework.md#spring-boot-devtools)
 
