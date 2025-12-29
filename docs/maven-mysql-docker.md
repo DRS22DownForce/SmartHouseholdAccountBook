@@ -596,19 +596,11 @@ default-character-set=utf8mb4
 
 ### Dockerの基本概念
 
-#### 1. イメージ（Image）
-
-**イメージ**は、アプリケーションとその実行環境をパッケージ化したものです。テンプレートのようなもので、これからコンテナを作成します。
-
-**例**: `mysql:8.0`、`maven:3.9-eclipse-temurin-21`
-
-#### 2. コンテナ（Container）
-
-**コンテナ**は、イメージから作成された実行中のインスタンスです。実際にアプリケーションが動作する環境です。
-
-#### 3. Dockerfile
-
-**Dockerfile**は、イメージを作成するための手順書です。
+| 用語 | 説明 | 例 |
+|------|------|-----|
+| **イメージ（Image）** | アプリケーションとその実行環境をパッケージ化したテンプレート | `mysql:8.0`、`maven:3.9-eclipse-temurin-21` |
+| **コンテナ（Container）** | イメージから作成された実行中のインスタンス | 実際にアプリケーションが動作する環境 |
+| **Dockerfile** | イメージを作成するための手順書 | `backend/Dockerfile` |
 
 ### このプロジェクトでのDockerfile
 
@@ -643,57 +635,110 @@ EXPOSE 8080
 CMD ["java", "-jar", "app.jar"]
 ```
 
-**Dockerfileの構造**:
+#### マルチステージビルドとは
 
-#### マルチステージビルド
-
-このDockerfileは、**マルチステージビルド**を使用しています。これは、ビルド用のイメージと実行用のイメージを分離することで、最終的なイメージサイズを小さくする手法です。
+このDockerfileは、**マルチステージビルド**を使用しています。ビルド用のイメージと実行用のイメージを分離することで、最終的なイメージサイズを小さくする手法です。
 
 **ステージ1: ビルドステージ（`builder`）**
-
-```dockerfile
-FROM maven:3.9-eclipse-temurin-21 AS builder
-```
-
 - **ベースイメージ**: `maven:3.9-eclipse-temurin-21`（MavenとJava 21が含まれる）
 - **目的**: アプリケーションをコンパイルしてJARファイルを作成
-
-**各コマンドの説明**:
-
-1. **`WORKDIR /app`**: 作業ディレクトリを`/app`に設定
-2. **`COPY backend/pom.xml .`**: `pom.xml`をコンテナにコピー
-3. **`RUN mvn dependency:go-offline`**: 依存関係を事前にダウンロード（キャッシュ最適化）
-4. **`COPY backend/src ./src`**: ソースコードをコピー
-5. **`RUN mvn clean package`**: アプリケーションをビルドしてJARファイルを作成
-   - `-T 1C`: 並列ビルドを有効化（CPUコア数に応じて並列実行）
-   - `-DskipTests`: テストをスキップ（ビルド時間短縮）
-   - `-Pdocker`: Docker用プロファイルを使用
+- **主なコマンド**:
+  - `WORKDIR /app`: 作業ディレクトリを`/app`に設定
+  - `COPY backend/pom.xml .`: `pom.xml`をコピー（キャッシュ最適化のため先にコピー）
+  - `RUN mvn dependency:go-offline`: 依存関係を事前にダウンロード
+  - `COPY backend/src ./src`: ソースコードをコピー
+  - `RUN mvn clean package`: アプリケーションをビルド（`-T 1C`で並列ビルド、`-DskipTests`でテストスキップ）
 
 **ステージ2: ランタイムステージ**
-
-```dockerfile
-FROM eclipse-temurin:21-jre
-```
-
-- **ベースイメージ**: `eclipse-temurin:21-jre`（Java 21のランタイムのみ、コンパイラは含まれない）
+- **ベースイメージ**: `eclipse-temurin:21-jre`（Java 21のランタイムのみ）
 - **目的**: ビルド済みのJARファイルを実行
-
-**各コマンドの説明**:
-
-1. **`COPY --from=builder /app/target/*.jar app.jar`**: ビルドステージで作成したJARファイルをコピー
-2. **`EXPOSE 8080`**: コンテナが8080ポートを使用することを宣言（実際にはポートを開くわけではない）
-3. **`CMD ["java", "-jar", "app.jar"]`**: コンテナ起動時に実行するコマンド
+- **主なコマンド**:
+  - `COPY --from=builder /app/target/*.jar app.jar`: ビルドステージで作成したJARファイルをコピー
+  - `EXPOSE 8080`: コンテナが8080ポートを使用することを宣言
+  - `CMD ["java", "-jar", "app.jar"]`: コンテナ起動時に実行するコマンド
 
 **マルチステージビルドの利点**:
-- **イメージサイズの削減**: ビルドツール（Maven）を含めないため、最終イメージが小さくなる
-- **セキュリティ**: ビルドツールが本番環境に含まれないため、攻撃面が減る
-- **パフォーマンス**: 軽量なイメージは起動が速い
+- ✅ **イメージサイズの削減**: ビルドツール（Maven）を含めないため、最終イメージが小さくなる
+- ✅ **セキュリティ**: ビルドツールが本番環境に含まれないため、攻撃面が減る
+- ✅ **パフォーマンス**: 軽量なイメージは起動が速い
+
+### Dockerのレイヤー（Layer）とキャッシュ
+
+**Dockerのレイヤー**は、Dockerfileの各命令（`FROM`、`COPY`、`RUN`など）ごとに作成される読み取り専用のファイルシステムの層です。これらを積み重ねて最終的なイメージを構成します。
+
+#### レイヤーの重要な特徴
+
+**1. キャッシュ機能**
+- 各レイヤーはキャッシュされ、次回のビルド時に再利用されます
+- 変更がない命令はキャッシュが使われ、再実行されません
+- **例**: `RUN mvn dependency:go-offline`以前のレイヤー（特に`COPY backend/pom.xml .`）に変更がなければ、`RUN mvn dependency:go-offline`のレイヤーはキャッシュから再利用されます
+
+**2. レイヤーの順序が重要**
+- **変更頻度の低いものを先に**: 依存関係など、変更頻度の低いものを先に配置すると、キャッシュが効きやすくなります
+- **変更頻度の高いものを後に**: ソースコードなど、頻繁に変更されるものは後に配置します
+- **このDockerfileの設計**: `pom.xml`を先にコピーして依存関係をダウンロードし、その後にソースコードをコピーすることで、ソースコードの変更時でも依存関係のダウンロードがスキップされます
+
+**レイヤーの利点**:
+- ✅ **ビルド速度の向上**: キャッシュにより、変更がない部分は再実行されません
+- ✅ **ストレージ効率**: 同じレイヤーは複数のイメージ間で共有されます
+
+#### イメージのディレクトリ構造
+
+**ビルドステージ**:
+```
+/app/
+├── pom.xml                    ← Maven設定ファイル
+├── src/                       ← ソースコード
+├── openapi/                   ← OpenAPI定義ファイル
+├── target/                    ← ビルド結果（JARファイル）
+└── .m2/repository/            ← 依存関係ライブラリ
+```
+
+**ランタイムステージ（最終イメージ）**:
+```
+/app/
+└── app.jar                    ← ビルド済みJARファイル
+```
+
+**重要なポイント**:
+- `WORKDIR /app`で`/app`が作業ディレクトリになります
+- マルチステージビルドにより、最終イメージには`app.jar`とJava実行環境（JRE）のみが含まれます
+
+### Dockerイメージのビルドコマンド
+
+#### 基本的なビルドコマンド
+
+```bash
+docker build -t my-app .
+```
+
+**各部分の意味**:
+- `docker build`: Dockerイメージをビルドするコマンド
+- `-t my-app`: イメージに付ける名前（タグ）。`-t`は"tag"の略
+- `.`: ビルドコンテキスト（イメージ生成時に参照するディレクトリ）
+  - **ビルドコンテキストとは**: Dockerfile内の`COPY`や`ADD`コマンドで参照できるファイルやディレクトリの範囲を指定します
+  - **なぜ重要か**: Dockerfile内で`COPY backend/pom.xml .`のようにファイルをコピーする際、そのファイルはビルドコンテキスト内に存在している必要があります
+
+**使用例**:
+```bash
+# イメージをビルド
+docker build -t my-app .
+
+# イメージ一覧を確認
+docker images
+
+# イメージを使ってコンテナを起動
+docker run my-app
+```
+
+**タグの形式**: `[リポジトリ名/]イメージ名[:タグ]`
+- 例: `my-app`、`my-app:v1.0.0`、`username/my-app:latest`
 
 ### Docker Compose
 
 **Docker Compose**は、複数のコンテナを定義・管理するためのツールです。`docker-compose.yaml`ファイルで、アプリケーション全体の構成を定義します。
 
-### 本番環境用のDocker Compose
+#### 本番環境用のDocker Compose
 
 ```1:45:docker-compose.yaml
 services:
@@ -742,102 +787,37 @@ volumes:
     name: smart_household_mysql_data
 ```
 
-**構成要素の説明**:
+**主要な設定項目**:
 
-#### 1. Backendサービス
+| 設定項目 | 説明 | 例 |
+|---------|------|-----|
+| **`container_name`** | コンテナの名前 | `backend`、`mysql` |
+| **`build`** | イメージのビルド設定 | `context: ./`、`dockerfile: backend/Dockerfile` |
+| **`ports`** | ポートマッピング（ホスト:コンテナ） | `"8080:8080"`、`"5005:5005"` |
+| **`environment`** | 環境変数の設定 | `${変数名}`で`.env`ファイルから読み込み |
+| **`depends_on`** | 依存関係の定義 | `mysql`サービスが起動してから`backend`を起動 |
+| **`volumes`** | データの永続化とファイルのマウント | `mysql_data:/var/lib/mysql` |
+| **`healthcheck`** | コンテナの健康状態をチェック | MySQLが応答するか確認 |
 
-```yaml
-backend:
-  container_name: backend
-  build:
-    context: ./
-    dockerfile: backend/Dockerfile
-```
+**重要なポイント**:
 
-- **`container_name`**: コンテナの名前
-- **`build`**: イメージのビルド設定
-  - **`context`**: ビルドコンテキスト（Dockerfileで参照できるファイルの範囲）
-  - **`dockerfile`**: Dockerfileのパス
+1. **ポートマッピング**: `"8080:8080"`は「ホストの8080 → コンテナの8080」を意味します。コンテナ内のポートは外部から直接アクセスできないため、ホスト経由でアクセスできるようにします。
 
-```yaml
-  ports:
-    - "8080:8080"
-    - "5005:5005"
-```
+2. **ボリューム（データ永続化）**:
+   - **`mysql_data:/var/lib/mysql`**: 名前付きボリュームでデータベースファイルを永続化
+     - コンテナ内の`/var/lib/mysql`ディレクトリをボリュームとして保存します
+     - `mysql_data`はDocker Compose内での参照名、実際のボリューム名は`smart_household_mysql_data`
+   - ✅ **コンテナを削除・再作成してもデータが残ります**
+   - **例**: 
+     - 1回目: テーブル作成、データ投入
+     - コンテナ削除: `docker-compose down`
+     - 2回目起動: `docker-compose up` → **データがそのまま残っている**
 
-- **`ports`**: ポートマッピング（ホスト:コンテナ）
-  - `8080:8080`: アプリケーションのHTTPポート
-  - `5005:5005`: リモートデバッグ用ポート
+3. **ファイルマウント**:
+   - `./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql`: 初期化SQLをマウント（初回起動時に自動実行）
+   - `./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf`: MySQL設定ファイルをマウント
 
-```yaml
-  environment:
-    SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_PROD}
-    SPRING_DATASOURCE_USERNAME: ${MYSQL_ROOT_USER}
-    SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-```
-
-- **`environment`**: 環境変数の設定
-  - `${変数名}`: `.env`ファイルから値を読み込む
-
-```yaml
-  depends_on:
-    mysql:
-      condition: service_healthy
-```
-
-- **`depends_on`**: 依存関係の定義
-  - `mysql`サービスが起動してから`backend`サービスを起動
-  - `condition: service_healthy`: MySQLのヘルスチェックが成功するまで待機
-
-#### 2. MySQLサービス
-
-```yaml
-mysql:
-  image: mysql:8.0
-  container_name: mysql
-```
-
-- **`image`**: 使用するDockerイメージ（ビルド不要）
-- **`container_name`**: コンテナの名前
-
-```yaml
-  volumes:
-    - mysql_data:/var/lib/mysql
-    - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
-    - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
-```
-
-- **`volumes`**: データの永続化とファイルのマウント
-  - **`mysql_data:/var/lib/mysql`**: データベースファイルを永続化（名前付きボリューム）
-  - **`./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql`**: 初期化SQLをマウント（初回起動時に自動実行）
-  - **`./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf`**: MySQL設定ファイルをマウント
-
-```yaml
-  healthcheck:
-    test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_ROOT_USER}", "-p${MYSQL_ROOT_PASSWORD}" ]
-    interval: 5s
-    timeout: 5s
-    retries: 20
-```
-
-- **`healthcheck`**: コンテナの健康状態をチェック
-  - **`test`**: ヘルスチェックコマンド（MySQLが応答するか確認）
-  - **`interval`**: チェック間隔（5秒）
-  - **`timeout`**: タイムアウト（5秒）
-  - **`retries`**: リトライ回数（20回 = 最大100秒待機）
-
-#### 3. ボリューム定義
-
-```yaml
-volumes:
-  mysql_data:
-    name: smart_household_mysql_data
-```
-
-- **`volumes`**: 名前付きボリュームの定義
-  - データベースのデータを永続化（コンテナを削除してもデータが残る）
-
-### 開発環境用のDocker Compose
+#### 開発環境用のDocker Compose
 
 ```1:32:docker-compose.dev.yaml
 # ========================================
@@ -873,14 +853,13 @@ volumes:
 ```
 
 **開発環境用の特徴**:
-- **MySQLのみ**: Spring Bootはローカルで実行（IDEから起動）
-- **別のボリューム**: `mysql_dev_data`を使用（本番環境とデータを分離）
-- **別のコンテナ名**: `mysql-dev`（本番環境と区別）
+- ✅ **MySQLのみ**: Spring Bootはローカルで実行（IDEから起動）
+- ✅ **別のボリューム**: `mysql_dev_data`を使用（本番環境とデータを分離）
+- ✅ **別のコンテナ名**: `mysql-dev`（本番環境と区別）
 
-### Docker Composeのコマンド
+#### Docker Composeのコマンド
 
 **基本的なコマンド**:
-
 ```bash
 # コンテナを起動（バックグラウンド）
 docker-compose up -d
@@ -898,118 +877,20 @@ docker-compose ps
 docker-compose -f docker-compose.dev.yaml up -d
 ```
 
-**ボリュームの管理**:
+**コマンドの説明**:
+- **`docker-compose up -d`**: 
+  - ファイル指定が不要な理由: デフォルトで`docker-compose.yaml`を自動的に探して使用します
+  - **`-d`オプション**: デタッチモード（バックグラウンド）で実行され、ターミナルが解放される（`-d`なしはフォアグラウンドでログ表示）
+- **`docker-compose -f docker-compose.dev.yaml up -d`**: 
+  - **`-f`オプション**: 使用するDocker Composeファイルを明示的に指定します
 
+**ボリュームの管理**:
 ```bash
 # ボリュームの一覧を表示
 docker volume ls
 
 # ボリュームを削除（データが消える）
 docker volume rm smart_household_mysql_data
-```
-
----
-
-## プロジェクトでの統合使用方法
-
-### 開発環境での使用方法
-
-#### 1. MySQLをDockerで起動
-
-```bash
-# 開発環境用のMySQLを起動
-docker-compose -f docker-compose.dev.yaml up -d
-
-# 起動確認
-docker-compose -f docker-compose.dev.yaml ps
-```
-
-#### 2. Spring Bootをローカルで起動
-
-IDE（Cursor/VS Code）から起動するか、Mavenコマンドで起動：
-
-```bash
-cd backend
-mvn spring-boot:run
-```
-
-#### 3. アプリケーションの動作確認
-
-- バックエンド: http://localhost:8080
-- MySQL: localhost:3306
-
-### 本番環境での使用方法
-
-#### 1. 環境変数の設定
-
-`.env`ファイルを作成：
-
-```env
-MYSQL_ROOT_PASSWORD=your_password
-MYSQL_DATABASE=demo
-MYSQL_ROOT_USER=root
-SPRING_DATASOURCE_URL_PROD=jdbc:mysql://mysql:3306/demo
-SPRING_DATASOURCE_URL_DEV=jdbc:mysql://localhost:3306/demo
-COGNITO_JWK_SET_URL=https://your-cognito-url/.well-known/jwks.json
-```
-
-#### 2. Docker Composeで起動
-
-```bash
-# イメージをビルドして起動
-docker-compose up -d --build
-
-# ログを確認
-docker-compose logs -f backend
-```
-
-#### 3. 停止とクリーンアップ
-
-```bash
-# コンテナを停止
-docker-compose down
-
-# コンテナとボリュームを削除（データも消える）
-docker-compose down -v
-```
-
-### トラブルシューティング
-
-#### MySQLに接続できない
-
-1. **コンテナが起動しているか確認**:
-   ```bash
-   docker-compose ps
-   ```
-
-2. **MySQLのログを確認**:
-   ```bash
-   docker-compose logs mysql
-   ```
-
-3. **ヘルスチェックの状態を確認**:
-   ```bash
-   docker inspect mysql | grep Health
-   ```
-
-#### ポートが既に使用されている
-
-```bash
-# ポート8080を使用しているプロセスを確認
-lsof -i :8080
-
-# ポート3306を使用しているプロセスを確認
-lsof -i :3306
-```
-
-#### データベースのデータをリセット
-
-```bash
-# コンテナとボリュームを削除
-docker-compose down -v
-
-# 再起動（初期化SQLが実行される）
-docker-compose up -d
 ```
 
 ---
