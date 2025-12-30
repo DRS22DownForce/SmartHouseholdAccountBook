@@ -5,16 +5,14 @@
 ## 📋 目次
 
 1. [Reactとは](#reactとは)
-2. [コンポーネント](#コンポーネント)
-3. [JSX](#jsx)
-4. [Props（プロパティ）](#propsプロパティ)
-5. [State（状態）](#state状態)
-6. [Hooks（フック）](#hooksフック)
-7. [イベントハンドリング](#イベントハンドリング)
-8. [条件付きレンダリング](#条件付きレンダリング)
-9. [リストレンダリング](#リストレンダリング)
-10. [カスタムフック](#カスタムフック)
-11. [実際のプロジェクトでの使用例](#実際のプロジェクトでの使用例)
+2. [コンポーネントとJSX](#コンポーネントとjsx)
+3. [Props（プロパティ）](#propsプロパティ)
+4. [State（状態）とHooks](#state状態とhooks)
+5. [イベントハンドリング](#イベントハンドリング)
+6. [レンダリング技法](#レンダリング技法)
+7. [カスタムフック](#カスタムフック)
+8. [実際のプロジェクトでの使用例](#実際のプロジェクトでの使用例)
+9. [まとめと学習の進め方](#まとめと学習の進め方)
 
 ---
 
@@ -67,7 +65,9 @@ Reactは直接DOMを操作せず、**仮想DOM**（JavaScriptオブジェクト�
 
 ---
 
-## コンポーネント
+## コンポーネントとJSX
+
+### コンポーネントとは
 
 **コンポーネント**は、UIの再利用可能な部品です。コンポーネントを組み合わせて、アプリケーション全体を構築します。
 
@@ -106,33 +106,11 @@ function App() {
 - `<Welcome />`: コンポーネントを呼び出す（JSXの構文）
 - 同じコンポーネントを複数回使用できる（再利用性）
 
-### 実際のプロジェクトでの使用例
-
-`frontend-nextjs/src/components/expense-form.tsx` (28-133行目):
-
-```typescript
-export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
-  // コンポーネントの実装
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      {/* JSXの内容 */}
-    </Dialog>
-  )
-}
-```
-
-**学習ポイント**:
-- **コンポーネント名**: 大文字で始める（`ExpenseForm`など）
-- **再利用性**: 同じコンポーネントを複数回使用できる
-- **分割**: 大きなコンポーネントを小さなコンポーネントに分割
-
----
-
-## JSX
+### JSXとは
 
 **JSX**は、JavaScriptの中にHTMLライクな構文を書くための記法です。
 
-### 基本的なJSX
+#### 基本的なJSX
 
 ```typescript
 // JSXの例
@@ -146,12 +124,28 @@ const element = <h1>こんにちは、{name}さん</h1>
 const element = <h1>1 + 1 = {1 + 1}</h1>  // "1 + 1 = 2"
 ```
 
-### JSXのルール
+#### JSXのルール
 
 1. **1つのルート要素**: JSXは1つのルート要素で囲む必要がある
 2. **閉じタグ**: すべてのタグを閉じる必要がある
 3. **className**: `class`ではなく`className`を使用
 4. **camelCase**: 属性名はcamelCase（`onClick`, `onChange`など）
+
+##### classNameについて
+
+JSXでは、HTMLの`class`属性の代わりに`className`を使用します。これは、JavaScriptの予約語である`class`と衝突を避けるためです。
+
+```typescript
+// ❌ エラー: classは使用できない
+<div class="container">コンテンツ</div>
+
+// ✅ 正しい: classNameを使用
+<div className="container">コンテンツ</div>
+```
+
+**理由**: JavaScriptでは`class`はクラス定義のための予約語のため、JSXでは`className`を使用します。ブラウザでは最終的に`class`属性として変換されます。
+
+##### 複数の要素を返す場合
 
 ```typescript
 // ❌ エラー: 複数のルート要素
@@ -183,27 +177,59 @@ function Component() {
 }
 ```
 
-### 実際のプロジェクトでの使用例
+### スプレッド構文（`{...formData}`）
+
+スプレッド構文（`...`）は、オブジェクトや配列を展開するための構文です。Reactでは、Stateを更新する際に既存の値を保持しながら一部だけを変更するために使用します。
 
 ```typescript
-return (
-  <div className="space-y-4">
-    <h1 className="text-2xl font-bold">支出フォーム</h1>
-    <form onSubmit={handleSubmit}>
-      <input
-        type="text"
-        value={formData.description}
-        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-      />
-    </form>
-  </div>
-)
+const formData = { name: "太郎", age: 25, city: "東京" }
+
+// スプレッド構文で既存の値を保持しながら、ageだけを更新
+const updated = { ...formData, age: 26 }
+// 結果: { name: "太郎", age: 26, city: "東京" }
+
+// 複数のプロパティを更新することも可能
+const updated2 = { ...formData, age: 26, city: "大阪" }
+// 結果: { name: "太郎", age: 26, city: "大阪" }
 ```
 
-**解説**:
-- `className`: CSSクラスを指定（`class`ではない）
-- `onChange`: イベントハンドラー（後述）
-- `{...formData}`: スプレッド構文（オブジェクトの展開）
+**重要なポイント**:
+- `{...formData}`: `formData`オブジェクトのすべてのプロパティを展開
+- 新しいオブジェクトを作成するため、元のオブジェクトは変更されない（不変性）
+- Stateを更新する際は、必ず新しいオブジェクトを作成する必要がある
+
+### 実際のプロジェクトでの使用例
+
+`frontend-nextjs/src/components/expense-form.tsx`:
+
+```typescript
+export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
+  const [open, setOpen] = useState(false)
+  const [formData, setFormData] = useState<ExpenseFormData>(getInitialFormData())
+  
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <div className="space-y-4">
+        <h1 className="text-2xl font-bold">支出フォーム</h1>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="text"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+          />
+        </form>
+      </div>
+    </Dialog>
+  )
+}
+```
+
+**学習ポイント**:
+- **コンポーネント名**: 大文字で始める（`ExpenseForm`など）
+- **再利用性**: 同じコンポーネントを複数回使用できる
+- **分割**: 大きなコンポーネントを小さなコンポーネントに分割
+- **className**: CSSクラスを指定（`class`ではない）
+- **スプレッド構文**: 既存のオブジェクトを保持しつつ、一部のプロパティだけを更新
 
 ---
 
@@ -245,6 +271,49 @@ function App() {
 - `{ name, age }`: 分割代入でPropsを受け取る
 - `<Welcome name="山田太郎" age={25} />`: Propsを渡す
 
+### 分割代入について
+
+**分割代入**（Destructuring）は、オブジェクトや配列から値を取り出して、個別の変数に代入する構文です。
+
+```typescript
+// オブジェクトの分割代入
+const props = { name: "山田太郎", age: 25 }
+const { name, age } = props
+// これで name = "山田太郎", age = 25 として使用できる
+
+// 関数の引数でも使用可能（Reactでよく使われる）
+function Welcome({ name, age }: WelcomeProps) {
+  // name と age を直接使用できる
+  return <h1>こんにちは、{name}さん</h1>
+}
+
+// 配列の分割代入（useStateで使用）
+const [count, setCount] = useState(0)
+// count: 現在の値、setCount: 更新関数として使用できる
+```
+
+**メリット**:
+- コードが簡潔になる
+- 必要な値だけを取り出せる
+- Propsを受け取る際によく使用される
+
+### デフォルトProps
+
+```typescript
+// デフォルト値を設定
+function Welcome({ name = "ゲスト", age = 0 }: WelcomeProps) {
+  return (
+    <div>
+      <h1>こんにちは、{name}さん</h1>
+      <p>年齢: {age}歳</p>
+    </div>
+  )
+}
+
+// Propsを省略するとデフォルト値が使用される
+<Welcome />  // name="ゲスト", age=0
+```
+
 ### 実際のプロジェクトでの使用例
 
 `frontend-nextjs/src/components/expense-form.tsx` (15-19行目):
@@ -266,37 +335,36 @@ export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
 - `onSubmit: (data: ExpenseFormData) => void`: 関数型のProps（コールバック関数）
 - `trigger?: React.ReactNode`: React要素をPropsとして渡す
 
-### デフォルトProps
-
-```typescript
-// デフォルト値を設定
-function Welcome({ name = "ゲスト", age = 0 }: WelcomeProps) {
-  return (
-    <div>
-      <h1>こんにちは、{name}さん</h1>
-      <p>年齢: {age}歳</p>
-    </div>
-  )
-}
-
-// Propsを省略するとデフォルト値が使用される
-<Welcome />  // name="ゲスト", age=0
-```
-
 **学習ポイント**:
 - **Props**: 親から子へデータを渡す
 - **型定義**: TypeScriptでPropsの型を定義
 - **オプショナル**: `?`で省略可能なPropsを定義
+- **分割代入**: Propsを受け取る際によく使用される
 
 ---
 
-## State（状態）
+## State（状態）とHooks
+
+### Stateとは
 
 **State**は、コンポーネント内で管理される**変更可能なデータ**です。Stateが変更されると、コンポーネントが再レンダリングされます。
 
+### Hooksとは
+
+**Hooks**は、関数コンポーネントで状態管理やライフサイクルを扱うための機能です。Hooksは`use`で始まる関数です。
+
+### 主なHooks一覧
+
+| Hook | 説明 | 使用例 |
+|------|------|--------|
+| `useState` | Stateを管理 | `const [count, setCount] = useState(0)` |
+| `useEffect` | 副作用を処理（API呼び出しなど） | `useEffect(() => { ... }, [])` |
+| `useCallback` | 関数をメモ化 | `const fn = useCallback(() => { ... }, [])` |
+| `useMemo` | 値をメモ化 | `const value = useMemo(() => { ... }, [])` |
+
 ### useStateフック
 
-`useState`は、Stateを管理するための**フック**（後述）です。
+`useState`は、Stateを管理するための**フック**です。
 
 ```typescript
 import { useState } from "react"
@@ -320,26 +388,13 @@ function Counter() {
 - `[count, setCount]`: 分割代入で、現在の値と更新関数を取得
 - `setCount(count + 1)`: Stateを更新（再レンダリングが発生）
 
-### 実際のプロジェクトでの使用例
-
-`frontend-nextjs/src/components/expense-form.tsx` (29-30行目):
-
-```typescript
-const [open, setOpen] = useState(false)
-const [formData, setFormData] = useState<ExpenseFormData>(getInitialFormData())
-```
-
-**解説**:
-- `useState(false)`: ダイアログの開閉状態を管理
-- `useState<ExpenseFormData>(...)`: 型を指定してStateを管理
-
-### Stateの更新方法
+#### Stateの更新方法
 
 ```typescript
 // 直接値を設定
 setCount(10)
 
-// 前の値を使用して更新
+// 前の値を使用して更新（関数を渡す）
 setCount((prev) => prev + 1)
 
 // オブジェクトのStateを更新
@@ -352,31 +407,27 @@ user.name = "佐藤"  // 再レンダリングされない
 setUser({ ...user, name: "佐藤" })
 ```
 
-**学習ポイント**:
-- **useState**: Stateを管理するフック
-- **再レンダリング**: Stateが変更されると、コンポーネントが再レンダリングされる
-- **不変性**: Stateは直接変更せず、新しい値で更新する
+**State更新関数について**:
+- State更新関数（`setCount`など）には、**値と関数の両方**を渡せる
+- 値を直接渡す: `setCount(10)` → 直接値を設定
+- 関数を渡す: `setCount((prev) => prev + 1)` → 前の値を使って計算
+- 関数を渡すと、Reactが前の値を引数として関数を実行し、戻り値を新しいStateにする
+- 前の値に基づいて更新する場合や、連続更新を正しく処理する場合は関数形式が推奨される
 
----
+#### 実際のプロジェクトでの使用例
 
-## Hooks（フック）
+`frontend-nextjs/src/components/expense-form.tsx` (29-30行目):
 
-**Hooks**は、関数コンポーネントで状態管理やライフサイクルを扱うための機能です。Hooksは`use`で始まる関数です。
+```typescript
+const [open, setOpen] = useState(false)
+const [formData, setFormData] = useState<ExpenseFormData>(getInitialFormData())
+```
 
-### 主なHooks
+**解説**:
+- `useState(false)`: ダイアログの開閉状態を管理
+- `useState<ExpenseFormData>(...)`: 型を指定してStateを管理
 
-| Hook | 説明 | 使用例 |
-|------|------|--------|
-| `useState` | Stateを管理 | `const [count, setCount] = useState(0)` |
-| `useEffect` | 副作用を処理（API呼び出しなど） | `useEffect(() => { ... }, [])` |
-| `useCallback` | 関数をメモ化 | `const fn = useCallback(() => { ... }, [])` |
-| `useMemo` | 値をメモ化 | `const value = useMemo(() => { ... }, [])` |
-
-### useState（既に説明済み）
-
-Stateを管理するフック。
-
-### useEffect
+### useEffectフック
 
 `useEffect`は、**副作用**（API呼び出し、DOM操作など）を処理するためのフックです。
 
@@ -409,7 +460,21 @@ function UserList() {
 - `useEffect(() => { ... }, [count])`: `count`が変更された時に実行される
 - `useEffect(() => { ... })`: 毎回実行される（非推奨）
 
-### 実際のプロジェクトでの使用例
+#### useEffectの実行タイミング
+
+`useEffect`の実行タイミングは、**依存配列**の内容によって決まります。
+
+| 依存配列 | 実行タイミング | 説明 |
+|---------|--------------|------|
+| `[]`（空） | マウント時のみ | コンポーネントが初めて表示された時に1回だけ実行。再描画時は実行されない |
+| `[count]` | マウント時 + `count`が変更された時 | 初回マウント時と、`count`が変わるたびに実行される |
+| なし | 毎回のレンダリング | コンポーネントが再描画されるたびに実行される（パフォーマンスの問題を引き起こす可能性があるため非推奨） |
+
+**重要なポイント**:
+- **マウント時**: 依存配列の内容に関係なく、初回マウント時には必ず実行される
+- **再描画時**: 依存配列が空`[]`の場合は実行されない。依存配列に値がある場合は、その値が変更された時のみ実行される
+
+#### 実際のプロジェクトでの使用例
 
 `frontend-nextjs/src/hooks/use-expenses.ts` (30-32行目):
 
@@ -423,7 +488,7 @@ useEffect(() => {
 - `fetchExpensesList`が変更された時に実行される
 - 初回マウント時にも実行される
 
-### useCallback
+### useCallbackフック
 
 `useCallback`は、**関数をメモ化**するフックです。再レンダリングを防ぐために使用します。
 
@@ -451,7 +516,7 @@ function Counter() {
 - `useCallback`: 関数をメモ化して、再レンダリングを防ぐ
 - 依存配列: 依存する値が変更された時のみ、関数を再作成
 
-### 実際のプロジェクトでの使用例
+#### 実際のプロジェクトでの使用例
 
 `frontend-nextjs/src/hooks/use-expenses.ts` (34-45行目):
 
@@ -470,10 +535,97 @@ const addExpenseItem = useCallback(
 )
 ```
 
+### useMemoフック
+
+`useMemo`は、**値をメモ化**するフックです。計算コストが高い処理の結果をキャッシュして、パフォーマンスを向上させます。
+
+```typescript
+import { useState, useMemo } from "react"
+
+function ExpensiveComponent({ items }: { items: number[] }) {
+  // useMemoで計算結果をメモ化
+  // itemsが変わらない限り、再計算されない
+  const sum = useMemo(() => {
+    console.log("計算を実行中...")
+    return items.reduce((acc, item) => acc + item, 0)
+  }, [items])  // itemsが変わった時だけ再計算
+
+  return <p>合計: {sum}</p>
+}
+```
+
+**解説**:
+- `useMemo`: 計算結果をメモ化して、不要な再計算を防ぐ
+- 依存配列: 依存する値が変更された時のみ、再計算される
+
+### 再レンダリングのトリガーと最適化
+
+Reactコンポーネントは、以下の場合に再レンダリングされます：
+
+| トリガー | 説明 |
+|---------|------|
+| コンポーネント自身のState変更 | `useState`で管理しているStateが変更された時 |
+| 親から渡されるProps変更 | 親コンポーネントから渡されるPropsが変更された時 |
+| 親コンポーネントの再レンダリング | 親が再レンダリングされると、子も再レンダリングされる（Propsが変わっていなくても） |
+
+**重要なポイント**:
+- 親コンポーネントが再レンダリングされると、子コンポーネントも再レンダリングされる
+- 不要な再レンダリングを防ぐために、`useCallback`や`useMemo`を使用する
+
+### useCallbackとuseMemoによる最適化
+
+`useCallback`と`useMemo`を使用することで、不要な再レンダリングや再計算を防ぐことができます。
+
+```typescript
+function Parent() {
+  const [count, setCount] = useState(0)
+  const [name, setName] = useState("太郎")
+
+  // useCallback: 関数をメモ化
+  // 依存配列が空なので、関数は再作成されない
+  const handleClick = useCallback(() => {
+    console.log("クリックされました")
+  }, [])
+
+  // useMemo: 値をメモ化
+  // nameが変わらない限り、再計算されない
+  const greeting = useMemo(() => {
+    return `こんにちは、${name}さん`
+  }, [name])
+
+  return (
+    <div>
+      <p>カウント: {count}</p>
+      <p>{greeting}</p>
+      <button onClick={() => setCount(count + 1)}>カウント増やす</button>
+      <ChildComponent onClick={handleClick} />
+    </div>
+  )
+}
+
+// React.memoでラップすると、Propsが変わっていない場合は再レンダリングされない
+const ChildComponent = React.memo(function ChildComponent({ 
+  onClick 
+}: { 
+  onClick: () => void 
+}) {
+  console.log("ChildComponentが再レンダリングされました")
+  return <button onClick={onClick}>子コンポーネントのボタン</button>
+})
+```
+
+**最適化の効果**:
+- `useCallback`: 関数をメモ化することで、子コンポーネントに同じ関数参照を渡せる
+- `useMemo`: 計算結果をメモ化することで、不要な再計算を防ぐ
+- `React.memo`: Propsが変わっていない場合は、子コンポーネントの再レンダリングを防ぐ。（親コンポーネントが再レンダリングされても再レンダリングされない）
+
 **学習ポイント**:
-- **useState**: Stateを管理
+- **useState**: Stateを管理するフック
+- **再レンダリング**: Stateが変更されると、コンポーネントが再レンダリングされる
+- **不変性**: Stateは直接変更せず、新しい値で更新する
 - **useEffect**: 副作用を処理（API呼び出しなど）
 - **useCallback**: 関数をメモ化して再レンダリングを防ぐ
+- **useMemo**: 値をメモ化して不要な再計算を防ぐ
 
 ---
 
@@ -493,9 +645,7 @@ function Button() {
 }
 ```
 
-### 実際のプロジェクトでの使用例
-
-`frontend-nextjs/src/components/expense-form.tsx` (45-52行目):
+### フォームのイベントハンドリング
 
 ```typescript
 const handleSubmit = (e: React.FormEvent) => {
@@ -540,28 +690,59 @@ function InputField() {
 
 ### 実際のプロジェクトでの使用例
 
-`frontend-nextjs/src/components/expense-form.tsx` (78行目):
+`frontend-nextjs/src/components/expense-form.tsx`:
 
 ```typescript
+// フォーム送信のハンドリング（45-52行目）
+const handleSubmit = (e: React.FormEvent) => {
+  e.preventDefault()
+  onSubmit(formData)
+  setOpen(false)
+  if (!expense) {
+    setFormData(getInitialFormData())
+  }
+}
+
+// 入力フィールドのハンドリング（78行目）
 onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
 ```
 
-**解説**:
-- インラインでイベントハンドラーを定義
-- `{ ...formData, amount: ... }`: スプレッド構文でオブジェクトを更新
+**詳細解説**:
+- `onChange`: 入力欄の値が変わった時に実行されるイベントハンドラー
+- `(e) => ...`: アロー関数で、`e`はイベントオブジェクト（入力欄の変更情報を含む）
+- `e.target.value`: 入力欄に入力された値（文字列として取得される）
+- `Number(e.target.value)`: 文字列を数値に変換（例: `"1000"` → `1000`）
+- `{ ...formData, amount: ... }`: スプレッド構文で既存の`formData`をコピーし、`amount`だけを新しい値で上書き
+- `setFormData(...)`: ReactのState更新関数で、フォームの状態を更新
+
+**動作の流れ**:
+1. ユーザーが入力欄に「1000」と入力
+2. `onChange`イベントが発火
+3. `e.target.value`で「"1000"」（文字列）を取得
+4. `Number()`で`1000`（数値）に変換
+5. `{ ...formData, amount: 1000 }`で新しいオブジェクトを作成（既存のデータを保持しつつ、`amount`だけ更新）
+6. `setFormData`でStateを更新し、コンポーネントが再レンダリングされる
+
+**なぜスプレッド構文を使うのか？**:
+- Stateは直接変更せず、新しいオブジェクトを作成して更新する必要がある（不変性の原則）
+- `{ ...formData, amount: ... }`により、`category`、`description`、`date`などの他のフィールドを保持しつつ、`amount`だけを更新できる
 
 **学習ポイント**:
 - **イベントハンドラー**: ユーザーの操作に応答する関数
 - **型定義**: TypeScriptでイベントの型を指定
 - **制御されたコンポーネント**: `value`と`onChange`で入力値を制御
+- **型変換**: 入力値は文字列なので、数値として扱う場合は`Number()`で変換
+- **スプレッド構文**: 既存のオブジェクトを保持しつつ、一部のプロパティだけを更新
 
 ---
 
-## 条件付きレンダリング
+## レンダリング技法
+
+### 条件付きレンダリング
 
 **条件付きレンダリング**は、条件に応じて異なるUIを表示する機能です。
 
-### if文による条件付きレンダリング
+#### if文による条件付きレンダリング
 
 ```typescript
 function Welcome({ isLoggedIn }: { isLoggedIn: boolean }) {
@@ -573,7 +754,7 @@ function Welcome({ isLoggedIn }: { isLoggedIn: boolean }) {
 }
 ```
 
-### 三項演算子による条件付きレンダリング
+#### 三項演算子による条件付きレンダリング
 
 ```typescript
 function Welcome({ isLoggedIn }: { isLoggedIn: boolean }) {
@@ -589,7 +770,7 @@ function Welcome({ isLoggedIn }: { isLoggedIn: boolean }) {
 }
 ```
 
-### &&演算子による条件付きレンダリング
+#### &&演算子による条件付きレンダリング
 
 ```typescript
 function Welcome({ count }: { count: number }) {
@@ -605,9 +786,9 @@ function Welcome({ count }: { count: number }) {
 - `count > 0 && <p>...</p>`: `count > 0`が`true`の時のみ`<p>`を表示
 - `false`の時は何も表示されない
 
-### 実際のプロジェクトでの使用例
+#### 実際のプロジェクトでの使用例
 
-`frontend-nextjs/app/page.tsx` (135-137行目):
+`frontend-nextjs/app/page.tsx`:
 
 ```typescript
 if (!isLoaded) {
@@ -618,18 +799,11 @@ if (!isLoaded) {
 **解説**:
 - データが読み込まれていない時は、ローディングスピナーを表示
 
-**学習ポイント**:
-- **条件付きレンダリング**: 条件に応じて異なるUIを表示
-- **三項演算子**: `条件 ? 真の場合 : 偽の場合`
-- **&&演算子**: 条件が`true`の時のみ表示
-
----
-
-## リストレンダリング
+### リストレンダリング
 
 **リストレンダリング**は、配列のデータをリストとして表示する機能です。
 
-### mapメソッドによるリストレンダリング
+#### mapメソッドによるリストレンダリング
 
 ```typescript
 function UserList() {
@@ -653,23 +827,7 @@ function UserList() {
 - `users.map(...)`: 配列の各要素を変換
 - `key={user.id}`: 各要素に一意のキーを指定（必須）
 
-### 実際のプロジェクトでの使用例
-
-`frontend-nextjs/src/components/expense-form.tsx` (94-98行目):
-
-```typescript
-{EXPENSE_CATEGORIES.map((category) => (
-  <SelectItem key={category} value={category}>
-    {category}
-  </SelectItem>
-))}
-```
-
-**解説**:
-- `EXPENSE_CATEGORIES`配列を`map`で変換
-- `key={category}`: カテゴリー名をキーとして使用
-
-### keyプロパティの重要性
+#### keyプロパティの重要性
 
 `key`プロパティは、Reactが要素を識別するために使用されます。**一意の値**を指定する必要があります。
 
@@ -685,7 +843,26 @@ function UserList() {
 ))}
 ```
 
+#### 実際のプロジェクトでの使用例
+
+`frontend-nextjs/src/components/expense-form.tsx` (94-98行目):
+
+```typescript
+{EXPENSE_CATEGORIES.map((category) => (
+  <SelectItem key={category} value={category}>
+    {category}
+  </SelectItem>
+))}
+```
+
+**解説**:
+- `EXPENSE_CATEGORIES`配列を`map`で変換
+- `key={category}`: カテゴリー名をキーとして使用
+
 **学習ポイント**:
+- **条件付きレンダリング**: 条件に応じて異なるUIを表示
+- **三項演算子**: `条件 ? 真の場合 : 偽の場合`
+- **&&演算子**: 条件が`true`の時のみ表示
 - **mapメソッド**: 配列をリストに変換
 - **keyプロパティ**: 各要素に一意のキーを指定（必須）
 
@@ -693,7 +870,7 @@ function UserList() {
 
 ## カスタムフック
 
-**カスタムフック**は、ロジックを再利用可能なフックに抽出する機能です。カスタムフックは`use`で始まる関数です。
+**カスタムフック**は、ロジックを再利用可能なフックに抽出する機能です。カスタムフックは`use`で始まる関数です。状態と更新ロジックをセットで提供するのが典型的なパターン
 
 ### カスタムフックの定義
 
@@ -752,7 +929,7 @@ export function useExpenses() {
     async (data: ExpenseFormData) => {
       try {
         const newExpense = await createExpense(data)
-        setExpenses((prev) => [newExpense, ...prev])
+        setExpenses((prev) => [newExpense, ...prev])//新しい要素を先頭に置き、その後に既存要素を並べた新しい配列を作成
         toast.success("支出を追加しました")
       } catch (error) {
         showApiErrorMessage(error, "支出の追加に失敗しました")
@@ -776,6 +953,12 @@ export function useExpenses() {
 - `expenseItems`: 支出のリスト
 - `addExpenseItem`: 支出を追加する関数
 - `isLoaded`: データが読み込まれたかどうか
+
+**再レンダリング時の動作**:
+- `useExpenses()`がコンポーネントで呼ばれると、コンポーネントが再レンダリングされるたびに実行される
+- `useState`: 初回のみ初期化され、以降は既存の状態を保持（再初期化されない）
+- `useCallback`でラップしていない関数: 再レンダリングのたびに新しい関数が生成される
+- `useEffect`: 依存配列の値が変わったときのみ実行される（`fetchExpensesList`が`useCallback`でメモ化されているため、初回のみ実行）
 
 ### カスタムフックのメリット
 
@@ -869,33 +1052,34 @@ export default function HomePage() {
 
 ---
 
-## まとめ
+## まとめと学習の進め方
+
+### まとめ
 
 このプロジェクトで使用されているReactの要点：
 
-### コンポーネント
+#### コンポーネント
 - **関数コンポーネント**: 関数として定義（推奨）
 - **JSX**: HTMLライクな構文でUIを記述
 - **Props**: 親から子へデータを渡す
 
-### StateとHooks
+#### StateとHooks
 - **useState**: Stateを管理
 - **useEffect**: 副作用を処理（API呼び出しなど）
 - **useCallback**: 関数をメモ化
+- **useMemo**: 値をメモ化
 
-### レンダリング
+#### レンダリング
 - **条件付きレンダリング**: 条件に応じて異なるUIを表示
 - **リストレンダリング**: 配列をリストに変換
 
-### カスタムフック
+#### カスタムフック
 - **再利用性**: ロジックを再利用可能なフックに抽出
 - **関心の分離**: UIロジックとデータ取得ロジックを分離
 
 これらの機能を組み合わせることで、**保守性**と**拡張性**の高いアプリケーションを構築できます。
 
----
-
-## 学習の進め方
+### 学習の進め方
 
 1. **基礎から学ぶ**: コンポーネント、Props、Stateの基礎を理解する
 2. **Hooks**: useState、useEffectなどのHooksを学ぶ
@@ -920,4 +1104,3 @@ export default function HomePage() {
 ---
 
 **最終更新日**: 2024年
-
