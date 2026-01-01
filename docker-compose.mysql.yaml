@@ -1,0 +1,37 @@
+# ========================================
+# MySQL専用 Docker Compose 設定（本番環境用）
+# ========================================
+# このファイルはMySQLのみを起動します。
+# Spring Bootは別のdocker-compose.backend.yamlで起動します。
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: smart_household_mysql
+    restart: always
+    ports:
+      - "127.0.0.1:3306:3306"  # ローカルホストのみにバインド（セキュリティ）
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+volumes:
+  mysql_data:
+    name: smart_household_mysql_data
+
+networks:
+  app-network:
+    name: smart_household_app_network
+    driver: bridge
+
