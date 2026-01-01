@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.example.backend.exception.UserNotFoundException;
 
 /**
  * ユーザーに関するアプリケーションサービス
@@ -22,7 +23,7 @@ public class UserApplicationService {
     /**
      * コンストラクタ
      * 
-     * @param userRepository ユーザーリポジトリ
+     * @param userRepository      ユーザーリポジトリ
      * @param currentAuthProvider 現在の認証プロバイダー
      */
     public UserApplicationService(UserRepository userRepository, CurrentAuthProvider currentAuthProvider) {
@@ -41,7 +42,7 @@ public class UserApplicationService {
         // 1. 認証情報を取得
         String sub = currentAuthProvider.getCurrentSub();
         String email = currentAuthProvider.getCurrentEmail();
-        
+
         if (sub != null) {
             // 2. 既存のユーザーを検索
             return userRepository.findByCognitoSub(sub)
@@ -51,7 +52,7 @@ public class UserApplicationService {
                         return userRepository.save(user);
                     });
         }
-        
+
         // 4. 認証情報が取得できない場合は警告をログに記録
         logger.warn("subがnullです。認証情報が正しく取得できていません。");
         return null;
@@ -69,10 +70,11 @@ public class UserApplicationService {
     public User getUser() {
         // 1. 認証情報を取得
         String sub = currentAuthProvider.getCurrentSub();
-        
         // 2. ユーザーを検索
         return userRepository.findByCognitoSub(sub)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> {
+                    logger.warn("ユーザーが見つかりませんでした。cognitoSub: {}", sub);
+                    return new UserNotFoundException();
+                });
     }
 }
-
