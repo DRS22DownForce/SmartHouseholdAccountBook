@@ -422,18 +422,11 @@ docker compose --env-file .env.production -f docker-compose.backend.yaml up -d
 
 ## データベース（MySQL）のセットアップ
 
-### ステップ1: Docker ComposeでMySQLを起動
+### ステップ1: MySQLコンテナを起動
 
-プロジェクトには`docker-compose.yaml`が含まれていますが、本番環境ではMySQLのみをDockerで実行し、アプリケーションは別途デプロイします。
+プロジェクトには`docker-compose.mysql.yaml`が含まれています。このファイルを使用してMySQLコンテナを起動します。
 
-まず、MySQL専用の`docker-compose.mysql.yaml`を作成します：
-
-```bash
-# MySQL専用のdocker-composeファイルを作成
-nano docker-compose.mysql.yaml
-```
-
-以下の内容を記述します：
+`docker-compose.mysql.yaml`の主な設定内容：
 
 ```yaml
 services:
@@ -469,12 +462,11 @@ networks:
 ```
 
 **初心者向けの解説**:
+- `docker-compose.mysql.yaml`: MySQL専用のDocker Compose設定ファイルです。本番環境ではMySQLのみをDockerで実行し、アプリケーションは別途デプロイします。
 - `restart: always`: コンテナが停止した場合、自動的に再起動します。
 - `127.0.0.1:3306:3306`: MySQLをローカルホスト（127.0.0.1）のみにバインドします。これにより、外部から直接アクセスできなくなります（セキュリティ向上）。
 - `volumes`: データの永続化のため、MySQLのデータをホストマシンのボリュームに保存します。
 - `networks`: `smart_household_app_network`という名前のネットワークを作成します。このネットワークは、後で起動するSpring Bootコンテナと共有されます。
-
-### ステップ2: MySQLコンテナを起動
 
 ```bash
 # 本番環境用の環境変数ファイルを指定してMySQLコンテナを起動
@@ -496,7 +488,7 @@ docker network ls | grep smart_household_app_network
 - `docker ps`: 実行中のコンテナ一覧を表示します。
 - `docker logs`: コンテナのログを確認します。エラーが発生していないか確認するために使用します。
 
-### ステップ3: MySQL接続の確認
+### ステップ2: MySQL接続の確認
 
 ```bash
 # MySQLコンテナに接続してデータベースを確認
@@ -511,7 +503,7 @@ docker exec -it smart_household_mysql mysql -u root -p${MYSQL_ROOT_PASSWORD} -e 
 | information_schema      |
 | mysql                   |
 | performance_schema      |
-| smart_household_db      |
+| production              |
 | sys                     |
 +-------------------------+
 ```
@@ -522,17 +514,13 @@ docker exec -it smart_household_mysql mysql -u root -p${MYSQL_ROOT_PASSWORD} -e 
 
 ## バックエンド（Spring Boot）のデプロイ
 
-### ステップ1: バックエンド用のDocker Composeファイルを作成
+### ステップ1: MySQLが起動していることを確認
 
 **重要**: このステップを実行する前に、MySQLが既に起動していることを確認してください（前のセクション「データベース（MySQL）のセットアップ」を参照）。
 
-Spring Boot専用の`docker-compose.backend.yaml`を作成します：
+プロジェクトには`docker-compose.backend.yaml`が含まれています。このファイルを使用してSpring Bootコンテナを起動します。
 
-```bash
-nano docker-compose.backend.yaml
-```
-
-以下の内容を記述します：
+`docker-compose.backend.yaml`の主な設定内容：
 
 ```yaml
 services:
@@ -562,12 +550,11 @@ networks:
 ```
 
 **初心者向けの解説**:
+- **`docker-compose.backend.yaml`**: Spring Boot専用のDocker Compose設定ファイルです。
 - **`networks`**: コンテナ間の通信を管理するネットワークです。`smart_household_app_network`という名前のネットワークは、MySQLコンテナ起動時に既に作成されています。
 - **`external: true`**: 既存のネットワークを使用することを示します。これにより、別のdocker-composeファイルで起動したMySQLコンテナと通信できます。
 - **MySQLとの接続**: Spring Bootコンテナは、同じネットワーク（`smart_household_app_network`）上にあるMySQLコンテナに、ホスト名`smart_household_mysql`で接続できます。
 - **`depends_on`は不要**: MySQLは別のdocker-composeファイルで管理されているため、`depends_on`は使用しません。代わりに、MySQLが起動していることを手動で確認してから、Spring Bootを起動します。
-
-### ステップ2: MySQLが起動していることを確認
 
 ```bash
 # MySQLコンテナが起動していることを確認
@@ -581,7 +568,7 @@ docker compose --env-file .env.production -f docker-compose.mysql.yaml up -d
 - バックエンドを起動する前に、MySQLが既に起動している必要があります。
 - `docker ps`: 実行中のコンテナ一覧を表示します。`smart_household_mysql`が表示されていれば、MySQLは起動しています。
 
-### ステップ3: バックエンドのビルドと起動
+### ステップ2: バックエンドのビルドと起動
 
 ```bash
 # 本番環境用の環境変数ファイルを指定してバックエンドをビルドして起動
@@ -600,15 +587,33 @@ docker compose -f docker-compose.backend.yaml logs -f backend
 
 ```bash
 # バックエンドのヘルスチェック（Spring Boot Actuatorがある場合）
+# 注意: /actuator/healthは認証不要なので、このコマンドは正常に動作します
 curl http://localhost:8080/actuator/health
 
-# または、簡単なAPIエンドポイントをテスト
+# APIエンドポイントのテスト（認証が必要な場合）
+# 注意: /api/** パスはCognito認証が必要です。JWTトークンなしでは401 Unauthorizedが返ります
 curl http://localhost:8080/api/expenses/months
 ```
 
 **期待される動作**:
-- バックエンドが正常に起動していれば、HTTPレスポンスが返ってきます。
-- エラーが発生している場合は、ログを確認してください：`docker logs smart_household_backend`
+- `/actuator/health`: 認証不要なので、バックエンドが正常に起動していればHTTPレスポンス（通常は200 OK）が返ってきます。
+- `/api/expenses/months`: Cognito認証が必要なため、JWTトークンなしでは`401 Unauthorized`が返ります。これは正常な動作です（認証が正しく機能している証拠）。
+
+**認証が必要なAPIエンドポイントをテストする場合**:
+```bash
+# JWTトークンを取得してからAPIを呼び出す必要があります
+# 実際のテストは、フロントエンドからログインして行うか、
+# またはPostmanなどのツールでJWTトークンを設定してテストしてください
+curl -H "Authorization: Bearer YOUR_JWT_TOKEN" http://localhost:8080/api/expenses/months
+```
+
+**初心者向けの解説**:
+- **認証不要のエンドポイント**: `/actuator/health`などのActuatorエンドポイントは、システムの状態を確認するために使用されます。認証なしでアクセス可能です。
+- **認証が必要なエンドポイント**: `/api/**`で始まるすべてのAPIエンドポイントは、Cognito認証（JWTトークン）が必要です。セキュリティのため、認証なしではアクセスできません。
+- **401 Unauthorized**: 認証が必要なエンドポイントに認証情報なしでアクセスすると、401エラーが返ります。これはエラーではなく、セキュリティが正しく機能している証拠です。
+
+**エラーが発生している場合**:
+- ログを確認してください：`docker logs smart_household_backend`
 
 ---
 
@@ -989,6 +994,51 @@ docker compose -f docker-compose.backend.yaml restart backend
 # フロントエンドの再起動
 pm2 restart smart-household-frontend
 ```
+
+---
+
+## コードの更新と再デプロイ
+
+リモートリポジトリにpushした変更をVPSサーバーに取り込む手順です。
+
+### ステップ1: リモートリポジトリから最新の変更を取得
+
+```bash
+# プロジェクトディレクトリに移動
+cd ~/SmartHouseholdAccountBook
+
+# リモートリポジトリから最新の変更を取得
+git pull origin main
+# または、ブランチ名がmasterの場合
+# git pull origin master
+```
+
+**初心者向けの解説**:
+- `git pull`: リモートリポジトリの最新の変更を取得して、ローカルのコードを更新します。
+- `origin`: リモートリポジトリの名前（通常は`origin`）。
+- `main`（または`master`）: ブランチ名。プロジェクトで使用しているブランチ名に合わせてください。
+
+### ステップ2: アプリケーションの再ビルドと再起動
+
+コードを更新した後、変更を反映するために再ビルドと再起動が必要です。
+
+```bash
+# バックエンドを再ビルドして再起動
+docker compose --env-file .env.production -f docker-compose.backend.yaml up -d --build
+
+# フロントエンドディレクトリに移動してビルド
+cd frontend-nextjs
+npm install  # 依存関係が変更された場合
+npm run build
+
+# フロントエンドを再起動
+pm2 restart smart-household-frontend
+```
+
+**初心者向けの解説**:
+- `--build`: Dockerイメージを再ビルドします。コードを変更した場合は必須です。
+- `npm run build`: Next.jsアプリケーションを本番環境用にビルドします。コードを変更した場合は必須です。
+- `pm2 restart`: PM2で管理しているアプリケーションを再起動します。
 
 ---
 
