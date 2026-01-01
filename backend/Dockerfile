@@ -10,7 +10,7 @@ COPY backend/pom.xml .
 RUN mvn dependency:go-offline
 
 COPY backend/src ./src
-COPY openapi/openapi.yaml ./openapi/openapi.yaml
+COPY openapi ./openapi
 
 #Mavenの並列ビルドを有効化
 RUN mvn clean package -T 1C -DskipTests -Pdocker
