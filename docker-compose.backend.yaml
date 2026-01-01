@@ -1,0 +1,35 @@
+# ========================================
+# Spring Boot専用 Docker Compose 設定（本番環境用）
+# ========================================
+# このファイルはSpring Bootのみを起動します。
+# MySQLは別のdocker-compose.mysql.yamlで起動する必要があります。
+# 
+# 起動順序:
+# 1. 先に docker-compose.mysql.yaml でMySQLを起動
+# 2. その後、このファイルでSpring Bootを起動
+
+services:
+  backend:
+    container_name: smart_household_backend
+    build:
+      context: ./
+      dockerfile: backend/Dockerfile
+    restart: always
+    ports:
+      - "127.0.0.1:8080:8080"  # ローカルホストのみにバインド
+    environment:
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_PROD}
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_ROOT_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SPRING_JPA_SHOW_SQL: "false"  # 本番環境ではSQLログを無効化
+      COGNITO_JWK_SET_URL: ${COGNITO_JWK_SET_URL}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    name: smart_household_app_network
+    external: true  # 既存のネットワーク（MySQLで作成済み）を使用
+

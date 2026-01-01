@@ -10,6 +10,7 @@ target/
 
 # 環境変数ファイル（すべてのバリエーション）
 .env
+.env.production
 .env.local
 .env.development.local
 .env.test.local
