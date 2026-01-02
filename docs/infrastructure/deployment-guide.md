@@ -1,6 +1,6 @@
 # さくらのVPS Ubuntuサーバーへのデプロイガイド
 
-> このドキュメントは、Smart Household Account BookプロジェクトをさくらのVPSのUbuntuサーバーにデプロイするための初心者向けガイドです。各ステップを詳しく解説し、セキュリティとパフォーマンスを重視した構成を説明します。
+> Smart Household Account BookプロジェクトをさくらのVPSのUbuntuサーバーにデプロイするための初心者向けガイドです。セキュリティとパフォーマンスを重視した構成を説明します。
 
 ## 📋 目次
 
@@ -8,16 +8,17 @@
 2. [前提条件](#前提条件)
 3. [サーバーの初期セットアップ](#サーバーの初期セットアップ)
 4. [必要なソフトウェアのインストール](#必要なソフトウェアのインストール)
-5. [プロジェクトのデプロイ準備](#プロジェクトのデプロイ準備)
-6. [データベース（MySQL）のセットアップ](#データベースmysqlのセットアップ)
-7. [バックエンド（Spring Boot）のデプロイ](#バックエンドspring-bootのデプロイ)
-8. [フロントエンド（Next.js）のデプロイ](#フロントエンドnextjsのデプロイ)
-9. [Nginxリバースプロキシの設定](#nginxリバースプロキシの設定)
-10. [SSL証明書の設定（Let's Encrypt）](#ssl証明書の設定lets-encrypt)
-11. [環境変数の管理](#環境変数の管理)
-12. [セキュリティ設定](#セキュリティ設定)
-13. [監視とログ管理](#監視とログ管理)
-14. [トラブルシューティング](#トラブルシューティング)
+5. [DNS設定](#dns設定)
+6. [プロジェクトのデプロイ準備](#プロジェクトのデプロイ準備)
+7. [データベース（MySQL）のセットアップ](#データベースmysqlのセットアップ)
+8. [バックエンド（Spring Boot）のデプロイ](#バックエンドspring-bootのデプロイ)
+9. [フロントエンド（Next.js）のデプロイ](#フロントエンドnextjsのデプロイ)
+10. [Nginxリバースプロキシの設定](#nginxリバースプロキシの設定)
+11. [SSL証明書の設定（Let's Encrypt）](#ssl証明書の設定lets-encrypt)
+12. [コードの更新と再デプロイ](#コードの更新と再デプロイ)
+13. [セキュリティ設定](#セキュリティ設定)
+14. [監視とログ管理](#監視とログ管理)
+15. [トラブルシューティング](#トラブルシューティング)
 
 ---
 
@@ -29,60 +30,45 @@
 ┌─────────────────────────────────────────────────────────┐
 │                    インターネット                         │
 └──────────────────────┬──────────────────────────────────┘
-                       │
-                       │ HTTPS (443)
-                       │ HTTP (80) → HTTPS リダイレクト
+                       │ HTTPS (443) / HTTP (80)
                        ▼
 ┌─────────────────────────────────────────────────────────┐
 │                  Nginx (リバースプロキシ)                 │
-│  - SSL/TLS終端                                          │
-│  - 静的ファイル配信（Next.js）                           │
-│  - APIリクエストのプロキシ（Spring Boot）                │
+│  - SSL/TLS終端、静的ファイル配信、APIプロキシ            │
 └──────┬──────────────────────────────┬───────────────────┘
-       │                              │
-       │ /api/*                       │ /
+       │ /api/*                        │ /
        ▼                              ▼
 ┌──────────────────┐         ┌──────────────────┐
 │  Spring Boot      │         │   Next.js        │
 │  (ポート: 8080)   │         │  (ポート: 3000)  │
-│                   │         │                  │
-│  - REST API       │         │  - React UI      │
-│  - JWT認証        │         │  - SSR/SSG       │
 └────────┬─────────┘         └──────────────────┘
-         │
          │ JDBC
          ▼
 ┌──────────────────┐
 │   MySQL 8.0      │
 │  (ポート: 3306)  │
-│                  │
-│  - データ保存     │
 └──────────────────┘
 ```
 
 ### 構成の説明
 
-**初心者向けの解説**:
-- **Nginx**: Webサーバーとリバースプロキシの役割を担います。外部からのリクエストを受け取り、適切なアプリケーションに振り分けます。また、Next.jsの静的ファイル（CSS、JavaScript、画像など）を直接配信することで、パフォーマンスを最適化します。
-- **Next.js**: フロントエンドアプリケーション。ユーザーがブラウザで見る画面を提供します。静的ファイルはNginxが直接配信し、動的ページ（SSRが必要なページ）のみNext.jsサーバーで処理されます。
+**各コンポーネントの役割**:
+- **Nginx**: Webサーバーとリバースプロキシ。外部リクエストを受け取り、適切なアプリケーションに振り分けます。Next.jsの静的ファイルを直接配信してパフォーマンスを最適化します。
+- **Next.js**: フロントエンドアプリケーション。静的ファイルはNginxが直接配信し、動的ページ（SSR）のみNext.jsサーバーで処理されます。
 - **Spring Boot**: バックエンドAPIサーバー。データベースとのやり取りやビジネスロジックを処理します。
 - **MySQL**: データベース。支出データなどの情報を保存します。
 
 **リクエストの振り分け**:
-- `/_next/static/*`: 静的ファイル（CSS、JavaScript、画像など）→ Nginxがファイルシステムから直接配信（高速）
+- `/_next/static/*`: 静的ファイル → Nginxがファイルシステムから直接配信（高速）
 - `/api/*`: APIリクエスト → Spring Bootにプロキシ
-- その他（`/`）: 動的ページ（SSRが必要なページ）→ Next.jsサーバーにプロキシ
+- その他（`/`）: 動的ページ（SSR） → Next.jsサーバーにプロキシ
 
 **Docker Composeファイルの構成**:
 本番環境では、MySQLとSpring Bootを**別々のDocker Composeファイル**で管理します：
 - **`docker-compose.mysql.yaml`**: MySQLのみを起動（データベースの独立性を確保）
 - **`docker-compose.backend.yaml`**: Spring Bootのみを起動（既存のMySQLコンテナに接続）
 
-**なぜ分離するのか？**
-- **独立性**: MySQLとSpring Bootを独立して管理・更新できる
-- **リソース管理**: それぞれに最適なリソースを割り当てられる
-- **スケーラビリティ**: 個別にスケールできる
-- **セキュリティ**: データベースをより厳重に保護できる
+**分離する理由**: 独立性、リソース管理、スケーラビリティ、セキュリティの向上
 
 ### ポート構成
 
@@ -93,9 +79,7 @@
 | Spring Boot | 8080 | ❌ | 内部のみ（Nginx経由） |
 | MySQL | 3306 | ❌ | 内部のみ（セキュリティのため） |
 
-**なぜ内部ポートを外部公開しないのか？**
-- セキュリティを向上させるため。Nginxが唯一の入口となり、ファイアウォールで他のポートを閉じることができます。
-- 直接アクセスを防ぐことで、不正なリクエストをブロックできます。
+**内部ポートを外部公開しない理由**: セキュリティ向上のため。Nginxが唯一の入口となり、ファイアウォールで他のポートを閉じることができます。
 
 ---
 
@@ -110,8 +94,8 @@
    - ルート権限（sudo）を持つユーザーアカウント
 
 2. **ドメイン名**（オプション、推奨）
-   - 例: `smart-household-account-book.com`
    - SSL証明書を取得するために必要
+   - **既にRoute53でドメインを持っている場合**: 新規購入は不要。DNS設定のみ必要
 
 3. **AWS Cognito設定**
    - Cognito User Poolの設定が完了していること
@@ -124,7 +108,6 @@
 ### 確認事項
 
 デプロイ前に以下を確認してください：
-
 - [ ] VPSサーバーにSSH接続できること
 - [ ] ドメイン名のDNS設定が完了していること（AレコードでVPSのIPアドレスを指す）
 - [ ] AWS Cognitoの設定が完了していること
@@ -136,22 +119,14 @@
 
 ### ステップ1: SSH接続
 
-ローカルマシンからVPSサーバーにSSH接続します。
-
 ```bash
 # サーバーにSSH接続（IPアドレスとユーザー名を置き換えてください）
 ssh username@your-server-ip
-
-# 例: ssh root@123.456.789.012
 ```
 
-**初心者向けの解説**:
-- **SSH**: Secure Shellの略。サーバーに安全に接続するためのプロトコルです。
-- 初回接続時は、サーバーのフィンガープリントを確認するメッセージが表示されます。`yes`と入力して続行します。
+**初心者向けの解説**: SSH（Secure Shell）はサーバーに安全に接続するためのプロトコルです。初回接続時は、サーバーのフィンガープリントを確認するメッセージが表示されます。`yes`と入力して続行します。
 
 ### ステップ2: システムの更新
-
-サーバーのパッケージを最新の状態に更新します。
 
 ```bash
 # パッケージリストの更新
@@ -164,14 +139,9 @@ sudo apt upgrade -y
 sudo reboot
 ```
 
-**初心者向けの解説**:
-- `apt update`: パッケージリストを最新の状態に更新します。これは「何がインストール可能か」を確認する作業です。
-- `apt upgrade`: 既にインストールされているパッケージを最新版に更新します。セキュリティパッチが含まれることが多いため、重要です。
-- `-y`: 確認メッセージをスキップして自動的に「yes」と答えます。
+**初心者向けの解説**: `apt update`はパッケージリストを最新化し、`apt upgrade`は既存パッケージを最新版に更新します。セキュリティパッチが含まれることが多いため、重要です。
 
 ### ステップ3: ファイアウォールの設定
-
-Ubuntuのファイアウォール（UFW）を設定して、必要なポートのみを開放します。
 
 ```bash
 # UFWの有効化
@@ -190,10 +160,7 @@ sudo ufw allow 443/tcp
 sudo ufw status
 ```
 
-**初心者向けの解説**:
-- **UFW**: Uncomplicated Firewallの略。Linuxのファイアウォールを簡単に設定できるツールです。
-- **ポート**: ネットワーク通信の入口となる番号です。HTTPは80、HTTPSは443、SSHは22が標準です。
-- **重要**: SSH（22番ポート）を最初に許可しないと、次回接続できなくなる可能性があります。
+**初心者向けの解説**: UFW（Uncomplicated Firewall）はLinuxのファイアウォールを簡単に設定できるツールです。SSH（22番ポート）を最初に許可しないと、次回接続できなくなる可能性があります。
 
 ---
 
@@ -201,73 +168,38 @@ sudo ufw status
 
 ### ステップ1: DockerとDocker Composeのインストール
 
-Dockerは、アプリケーションをコンテナとして実行するためのプラットフォームです。Docker Composeは、複数のコンテナを管理するためのツールです。
-
 ```bash
 # 必要なパッケージのインストール
 sudo apt install -y ca-certificates curl gnupg lsb-release
-# ca-certificates: SSL/TLS証明書の検証用
-# curl: HTTP/HTTPSでファイルをダウンロードするツール
-# gnupg: GPGキーを扱うツール（パッケージの署名検証用）
-# lsb-release: Linuxディストリビューション情報を取得するツール
 
 # Dockerの公式GPGキーを追加
 sudo mkdir -p /etc/apt/keyrings
-# GPGキーを保存するディレクトリを作成（-p: 既存でもエラーにしない）
-
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-# Docker公式のGPG公開鍵をダウンロードして、バイナリ形式に変換して保存
-# -fsSL: エラー時に失敗、進捗非表示、リダイレクト追従
-# --dearmor: テキスト形式のGPGキーをバイナリ形式に変換
 
 # Dockerのリポジトリを追加
 echo \
   "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
   $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-# Docker公式リポジトリの設定を追加
-# dpkg --print-architecture: システムのアーキテクチャ（例: amd64）を取得
-# lsb_release -cs: Ubuntuのコード名（例: jammy）を取得
-# stable: 安定版チャンネルを指定
 
 # パッケージリストを更新
 sudo apt update
-# 追加したリポジトリを含む全リポジトリから最新のパッケージ情報を取得
 
 # Docker EngineとDocker Composeをインストール
 sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-# docker-ce: Docker Community Edition（無料版）
-# docker-ce-cli: Dockerコマンドラインインターフェース
-# containerd.io: コンテナランタイム（コンテナの実行を管理）
-# docker-buildx-plugin: マルチプラットフォーム対応のビルド機能
-# docker-compose-plugin: Docker Compose（複数コンテナの管理）
 
-# Dockerサービスを起動
+# Dockerサービスを起動・有効化
 sudo systemctl start docker
-# Dockerサービスを起動
-
 sudo systemctl enable docker
-# システム起動時に自動的にDockerサービスを開始するように設定
 
 # 現在のユーザーをdockerグループに追加（sudoなしでDockerを使えるようにする）
 sudo usermod -aG docker $USER
-# 現在のユーザーをdockerグループに追加
-# -aG: 既存グループを維持したまま、dockerグループを追加
-# $USER: 現在のユーザー名
 
 # インストールの確認
 docker --version
-# Dockerのバージョンを表示
-
 docker compose version
-# Docker Composeのバージョンを表示
 ```
 
-**初心者向けの解説**:
-- **Docker**: アプリケーションとその依存関係を「コンテナ」という単位でパッケージ化する技術です。これにより、どの環境でも同じように動作させることができます。
-- **Docker Compose**: 複数のコンテナ（例: アプリケーションとデータベース）を一度に管理するためのツールです。
-- **GPGキー**: パッケージの信頼性を確認するための暗号化キーです。Docker公式のパッケージであることを検証するために使用します。
-- **リポジトリ**: パッケージをダウンロードする元となる場所です。Docker公式リポジトリを追加することで、最新版のDockerをインストールできます。
-- **systemctl enable**: システム起動時に自動的にサービスを開始するように設定します。
+**初心者向けの解説**: Dockerはアプリケーションとその依存関係を「コンテナ」という単位でパッケージ化する技術です。Docker Composeは複数のコンテナを管理するためのツールです。
 
 **重要**: ユーザーをdockerグループに追加した後、一度ログアウトして再ログインする必要があります。
 
@@ -281,8 +213,6 @@ ssh username@your-server-ip
 
 ### ステップ2: Node.jsとnpmのインストール
 
-Next.jsアプリケーションをビルド・実行するために、Node.jsが必要です。
-
 ```bash
 # Node.js 20.x（LTS版）をインストール
 curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
@@ -293,20 +223,29 @@ node --version
 npm --version
 ```
 
-**初心者向けの解説**:
-- **Node.js**: JavaScriptをサーバー側で実行するためのランタイムです。Next.jsはNode.js上で動作します。
-- **npm**: Node Package Managerの略。Node.jsのパッケージ（ライブラリ）を管理するツールです。
-- **LTS**: Long Term Supportの略。長期サポート版で、安定性が重視されます。
+**初心者向けの解説**: Node.jsはJavaScriptをサーバー側で実行するためのランタイムです。Next.jsはNode.js上で動作します。npmはNode.jsのパッケージ（ライブラリ）を管理するツールです。
 
-### ステップ3: Nginxのインストール
+### ステップ3: Javaのインストール（OpenAPI Generator用）
 
-Nginxは、Webサーバーとリバースプロキシとして機能します。
+```bash
+# OpenJDK 17をインストール
+sudo apt update
+sudo apt install -y openjdk-17-jdk
+
+# インストールの確認
+java -version
+javac -version
+```
+
+**初心者向けの解説**: OpenAPI Generator CLIは内部的にJavaを使用してコード生成を行います。フロントエンドのAPIクライアント生成（`npm run generate:api`）に必要です。
+
+### ステップ4: Nginxのインストール
 
 ```bash
 # Nginxのインストール
 sudo apt install -y nginx
 
-# Nginxサービスを起動
+# Nginxサービスを起動・有効化
 sudo systemctl start nginx
 sudo systemctl enable nginx
 
@@ -314,30 +253,116 @@ sudo systemctl enable nginx
 nginx -v
 ```
 
-**初心者向けの解説**:
-- **Nginx**: 高性能なWebサーバーです。静的ファイルの配信や、リクエストを別のサーバーに転送（リバースプロキシ）する役割を担います。
-- **リバースプロキシ**: クライアントからのリクエストを受け取り、適切なバックエンドサーバーに転送する仕組みです。
+**初心者向けの解説**: Nginxは高性能なWebサーバーです。静的ファイルの配信や、リクエストを別のサーバーに転送（リバースプロキシ）する役割を担います。
 
-### ステップ4: Certbotのインストール（SSL証明書用）
-
-Let's Encryptから無料のSSL証明書を取得するために、Certbotをインストールします。
+### ステップ5: Certbotのインストール（SSL証明書用）
 
 ```bash
 # Certbotのインストール
 sudo apt install -y certbot python3-certbot-nginx
 ```
 
-**初心者向けの解説**:
-- **Certbot**: Let's EncryptからSSL証明書を自動的に取得・更新するツールです。
-- **SSL証明書**: HTTPS通信を有効にするために必要な証明書です。データの暗号化を可能にします。
+**初心者向けの解説**: CertbotはLet's EncryptからSSL証明書を自動的に取得・更新するツールです。SSL証明書はHTTPS通信を有効にするために必要な証明書です。
+
+---
+
+## DNS設定
+
+### サーバー側のDNS設定（オプション）
+
+さくらのVPSのデフォルト設定では、外部ドメインの名前解決ができない場合があります。この場合、netplanでDNSサーバーを設定します。
+
+```bash
+# netplanの設定ファイルを確認
+cat /etc/netplan/01-netcfg.yaml
+
+# 設定ファイルを編集（ファイル名は環境によって異なります）
+sudo nano /etc/netplan/01-netcfg.yaml
+```
+
+設定ファイルの`nameservers`セクションに、パブリックDNSサーバー（例: `1.1.1.1`, `8.8.8.8`）を追加します：
+
+```yaml
+network:
+  version: 2
+  ethernets:
+    "ens3":
+      gateway4: 133.242.164.1
+      nameservers:
+        addresses: [133.242.0.3, 133.242.0.4, 1.1.1.1, 8.8.8.8]
+      # ... その他の設定 ...
+```
+
+設定を適用します：
+
+```bash
+# 設定ファイルの構文をチェック
+sudo netplan try
+
+# 問題がなければ、設定を適用
+sudo netplan apply
+
+# DNS設定が正しく適用されたか確認
+resolvectl status ens3
+
+# 実際に名前解決ができるか確認
+dig +short A smart-household-account-book.com
+```
+
+**初心者向けの解説**: nameserversはDNSサーバーのIPアドレスを指定します。1.1.1.1（Cloudflare）と8.8.8.8（Google）は高速で安定性が高いDNSサーバーです。
+
+### ドメインのDNS設定（Route53の場合）
+
+**既にAWS Route53でドメインを持っている場合**、新規購入は不要です。Route53でDNS設定を行うだけで使用できます。
+
+#### ステップ1: VPSのIPアドレスを確認
+
+```bash
+# VPSサーバーにSSH接続して、IPアドレスを確認
+curl ifconfig.me
+# または
+hostname -I
+```
+
+#### ステップ2: Route53でAレコードを設定
+
+1. **AWSマネジメントコンソール**にログイン
+2. **Route53**サービスを開く
+3. 左メニューから「**ホストゾーン**」をクリック
+4. ドメインのホストゾーンを確認（なければ作成）
+
+**レコード1: ルートドメイン用（必須）**
+- **レコード名**: （空白、または @ を入力）
+- **レコードタイプ**: A
+- **値**: VPSのIPアドレス
+- **TTL**: 300（5分、または任意の値）
+- **ルーティングポリシー**: シンプルルーティング
+
+**レコード2: www用（オプション、推奨）**
+- **レコード名**: `www`
+- **レコードタイプ**: A
+- **値**: VPSのIPアドレス（同じIPアドレス）
+- **TTL**: 300
+- **ルーティングポリシー**: シンプルルーティング
+
+#### ステップ3: DNS設定の反映確認
+
+```bash
+# ドメインが正しく設定されているか確認
+nslookup smart-household-account-book.com
+# または
+dig smart-household-account-book.com
+```
+
+**初心者向けの解説**: Aレコードはドメイン名をIPアドレスに変換するDNSレコードです。Route53の変更は通常数分で反映されますが、最大48時間かかる場合もあります。
+
+**注意**: DNS設定が反映されるまで、SSL証明書の取得（Certbot）は実行できません。必ず`nslookup`で確認してから次のステップに進んでください。
 
 ---
 
 ## プロジェクトのデプロイ準備
 
 ### ステップ1: プロジェクトのクローン
-
-GitHubなどのリポジトリからプロジェクトをクローンします。
 
 ```bash
 # ホームディレクトリに移動
@@ -350,9 +375,7 @@ git clone https://github.com/your-username/SmartHouseholdAccountBook.git
 cd SmartHouseholdAccountBook
 ```
 
-**初心者向けの解説**:
-- **Git clone**: リモートリポジトリ（GitHubなど）からプロジェクトのコードをダウンロードするコマンドです。
-- プライベートリポジトリの場合は、認証情報が必要になることがあります。
+**初心者向けの解説**: Git cloneはリモートリポジトリ（GitHubなど）からプロジェクトのコードをダウンロードするコマンドです。プライベートリポジトリの場合は、認証情報が必要になることがあります。
 
 ### ステップ2: 環境変数ファイルの作成
 
@@ -365,7 +388,7 @@ cd SmartHouseholdAccountBook
 nano .env.production
 ```
 
-以下の内容を記述します（実際の値はローカルPCの.envの値を利用）：
+以下の内容を記述します（実際の値に置き換えてください）：
 
 ```env
 # ========================================
@@ -379,14 +402,12 @@ MYSQL_DATABASE=smart_household_db
 # Spring Boot データソース設定
 # ========================================
 # 本番環境用のMySQL接続URL
-# 形式: jdbc:mysql://mysql:3306/データベース名?useSSL=true&serverTimezone=Asia/Tokyo
 SPRING_DATASOURCE_URL_PROD=jdbc:mysql://mysql:3306/smart_household_db?useSSL=true&serverTimezone=Asia/Tokyo
 
 # ========================================
 # AWS Cognito設定
 # ========================================
 # Cognito User PoolのJWK Set URL
-# 形式: https://cognito-idp.{リージョン}.amazonaws.com/{UserPoolId}/.well-known/jwks.json
 COGNITO_JWK_SET_URL=https://cognito-idp.ap-northeast-1.amazonaws.com/your-pool-id/.well-known/jwks.json
 
 # ========================================
@@ -401,72 +422,18 @@ OPENAI_API_KEY=your-openai-api-key-here
 - 本番環境のパスワードは、開発環境とは別のものを使用してください
 - ファイルの権限を制限: `chmod 600 .env.production`
 
-**環境変数ファイルの使い分け**:
-- **開発環境**: `.env`ファイルを使用（ローカル開発用）
-- **本番環境**: `.env.production`ファイルを使用（サーバー上で使用）
-
 **Docker Composeでの使用方法**:
 ```bash
-# 開発環境（.envファイルが自動的に使用される）
-docker compose -f docker-compose.dev.yaml up -d
-
 # 本番環境（.env.productionファイルを明示的に指定）
 docker compose --env-file .env.production -f docker-compose.mysql.yaml up -d
 docker compose --env-file .env.production -f docker-compose.backend.yaml up -d
 ```
-
-**ファイルを保存**:
-- `nano`エディタで編集後、`Ctrl + O`で保存、`Enter`で確定、`Ctrl + X`で終了します。
 
 ---
 
 ## データベース（MySQL）のセットアップ
 
 ### ステップ1: MySQLコンテナを起動
-
-プロジェクトには`docker-compose.mysql.yaml`が含まれています。このファイルを使用してMySQLコンテナを起動します。
-
-`docker-compose.mysql.yaml`の主な設定内容：
-
-```yaml
-services:
-  mysql:
-    image: mysql:8.0
-    container_name: smart_household_mysql
-    restart: always
-    ports:
-      - "127.0.0.1:3306:3306"  # ローカルホストのみにバインド（セキュリティ）
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - app-network
-
-volumes:
-  mysql_data:
-    name: smart_household_mysql_data
-
-networks:
-  app-network:
-    name: smart_household_app_network
-    driver: bridge
-```
-
-**初心者向けの解説**:
-- `docker-compose.mysql.yaml`: MySQL専用のDocker Compose設定ファイルです。本番環境ではMySQLのみをDockerで実行し、アプリケーションは別途デプロイします。
-- `restart: always`: コンテナが停止した場合、自動的に再起動します。
-- `127.0.0.1:3306:3306`: MySQLをローカルホスト（127.0.0.1）のみにバインドします。これにより、外部から直接アクセスできなくなります（セキュリティ向上）。
-- `volumes`: データの永続化のため、MySQLのデータをホストマシンのボリュームに保存します。
-- `networks`: `smart_household_app_network`という名前のネットワークを作成します。このネットワークは、後で起動するSpring Bootコンテナと共有されます。
 
 ```bash
 # 本番環境用の環境変数ファイルを指定してMySQLコンテナを起動
@@ -482,30 +449,13 @@ docker logs smart_household_mysql
 docker network ls | grep smart_household_app_network
 ```
 
-**初心者向けの解説**:
-- `-f docker-compose.mysql.yaml`: 使用するdocker-composeファイルを指定します。
-- `-d`: バックグラウンドで実行します（デタッチモード）。
-- `docker ps`: 実行中のコンテナ一覧を表示します。
-- `docker logs`: コンテナのログを確認します。エラーが発生していないか確認するために使用します。
+**初心者向けの解説**: `docker-compose.mysql.yaml`はMySQL専用のDocker Compose設定ファイルです。`restart: always`により、コンテナが停止した場合、自動的に再起動します。`127.0.0.1:3306:3306`により、MySQLをローカルホストのみにバインドし、外部から直接アクセスできなくなります（セキュリティ向上）。
 
 ### ステップ2: MySQL接続の確認
 
 ```bash
 # MySQLコンテナに接続してデータベースを確認
 docker exec -it smart_household_mysql mysql -u root -p${MYSQL_ROOT_PASSWORD} -e "SHOW DATABASES;"
-```
-
-**期待される出力**:
-```
-+-------------------------+
-| Database                |
-+-------------------------+
-| information_schema      |
-| mysql                   |
-| performance_schema      |
-| production              |
-| sys                     |
-+-------------------------+
 ```
 
 `smart_household_db`が表示されていれば、データベースの作成は成功しています。
@@ -516,57 +466,15 @@ docker exec -it smart_household_mysql mysql -u root -p${MYSQL_ROOT_PASSWORD} -e 
 
 ### ステップ1: MySQLが起動していることを確認
 
-**重要**: このステップを実行する前に、MySQLが既に起動していることを確認してください（前のセクション「データベース（MySQL）のセットアップ」を参照）。
-
-プロジェクトには`docker-compose.backend.yaml`が含まれています。このファイルを使用してSpring Bootコンテナを起動します。
-
-`docker-compose.backend.yaml`の主な設定内容：
-
-```yaml
-services:
-  backend:
-    container_name: smart_household_backend
-    build:
-      context: ./
-      dockerfile: backend/Dockerfile
-    restart: always
-    ports:
-      - "127.0.0.1:8080:8080"  # ローカルホストのみにバインド
-    environment:
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_PROD}
-      SPRING_DATASOURCE_USERNAME: ${MYSQL_ROOT_USER}
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      SPRING_JPA_SHOW_SQL: "false"  # 本番環境ではSQLログを無効化
-      COGNITO_JWK_SET_URL: ${COGNITO_JWK_SET_URL}
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-    networks:
-      - app-network
-
-networks:
-  app-network:
-    name: smart_household_app_network
-    external: true  # 既存のネットワーク（MySQLで作成済み）を使用
-```
-
-**初心者向けの解説**:
-- **`docker-compose.backend.yaml`**: Spring Boot専用のDocker Compose設定ファイルです。
-- **`networks`**: コンテナ間の通信を管理するネットワークです。`smart_household_app_network`という名前のネットワークは、MySQLコンテナ起動時に既に作成されています。
-- **`external: true`**: 既存のネットワークを使用することを示します。これにより、別のdocker-composeファイルで起動したMySQLコンテナと通信できます。
-- **MySQLとの接続**: Spring Bootコンテナは、同じネットワーク（`smart_household_app_network`）上にあるMySQLコンテナに、ホスト名`smart_household_mysql`で接続できます。
-- **`depends_on`は不要**: MySQLは別のdocker-composeファイルで管理されているため、`depends_on`は使用しません。代わりに、MySQLが起動していることを手動で確認してから、Spring Bootを起動します。
+**重要**: このステップを実行する前に、MySQLが既に起動していることを確認してください。
 
 ```bash
 # MySQLコンテナが起動していることを確認
 docker ps | grep smart_household_mysql
 
-# MySQLが起動していない場合は、先にMySQLを起動（本番環境用の環境変数ファイルを指定）
+# MySQLが起動していない場合は、先にMySQLを起動
 docker compose --env-file .env.production -f docker-compose.mysql.yaml up -d
 ```
-
-**初心者向けの解説**:
-- バックエンドを起動する前に、MySQLが既に起動している必要があります。
-- `docker ps`: 実行中のコンテナ一覧を表示します。`smart_household_mysql`が表示されていれば、MySQLは起動しています。
 
 ### ステップ2: バックエンドのビルドと起動
 
@@ -578,16 +486,12 @@ docker compose --env-file .env.production -f docker-compose.backend.yaml up -d -
 docker compose -f docker-compose.backend.yaml logs -f backend
 ```
 
-**初心者向けの解説**:
-- `--build`: イメージを再ビルドします。初回実行時やコードを更新した後に使用します。
-- `-f docker-compose.backend.yaml`: Spring Boot専用のdocker-composeファイルを指定します。
-- `logs -f`: ログをリアルタイムで表示します（`Ctrl + C`で終了）。
+**初心者向けの解説**: `--build`はイメージを再ビルドします。初回実行時やコードを更新した後に使用します。`logs -f`はログをリアルタイムで表示します（`Ctrl + C`で終了）。
 
 ### ステップ3: バックエンドの動作確認
 
 ```bash
 # バックエンドのヘルスチェック（Spring Boot Actuatorがある場合）
-# 注意: /actuator/healthは認証不要なので、このコマンドは正常に動作します
 curl http://localhost:8080/actuator/health
 
 # APIエンドポイントのテスト（認証が必要な場合）
@@ -599,21 +503,7 @@ curl http://localhost:8080/api/expenses/months
 - `/actuator/health`: 認証不要なので、バックエンドが正常に起動していればHTTPレスポンス（通常は200 OK）が返ってきます。
 - `/api/expenses/months`: Cognito認証が必要なため、JWTトークンなしでは`401 Unauthorized`が返ります。これは正常な動作です（認証が正しく機能している証拠）。
 
-**認証が必要なAPIエンドポイントをテストする場合**:
-```bash
-# JWTトークンを取得してからAPIを呼び出す必要があります
-# 実際のテストは、フロントエンドからログインして行うか、
-# またはPostmanなどのツールでJWTトークンを設定してテストしてください
-curl -H "Authorization: Bearer YOUR_JWT_TOKEN" http://localhost:8080/api/expenses/months
-```
-
-**初心者向けの解説**:
-- **認証不要のエンドポイント**: `/actuator/health`などのActuatorエンドポイントは、システムの状態を確認するために使用されます。認証なしでアクセス可能です。
-- **認証が必要なエンドポイント**: `/api/**`で始まるすべてのAPIエンドポイントは、Cognito認証（JWTトークン）が必要です。セキュリティのため、認証なしではアクセスできません。
-- **401 Unauthorized**: 認証が必要なエンドポイントに認証情報なしでアクセスすると、401エラーが返ります。これはエラーではなく、セキュリティが正しく機能している証拠です。
-
-**エラーが発生している場合**:
-- ログを確認してください：`docker logs smart_household_backend`
+**エラーが発生している場合**: ログを確認してください：`docker logs smart_household_backend`
 
 ---
 
@@ -632,17 +522,23 @@ nano .env.production
 以下の内容を記述します（実際の値に置き換えてください）：
 
 ```env
-# バックエンドAPIのURL
-# 本番環境では、Nginx経由でアクセスするため、内部URLを使用
-NEXT_PUBLIC_API_URL=http://localhost:8080/api
+# バックエンドAPIのベースURL
+# 本番環境では、絶対パスを使用（明示的にドメインを指定）
+# 注意: OpenAPI定義に既に /api が含まれているため、ベースURLには /api を含めません
+NEXT_PUBLIC_API_BASE_URL=https://smart-household-account-book.com
 
-# または、ドメインを使用する場合（Nginx経由）
-# NEXT_PUBLIC_API_URL=https://your-domain.com/api
+# 開発環境の場合（ローカル開発用）
+# NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 ```
 
-**初心者向けの解説**:
+**初心者向けの解説**: 
 - `NEXT_PUBLIC_`: Next.jsでは、環境変数名が`NEXT_PUBLIC_`で始まる場合のみ、ブラウザ側で使用可能になります。
-- 本番環境では、Nginxがリバースプロキシとして機能するため、APIリクエストは`/api`パスでNginxに送信され、Nginxがバックエンドに転送します。
+- **重要な注意点**: 
+  - `http://localhost:8080/api`のような設定は使用できません。ブラウザはユーザーのPC上で動作するため、サーバー側の`localhost:8080`にはアクセスできません。
+  - `/api`を指定してはいけません。OpenAPI定義に既に`/api`が含まれているため、`basePath`に`/api`を指定すると、実際のリクエストが`/api/api/expenses`のようになってしまいます。
+- **正しい設定方法**:
+  - **本番環境（絶対パス、推奨）**: `NEXT_PUBLIC_API_BASE_URL=https://smart-household-account-book.com`を使用します
+  - **開発環境**: `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080`を使用します
 
 ### ステップ2: フロントエンドのビルド
 
@@ -650,22 +546,21 @@ NEXT_PUBLIC_API_URL=http://localhost:8080/api
 # 依存関係のインストール
 npm install
 
+# OpenAPI定義からAPIクライアントを生成（重要！）
+npm run generate:api
+
 # 本番環境用にビルド
 npm run build
 ```
 
-**初心者向けの解説**:
+**初心者向けの解説**: 
 - `npm install`: `package.json`に記載されている依存関係（ライブラリ）をインストールします。
-- `npm run build`: Next.jsアプリケーションを本番環境用に最適化してビルドします。TypeScriptのコンパイル、コードの最適化、静的ページの生成などが行われます。
+- `npm run generate:api`: OpenAPI定義ファイルからTypeScriptのAPIクライアントコードを自動生成します。このコードがないと、ビルド時にエラーが発生します。
+- `npm run build`: Next.jsアプリケーションを本番環境用に最適化してビルドします。
 
-**ビルド後の静的ファイル**:
-- ビルドが完了すると、`frontend-nextjs/.next/static/`ディレクトリに静的ファイル（CSS、JavaScript、画像など）が生成されます。
-- これらのファイルは、Nginxが直接配信するため、Next.jsサーバーを経由せずに高速に配信されます。
-- 静的ファイルのパスは、Nginx設定ファイルの`location /_next/static`ブロックで指定します。
+**ビルド後の静的ファイル**: ビルドが完了すると、`frontend-nextjs/.next/static/`ディレクトリに静的ファイル（CSS、JavaScript、画像など）が生成されます。これらのファイルは、Nginxが直接配信するため、Next.jsサーバーを経由せずに高速に配信されます。
 
 ### ステップ3: PM2でNext.jsを管理
-
-PM2は、Node.jsアプリケーションを本番環境で実行・管理するためのプロセスマネージャーです。
 
 ```bash
 # PM2をグローバルにインストール
@@ -686,10 +581,7 @@ pm2 startup
 pm2 save
 ```
 
-**初心者向けの解説**:
-- **PM2**: Node.jsアプリケーションをバックグラウンドで実行し、自動再起動、ログ管理、プロセス監視などの機能を提供します。
-- `pm2 startup`: システム起動時にPM2を自動的に起動するように設定します。サーバーが再起動されても、アプリケーションが自動的に起動します。
-- `pm2 save`: 現在のPM2の設定を保存します。
+**初心者向けの解説**: PM2はNode.jsアプリケーションをバックグラウンドで実行し、自動再起動、ログ管理、プロセス監視などの機能を提供します。`pm2 startup`により、システム起動時にPM2を自動的に起動するように設定します。
 
 ### ステップ4: フロントエンドの動作確認
 
@@ -711,28 +603,42 @@ pm2 logs smart-household-frontend
 # Nginxの設定ディレクトリに移動
 cd /etc/nginx/sites-available
 
-# 新しい設定ファイルを作成（ドメイン名を置き換えてください）
+# 新しい設定ファイルを作成
 sudo nano smart-household-account-book
 ```
 
-以下の内容を記述します（`your-domain.com`を実際のドメイン名に置き換えてください）：
-
-**重要**: フロントエンドのビルドが完了していることを確認してください（`npm run build`を実行済み）。静的ファイルは`frontend-nextjs/.next/static/`ディレクトリに生成されます。
+**重要**: 初回設定時は、まず基本的なHTTP設定のみを作成します。その後、SSL証明書を取得すると、Certbotが自動的に設定を更新します。以下の設定は、SSL証明書取得後の最終的な設定例です（実際のドメイン名とユーザー名に合わせて変更してください）：
 
 ```nginx
-# HTTPからHTTPSへのリダイレクト（後でSSL証明書を設定した後に有効化）
-# server {
-#     listen 80;
-#     server_name your-domain.com www.your-domain.com;
-#     return 301 https://$server_name$request_uri;
-# }
-
-# HTTPサーバー（SSL証明書設定前はこちらを使用）
+# HTTPからHTTPSへのリダイレクト（Certbotが自動生成）
 server {
-    listen 80;
-    server_name your-domain.com www.your-domain.com;
+    if ($host = www.smart-household-account-book.com) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
 
-    # セキュリティヘッダー
+    if ($host = smart-household-account-book.com) {
+        return 301 https://$host$request_uri;
+    } # managed by Certbot
+
+    listen 80;
+    server_name smart-household-account-book.com www.smart-household-account-book.com;
+    return 404; # managed by Certbot
+}
+
+# HTTPSサーバー（SSL証明書設定済み）
+server {
+    # ポート443でSSLとHTTP/2を有効化（listenはserverブロックの最初に配置）
+    listen 443 ssl http2; # managed by Certbot
+    server_name smart-household-account-book.com www.smart-household-account-book.com;
+
+    # SSL証明書のパス（Certbotが自動設定）
+    ssl_certificate /etc/letsencrypt/live/smart-household-account-book.com/fullchain.pem; # managed by Certbot
+    ssl_certificate_key /etc/letsencrypt/live/smart-household-account-book.com/privkey.pem; # managed by Certbot
+    include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
+    ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
+
+    # セキュリティヘッダー（HSTSを追加）
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
     add_header X-Frame-Options "SAMEORIGIN" always;
     add_header X-Content-Type-Options "nosniff" always;
     add_header X-XSS-Protection "1; mode=block" always;
@@ -746,11 +652,9 @@ server {
 
     # 静的ファイルをNginxで直接配信（高速・パフォーマンス最適化）
     # Next.jsのビルド時に生成される静的ファイル（CSS、JavaScript、画像など）
-    # パス: frontend-nextjs/.next/static/
-    # 注意: /home/username の部分を、実際のユーザー名に置き換えてください
-    # 例: /home/yuki/SmartHouseholdAccountBook/frontend-nextjs/.next/static
+    # 注意: /home/ubuntu の部分を、実際のユーザー名に置き換えてください
     location /_next/static {
-        alias /home/username/SmartHouseholdAccountBook/frontend-nextjs/.next/static;
+        alias /home/ubuntu/SmartHouseholdAccountBook/frontend-nextjs/.next/static;
         expires 1y;  # 1年間ブラウザにキャッシュ
         add_header Cache-Control "public, immutable";
         access_log off;  # 静的ファイルのアクセスログは不要（ログファイルの肥大化を防ぐ）
@@ -760,6 +664,10 @@ server {
     location /api {
         proxy_pass http://localhost:8080;
         proxy_http_version 1.1;
+
+        # 認証ヘッダーを明示的に転送
+        proxy_set_header Authorization $http_authorization;
+
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';
         proxy_set_header Host $host;
@@ -787,89 +695,17 @@ server {
         proxy_cache_bypass $http_upgrade;
     }
 }
-
-# HTTPSサーバー（SSL証明書設定後に有効化）
-# server {
-#     listen 443 ssl http2;
-#     server_name your-domain.com www.your-domain.com;
-#
-#     # SSL証明書のパス（Certbotが自動的に設定）
-#     ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem;
-#     ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem;
-#
-#     # SSL設定（セキュリティ強化）
-#     ssl_protocols TLSv1.2 TLSv1.3;
-#     ssl_ciphers HIGH:!aNULL:!MD5;
-#     ssl_prefer_server_ciphers on;
-#
-#     # セキュリティヘッダー
-#     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
-#     add_header X-Frame-Options "SAMEORIGIN" always;
-#     add_header X-Content-Type-Options "nosniff" always;
-#     add_header X-XSS-Protection "1; mode=block" always;
-#
-#     # ログ設定
-#     access_log /var/log/nginx/smart-household-access.log;
-#     error_log /var/log/nginx/smart-household-error.log;
-#
-#     # クライアントの最大ボディサイズ
-#     client_max_body_size 10M;
-#
-#     # 静的ファイルをNginxで直接配信（高速・パフォーマンス最適化）
-#     # 注意: /home/username の部分を、実際のユーザー名に置き換えてください
-#     location /_next/static {
-#         alias /home/username/SmartHouseholdAccountBook/frontend-nextjs/.next/static;
-#         expires 1y;
-#         add_header Cache-Control "public, immutable";
-#         access_log off;
-#     }
-#
-#     # APIリクエストをバックエンドにプロキシ
-#     location /api {
-#         proxy_pass http://localhost:8080;
-#         proxy_http_version 1.1;
-#         proxy_set_header Upgrade $http_upgrade;
-#         proxy_set_header Connection 'upgrade';
-#         proxy_set_header Host $host;
-#         proxy_set_header X-Real-IP $remote_addr;
-#         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-#         proxy_set_header X-Forwarded-Proto $scheme;
-#         proxy_cache_bypass $http_upgrade;
-#         
-#         proxy_connect_timeout 60s;
-#         proxy_send_timeout 60s;
-#         proxy_read_timeout 60s;
-#     }
-#
-#     # その他のリクエストはNext.jsサーバーにプロキシ（SSR/動的ページ用）
-#     location / {
-#         proxy_pass http://localhost:3000;
-#         proxy_http_version 1.1;
-#         proxy_set_header Upgrade $http_upgrade;
-#         proxy_set_header Connection 'upgrade';
-#         proxy_set_header Host $host;
-#         proxy_set_header X-Real-IP $remote_addr;
-#         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-#         proxy_set_header X-Forwarded-Proto $scheme;
-#         proxy_cache_bypass $http_upgrade;
-#     }
-# }
 ```
 
-**初心者向けの解説**:
-- `location /_next/static`: Next.jsのビルド時に生成される静的ファイル（CSS、JavaScript、画像など）をNginxが直接配信します。これにより、Next.jsサーバーを経由せずに高速に配信できます。
-  - `alias`: ファイルシステム上の実際のパスを指定します。`/home/username`の部分は、実際のユーザー名に置き換えてください。
-  - `expires 1y`: ブラウザに1年間キャッシュさせます。これにより、同じファイルを何度もダウンロードする必要がなくなります。
-  - `access_log off`: 静的ファイルのアクセスログを無効化します。ログファイルの肥大化を防ぎます。
-- `location /api`: `/api`で始まるリクエストをバックエンド（Spring Boot、ポート8080）に転送します。
+**初心者向けの解説**: 
+- **HTTPからHTTPSへのリダイレクト**: HTTP（ポート80）でアクセスされた場合、自動的にHTTPS（ポート443）にリダイレクトします。セキュリティのため、すべての通信を暗号化します。
+- **SSL証明書**: Certbotが自動的に設定したSSL証明書のパスが記載されています。これにより、HTTPS通信が有効になります。
+- **セキュリティヘッダー**: HSTS（Strict-Transport-Security）により、ブラウザにHTTPS接続を強制します。その他のセキュリティヘッダーも追加されています。
+- `location /_next/static`: Next.jsのビルド時に生成される静的ファイルをNginxが直接配信します。これにより、Next.jsサーバーを経由せずに高速に配信できます。
+- `location /api`: `/api`で始まるリクエストをバックエンド（Spring Boot、ポート8080）に転送します。`proxy_set_header Authorization $http_authorization;`により、JWTトークンなどの認証情報をバックエンドに正しく渡します。
 - `location /`: その他のリクエスト（動的ページ、SSRが必要なページなど）をフロントエンド（Next.js、ポート3000）に転送します。
-- `proxy_set_header`: リクエストヘッダーを設定します。これにより、バックエンドがクライアントの実際のIPアドレスなどを取得できます。
-- `X-Forwarded-Proto`: クライアントがHTTPSで接続した場合、バックエンドにその情報を伝えます。
 
-**この構成の利点**:
-- **パフォーマンス向上**: 静的ファイル（CSS、JavaScript、画像など）はNginxが直接配信するため、非常に高速です。
-- **リソース節約**: Next.jsサーバーの負荷が軽減され、動的ページ（SSR）の処理に集中できます。
-- **キャッシュ最適化**: 静的ファイルは1年間キャッシュされるため、ブラウザの再ダウンロードが不要になります。
+**この構成の利点**: セキュリティ強化（HTTPS、HSTS）、パフォーマンス向上（HTTP/2、静的ファイルの直接配信）、リソース節約、キャッシュ最適化
 
 ### ステップ2: 設定ファイルを有効化
 
@@ -890,29 +726,15 @@ sudo systemctl restart nginx
 sudo systemctl status nginx
 ```
 
-**初心者向けの解説**:
-- `ln -s`: シンボリックリンク（ショートカットのようなもの）を作成します。`sites-enabled`ディレクトリ内のファイルが実際に使用される設定です。
-- `nginx -t`: Nginxの設定ファイルに構文エラーがないかテストします。エラーがある場合は、修正してから再起動してください。
-
 ### ステップ3: 動作確認
 
 ```bash
-# ブラウザで http://your-domain.com にアクセスして、アプリケーションが表示されるか確認
+# ブラウザで http://smart-household-account-book.com にアクセスして、アプリケーションが表示されるか確認
 # または、curlで確認
-curl http://your-domain.com
-
-# 静的ファイルがNginxで直接配信されているか確認
-# ビルド後に生成されるCSSファイルのパスを確認（実際のパスはビルド結果に依存します）
-curl -I http://your-domain.com/_next/static/css/app.css
-
-# 期待される動作:
-# - HTTPステータスコード 200 が返ってくる
-# - レスポンスヘッダーに "Cache-Control: public, immutable" が含まれる
-# - レスポンスヘッダーに "Expires" が含まれる（1年後）
-
-# 注意: ビルド後の実際のファイル名は異なる場合があります
-# ブラウザの開発者ツール（F12）のNetworkタブで、実際の静的ファイルのパスを確認できます
+curl http://smart-household-account-book.com
 ```
+
+**注意**: この時点ではHTTP（ポート80）でのみアクセス可能です。SSL証明書を設定すると、HTTPS（ポート443）でアクセスできるようになります。
 
 ---
 
@@ -921,8 +743,8 @@ curl -I http://your-domain.com/_next/static/css/app.css
 ### ステップ1: SSL証明書の取得
 
 ```bash
-# CertbotでSSL証明書を取得（ドメイン名を置き換えてください）
-sudo certbot --nginx -d your-domain.com -d www.your-domain.com
+# CertbotでSSL証明書を取得（ドメイン名を実際のドメインに置き換えてください）
+sudo certbot --nginx -d smart-household-account-book.com -d www.smart-household-account-book.com
 
 # 対話形式で設定が進みます：
 # - メールアドレスを入力（証明書の有効期限通知用）
@@ -930,10 +752,9 @@ sudo certbot --nginx -d your-domain.com -d www.your-domain.com
 # - HTTPからHTTPSへのリダイレクトを有効化するか選択（推奨: Yes）
 ```
 
-**初心者向けの解説**:
-- **Let's Encrypt**: 無料でSSL証明書を提供する認証局です。
-- **証明書の有効期限**: 90日間です。Certbotは自動的に更新してくれます。
-- **リダイレクト**: HTTP（ポート80）でアクセスされた場合、自動的にHTTPS（ポート443）にリダイレクトします。
+**初心者向けの解説**: Let's Encryptは無料でSSL証明書を提供する認証局です。証明書の有効期限は90日間です。Certbotは自動的に更新してくれます。
+
+**重要**: Certbotは自動的にNginxの設定ファイルを更新します。HTTPからHTTPSへのリダイレクト設定や、SSL証明書のパスなどが自動的に追加されます。上記の設定ファイル例は、Certbot実行後の最終的な設定です。
 
 ### ステップ2: 自動更新の確認
 
@@ -945,61 +766,37 @@ sudo certbot renew --dry-run
 sudo systemctl status certbot.timer
 ```
 
-**初心者向けの解説**:
-- `--dry-run`: 実際には更新せず、更新プロセスが正常に動作するかテストします。
-- Certbotは、システムのタイマー（systemd timer）を使用して、証明書を自動的に更新します。
+**初心者向けの解説**: `--dry-run`は実際には更新せず、更新プロセスが正常に動作するかテストします。Certbotは、システムのタイマー（systemd timer）を使用して、証明書を自動的に更新します。
 
-### ステップ3: Nginx設定の更新
+### ステップ3: 設定の確認と改善（オプション）
 
-Certbotが自動的にNginxの設定ファイルを更新しますが、念のため確認してください：
+Certbotが自動的に設定を追加しますが、設定ファイルを確認して、必要に応じて以下の改善を追加できます：
 
-```bash
-# 設定ファイルを確認
-sudo nano /etc/nginx/sites-available/smart-household-account-book
-```
-
-SSL証明書が正しく設定され、HTTPSサーバーブロックが有効になっていることを確認します。
-
----
-
-## 環境変数の管理
-
-### セキュアな環境変数管理のベストプラクティス
-
-1. **`.env`ファイルの権限設定**
-   ```bash
-   # .envファイルの権限を制限（所有者のみ読み取り可能）
-   chmod 600 .env
+1. **HTTP/2の有効化**: `listen 443 ssl;`が`listen 443 ssl http2;`になっているか確認（パフォーマンス向上）
+2. **HSTSヘッダーの追加**: HTTPSサーバーブロックに以下が追加されているか確認：
+   ```nginx
+   add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+   ```
+3. **認証ヘッダーの転送**: `location /api`ブロックに以下が追加されているか確認：
+   ```nginx
+   proxy_set_header Authorization $http_authorization;
    ```
 
-2. **環境変数のバックアップ**
-   ```bash
-   # 環境変数ファイルを安全な場所にバックアップ（暗号化推奨）
-   # 例: パスワードマネージャーや暗号化されたストレージに保存
-   ```
-
-3. **機密情報のローテーション**
-   - 定期的にパスワードやAPIキーを変更する
-   - 変更後は、アプリケーションを再起動する
-
-### 環境変数の更新とアプリケーションの再起動
+設定変更後の確認：
 
 ```bash
-# 環境変数を更新した後、アプリケーションを再起動
+# 設定ファイルの構文チェック
+sudo nginx -t
 
-# バックエンドの再起動
-cd ~/SmartHouseholdAccountBook
-docker compose -f docker-compose.backend.yaml restart backend
-
-# フロントエンドの再起動
-pm2 restart smart-household-frontend
+# 問題がなければNginxをリロード
+sudo systemctl reload nginx
 ```
+
+**初心者向けの解説**: HTTP/2はより高速な通信プロトコルです。HSTS（Strict-Transport-Security）はブラウザにHTTPS接続を強制する指示を送ります。認証ヘッダーの転送は、JWTトークンなどの認証情報をバックエンドに正しく渡すために重要です。
 
 ---
 
 ## コードの更新と再デプロイ
-
-リモートリポジトリにpushした変更をVPSサーバーに取り込む手順です。
 
 ### ステップ1: リモートリポジトリから最新の変更を取得
 
@@ -1013,14 +810,7 @@ git pull origin main
 # git pull origin master
 ```
 
-**初心者向けの解説**:
-- `git pull`: リモートリポジトリの最新の変更を取得して、ローカルのコードを更新します。
-- `origin`: リモートリポジトリの名前（通常は`origin`）。
-- `main`（または`master`）: ブランチ名。プロジェクトで使用しているブランチ名に合わせてください。
-
 ### ステップ2: アプリケーションの再ビルドと再起動
-
-コードを更新した後、変更を反映するために再ビルドと再起動が必要です。
 
 ```bash
 # バックエンドを再ビルドして再起動
@@ -1029,16 +819,17 @@ docker compose --env-file .env.production -f docker-compose.backend.yaml up -d -
 # フロントエンドディレクトリに移動してビルド
 cd frontend-nextjs
 npm install  # 依存関係が変更された場合
+npm run generate:api  # OpenAPI定義が変更された場合、または初回
 npm run build
 
 # フロントエンドを再起動
 pm2 restart smart-household-frontend
 ```
 
-**初心者向けの解説**:
+**初心者向けの解説**: 
 - `--build`: Dockerイメージを再ビルドします。コードを変更した場合は必須です。
+- `npm run generate:api`: OpenAPI定義が変更された場合、または初回デプロイ時は必須です。APIクライアントコードを再生成します。
 - `npm run build`: Next.jsアプリケーションを本番環境用にビルドします。コードを変更した場合は必須です。
-- `pm2 restart`: PM2で管理しているアプリケーションを再起動します。
 
 ---
 
@@ -1171,12 +962,12 @@ docker ps | grep mysql
 docker logs smart_household_mysql
 
 # 環境変数が正しく設定されているか確認
-cat .env | grep SPRING_DATASOURCE_URL
+cat .env.production | grep SPRING_DATASOURCE_URL
 ```
 
 **解決方法**:
-- MySQLが起動していない場合: `docker compose -f docker-compose.mysql.yaml up -d`
-- 環境変数が間違っている場合: `.env`ファイルを確認して修正
+- MySQLが起動していない場合: `docker compose --env-file .env.production -f docker-compose.mysql.yaml up -d`
+- 環境変数が間違っている場合: `.env.production`ファイルを確認して修正
 
 #### 2. フロントエンドが表示されない
 
@@ -1198,7 +989,44 @@ netstat -tlnp | grep 3000
 - PM2が停止している場合: `pm2 restart smart-household-frontend`
 - ポートが使用されていない場合: `pm2 start npm --name "smart-household-frontend" -- start`
 
-#### 3. Nginxが502エラーを返す
+#### 3. フロントエンドのビルドエラー
+
+**よくあるエラー1: `Module not found: Can't resolve './generated/configuration'`**
+
+**原因**: OpenAPI GeneratorでAPIクライアントコードが生成されていない
+
+**解決方法**:
+```bash
+cd ~/SmartHouseholdAccountBook/frontend-nextjs
+npm run generate:api
+npm run build
+```
+
+**よくあるエラー2: `Error: /bin/sh: 1: java: not found`**
+
+**原因**: Javaがインストールされていない
+
+**解決方法**:
+```bash
+sudo apt update
+sudo apt install -y openjdk-17-jdk
+cd ~/SmartHouseholdAccountBook/frontend-nextjs
+npm run generate:api
+npm run build
+```
+
+**よくあるエラー3: `Could not find a production build in the '.next' directory`**
+
+**原因**: PM2で`npm start`を実行する前に`npm run build`を実行していない
+
+**解決方法**:
+```bash
+cd ~/SmartHouseholdAccountBook/frontend-nextjs
+npm run build
+pm2 restart smart-household-frontend
+```
+
+#### 4. Nginxが502エラーを返す
 
 **症状**: ブラウザで502 Bad Gatewayエラーが表示される
 
@@ -1216,7 +1044,7 @@ pm2 status
 - バックエンドまたはフロントエンドが停止している場合、再起動
 - Nginxの設定ファイルに構文エラーがないか確認: `sudo nginx -t`
 
-#### 4. SSL証明書の更新に失敗する
+#### 5. SSL証明書の更新に失敗する
 
 **症状**: Certbotの自動更新が失敗する
 
@@ -1234,7 +1062,7 @@ sudo certbot certificates
 - ファイアウォールでポート80と443が開放されているか確認
 - 手動で更新を試行: `sudo certbot renew`
 
-#### 5. データベース接続エラー
+#### 6. データベース接続エラー
 
 **症状**: バックエンドがデータベースに接続できない
 
@@ -1248,8 +1076,8 @@ docker exec -it smart_household_mysql mysql -u root -p${MYSQL_ROOT_PASSWORD} -e 
 ```
 
 **解決方法**:
-- MySQLコンテナが停止している場合: `docker compose -f docker-compose.mysql.yaml up -d`
-- 接続URLが間違っている場合: `.env`ファイルの`SPRING_DATASOURCE_URL_PROD`を確認
+- MySQLコンテナが停止している場合: `docker compose --env-file .env.production -f docker-compose.mysql.yaml up -d`
+- 接続URLが間違っている場合: `.env.production`ファイルの`SPRING_DATASOURCE_URL_PROD`を確認
 
 ### ログファイルの場所
 
@@ -1307,4 +1135,3 @@ docker exec -it smart_household_mysql mysql -u root -p${MYSQL_ROOT_PASSWORD} -e 
 ---
 
 **質問や問題が発生した場合は、ログを確認し、このガイドのトラブルシューティングセクションを参照してください。**
-
