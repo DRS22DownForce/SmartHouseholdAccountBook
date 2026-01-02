@@ -65,7 +65,7 @@ export function ExpenseForm({ expense, onSubmit, reactNode }: ExpenseFormProps) 
    * 
    * 以下の2つのケースでフォームデータを更新します：
    * 1. 編集モード（expenseが存在する場合）: 既存の支出データをフォームに設定
-   * 2. 新規追加モード（expenseがなく、ダイアログが閉じた場合）: フォームを初期状態にリセット
+   * 2. 新規追加モード（expenseがなく、ダイアログが開いている場合）: フォームを初期状態にリセット
    * 
    * これにより、ダイアログを開くたびに適切な初期値が設定されます。
    */
@@ -73,8 +73,7 @@ export function ExpenseForm({ expense, onSubmit, reactNode }: ExpenseFormProps) 
     if (expense) {
       // 編集モード: 既存の支出データをフォームに設定
       setFormData(expenseToFormData(expense))
-    } else if (!open) {
-      // 新規追加モード: ダイアログが閉じた時にフォームをリセット
+    } else if(open) {
       setFormData(getInitialFormData())
     }
   }, [expense, open])
