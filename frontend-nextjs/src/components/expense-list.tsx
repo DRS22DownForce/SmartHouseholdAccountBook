@@ -22,8 +22,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { ExpenseForm } from "./expense-form"
+import type { ExpenseFormProps } from "./expense-form"
 import { Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
-import type { ExpenseFormData } from "@/lib/types"
+import type { Expense, ExpenseFormData } from "@/lib/types"
 import { getCategoryColor } from "@/lib/category-colors"
 import { formatCurrency } from "@/lib/formatters"
 import { useMonthlyExpenses } from "@/hooks/use-monthly-expenses"
@@ -43,7 +44,7 @@ export function ExpenseList({ onUpdate, onDelete, refreshTrigger }: ExpenseListP
     const month = String(selectedDate.getMonth() + 1).padStart(2, "0")
     return `${year}-${month}`
   }, [selectedDate])
-  
+
 
   // バックエンドAPIから月別支出を取得
   const { expenses, isLoaded, fetchMonthlyExpenses } = useMonthlyExpenses(selectedMonth)
@@ -99,6 +100,26 @@ export function ExpenseList({ onUpdate, onDelete, refreshTrigger }: ExpenseListP
   const monthTotal = useMemo(() => {
     return expenses.reduce((sum, expense) => sum + expense.amount, 0)
   }, [expenses])
+
+  /**
+   * 編集用のExpenseFormのプロップスを生成するヘルパー関数
+   */
+  const createEditFormProps = (
+    expense: Expense
+  ): ExpenseFormProps => ({
+    expense: expense,
+    onSubmit: (data) => onUpdate(expense.id, data),
+    reactNode: (
+      <Button
+        variant="ghost"
+        size="icon"
+        className="rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
+      >
+        <Pencil className="h-4 w-4" />
+        <span className="sr-only">編集</span>
+      </Button>
+    ),
+  })
 
   // 読み込み中の表示
   if (!isLoaded) {
@@ -192,20 +213,7 @@ export function ExpenseList({ onUpdate, onDelete, refreshTrigger }: ExpenseListP
                   </p>
                 </div>
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <ExpenseForm
-                    expense={expense}
-                    onSubmit={(data) => onUpdate(expense.id, data)}
-                    trigger={
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
-                      >
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">編集</span>
-                      </Button>
-                    }
-                  />
+                  <ExpenseForm {...createEditFormProps(expense)} />
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
