@@ -1016,8 +1016,8 @@ export function ExpenseForm({ expense, onSubmit, reactNode }: ExpenseFormProps) 
     if (expense) {
       // 編集モード: 既存の支出データをフォームに設定
       setFormData(expenseToFormData(expense))
-    } else if (!open) {
-      // 新規追加モード: ダイアログが閉じた時にフォームをリセット
+    } else if (open) {
+      // 新規追加モード: ダイアログが開いた時にフォームをリセット
       setFormData(getInitialFormData())
     }
   }, [expense, open])
