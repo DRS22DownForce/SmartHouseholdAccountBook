@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation"
 import { Wallet, Home, List } from "lucide-react"
 import Link from "next/link"
 import { ExpenseForm } from "@/components/expense-form"
+import type { ExpenseFormProps } from "@/components/expense-form"
 import { CsvUploadDialog } from "@/components/csv-upload-dialog"
 import { UserMenu } from "@/components/user-menu"
 import { AiChatDialog } from "@/components/ai-chat-dialog"
@@ -31,6 +32,13 @@ export function Header({
   onAddExpenses,
 }: HeaderProps) {
   const pathname = usePathname()
+
+  /**
+   * 新規追加用のExpenseFormのPropsを生成
+   */
+  const addExpenseFormProps: ExpenseFormProps = {
+    onSubmit: onAddExpense,
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/50 bg-card/98 backdrop-blur-xl supports-[backdrop-filter]:bg-card/80 shadow-sm">
@@ -76,7 +84,7 @@ export function Header({
           <div className="flex items-center gap-1.5 md:gap-2.5 flex-shrink-0">
             <AiChatDialog />
             <CsvUploadDialog onUpload={onAddExpenses} />
-            <ExpenseForm onSubmit={onAddExpense} />
+            <ExpenseForm {...addExpenseFormProps} />
             <UserMenu username={username} onLogout={onLogout} />
           </div>
         </div>

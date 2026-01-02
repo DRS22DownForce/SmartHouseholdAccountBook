@@ -203,14 +203,21 @@ const updated2 = { ...formData, age: 26, city: "大阪" }
 `frontend-nextjs/src/components/expense-form.tsx`:
 
 ```typescript
-export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
+export function ExpenseForm({ expense, onSubmit, reactNode }: ExpenseFormProps) {
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState<ExpenseFormData>(getInitialFormData())
   
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold">支出フォーム</h1>
+      <DialogTrigger asChild>
+        {reactNode || (
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            支出を追加
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent>
         <form onSubmit={handleSubmit}>
           <input
             type="text"
@@ -218,7 +225,7 @@ export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           />
         </form>
-      </div>
+      </DialogContent>
     </Dialog>
   )
 }
@@ -316,24 +323,45 @@ function Welcome({ name = "ゲスト", age = 0 }: WelcomeProps) {
 
 ### 実際のプロジェクトでの使用例
 
-`frontend-nextjs/src/components/expense-form.tsx` (15-19行目):
+`frontend-nextjs/src/components/expense-form.tsx` (15-37行目):
 
 ```typescript
-interface ExpenseFormProps {
+/**
+ * ExpenseFormコンポーネントのプロップス型定義
+ */
+export interface ExpenseFormProps {
   expense?: Expense
   onSubmit: (data: ExpenseFormData) => void
-  trigger?: React.ReactNode
+  reactNode?: React.ReactNode
 }
 
-export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
+export function ExpenseForm({ expense, onSubmit, reactNode }: ExpenseFormProps) {
   // コンポーネントの実装
 }
 ```
 
 **解説**:
+- `export interface ExpenseFormProps`: 型をexportすることで、親コンポーネントでも型を参照できる
 - `expense?: Expense`: オプショナルなProps（`?`で省略可能）
 - `onSubmit: (data: ExpenseFormData) => void`: 関数型のProps（コールバック関数）
-- `trigger?: React.ReactNode`: React要素をPropsとして渡す
+- `reactNode?: React.ReactNode`: ダイアログを開くためのトリガー要素（ボタンなど）。指定されない場合はデフォルトボタンが表示される
+
+**親コンポーネントでの型の使用例**:
+
+```typescript
+// Header.tsx
+import type { ExpenseFormProps } from "@/components/expense-form"
+
+const addExpenseFormProps: ExpenseFormProps = {
+  onSubmit: onAddExpense,
+}
+
+<ExpenseForm {...addExpenseFormProps} />
+```
+
+**解説**:
+- 親コンポーネントで`ExpenseFormProps`型をインポートして使用することで、型安全性が向上する
+- 型を明示的に使用することで、コードの可読性と保守性が向上する
 
 **学習ポイント**:
 - **Props**: 親から子へデータを渡す
@@ -980,19 +1008,16 @@ export function useExpenses() {
 `frontend-nextjs/src/components/expense-form.tsx`:
 
 ```typescript
-export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
+export function ExpenseForm({ expense, onSubmit, reactNode }: ExpenseFormProps) {
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState<ExpenseFormData>(getInitialFormData())
 
   useEffect(() => {
     if (expense) {
-      setFormData({
-        amount: expense.amount,
-        category: expense.category,
-        description: expense.description,
-        date: expense.date,
-      })
+      // 編集モード: 既存の支出データをフォームに設定
+      setFormData(expenseToFormData(expense))
     } else if (!open) {
+      // 新規追加モード: ダイアログが閉じた時にフォームをリセット
       setFormData(getInitialFormData())
     }
   }, [expense, open])
@@ -1005,17 +1030,28 @@ export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {/* JSXの内容 */}
+      <DialogTrigger asChild>
+        {reactNode || (
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            支出を追加
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent>
+        {/* フォームの内容 */}
+      </DialogContent>
     </Dialog>
   )
 }
 ```
 
 **解説**:
-- **Props**: `expense`, `onSubmit`, `trigger`を受け取る
+- **Props**: `expense`, `onSubmit`, `reactNode`を受け取る
 - **State**: `open`, `formData`を管理
 - **useEffect**: `expense`や`open`が変更された時に実行
 - **イベントハンドリング**: `handleSubmit`でフォーム送信を処理
+- **型のexport**: `ExpenseFormProps`をexportすることで、親コンポーネントでも型を参照できる
 
 ### 2. カスタムフックの使用
 
