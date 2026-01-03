@@ -8,53 +8,87 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Plus } from "lucide-react"
-import type { Expense, ExpenseFormData } from "@/lib/types"
+import type { ExpenseFormData } from "@/lib/types"
 import { EXPENSE_CATEGORIES } from "@/lib/constants"
-import { getCurrentDateString } from "@/lib/formatters"
+import { getInitialFormData, expenseToFormData } from "@/lib/form-data-utils"
+import type { Expense } from "@/lib/types"
 
-interface ExpenseFormProps {
+/**
+ * ExpenseFormコンポーネントのプロップス型定義
+ * 
+ * 支出の新規追加または編集を行うためのフォームダイアログコンポーネントのプロップスです。
+ * 
+ * @property {Expense} [expense] - 編集対象の支出データ。指定されない場合は新規追加モードになります。
+ *                                 新規追加時は初期値（今日の日付、空の金額・カテゴリー・説明）が設定されます。
+ *                                 編集時は既存の支出データがフォームに自動的に設定されます。
+ * 
+ * @property {function} onSubmit - フォーム送信時に呼び出されるコールバック関数。
+ *                                 ExpenseFormData型のフォームデータを引数として受け取ります。
+ *                                 親コンポーネントでこの関数を実装し、データの保存処理を行います。
+ * 
+ * @property {React.ReactNode} [reactNode] - ダイアログを開くためのトリガー要素（ボタンなど）。
+ *                                            指定されない場合は、デフォルトの「支出を追加」ボタンが表示されます。
+ *                                            カスタムボタン（例：編集アイコンボタン）を表示したい場合に使用します。
+ * 
+ */
+export interface ExpenseFormProps {
   expense?: Expense
   onSubmit: (data: ExpenseFormData) => void
-  trigger?: React.ReactNode
+  reactNode?: React.ReactNode
 }
 
-const getInitialFormData = (): ExpenseFormData => ({
-  amount: 0,
-  category: "",
-  description: "",
-  date: getCurrentDateString(),
-})
-
-export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
+export function ExpenseForm({ expense, onSubmit, reactNode }: ExpenseFormProps) {
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState<ExpenseFormData>(getInitialFormData())
 
+  /**
+   * フォームデータの初期化とリセットを管理するuseEffect
+   * 
+   * 以下の2つのケースでフォームデータを更新します：
+   * 1. 編集モード（expenseが存在する場合）: 既存の支出データをフォームに設定
+   * 2. 新規追加モード（expenseがなく、ダイアログが開いている場合）: フォームを初期状態にリセット
+   * 
+   * これにより、ダイアログを開くたびに適切な初期値が設定されます。
+   */
   useEffect(() => {
     if (expense) {
-      setFormData({
-        amount: expense.amount,
-        category: expense.category,
-        description: expense.description,
-        date: expense.date,
-      })
-    } else if (!open) {
+      // 編集モード: 既存の支出データをフォームに設定
+      setFormData(expenseToFormData(expense))
+    } else if (open) {
       setFormData(getInitialFormData())
     }
   }, [expense, open])
 
+  /**
+   * フォーム送信ハンドラー
+   * 
+   * フォームの送信時に以下を実行します：
+   * 1. 親コンポーネントにデータを渡す
+   * 2. ダイアログを閉じる
+   */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onSubmit(formData)
     setOpen(false)
-    if (!expense) {
-      setFormData(getInitialFormData())
-    }
+  }
+
+  /**
+   * フォームフィールドの更新ヘルパー関数
+   * 
+   * @param field 更新するフィールド名
+   * @param value 新しい値
+   */
+  const updateExpenseFormData = <K extends keyof ExpenseFormData>(
+    field: K,
+    value: ExpenseFormData[K]
+  ) => {
+    setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        {trigger || (
+        {reactNode || (
           <Button className="gap-2">
             <Plus className="h-4 w-4" />
             支出を追加
@@ -66,6 +100,7 @@ export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
           <DialogTitle className="text-balance">{expense ? "支出を編集" : "新しい支出を追加"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* 金額入力フィールド */}
           <div className="space-y-2">
             <Label htmlFor="amount">金額</Label>
             <Input
@@ -75,16 +110,17 @@ export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
               step="1"
               required
               value={formData.amount || ""}
-              onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
+              onChange={(e) => updateExpenseFormData("amount", Number(e.target.value))}
               placeholder="1000"
             />
           </div>
 
+          {/* カテゴリー選択フィールド */}
           <div className="space-y-2">
             <Label htmlFor="category">カテゴリー</Label>
             <Select
               value={formData.category}
-              onValueChange={(value) => setFormData({ ...formData, category: value })}
+              onValueChange={(value) => updateExpenseFormData("category", value)}
               required
             >
               <SelectTrigger id="category">
@@ -100,6 +136,7 @@ export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
             </Select>
           </div>
 
+          {/* 説明入力フィールド */}
           <div className="space-y-2">
             <Label htmlFor="description">説明</Label>
             <Input
@@ -107,11 +144,12 @@ export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
               type="text"
               required
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(e) => updateExpenseFormData("description", e.target.value)}
               placeholder="ランチ代"
             />
           </div>
 
+          {/* 日付入力フィールド */}
           <div className="space-y-2">
             <Label htmlFor="date">日付</Label>
             <Input
@@ -119,7 +157,7 @@ export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
               type="date"
               required
               value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+              onChange={(e) => updateExpenseFormData("date", e.target.value)}
             />
           </div>
 

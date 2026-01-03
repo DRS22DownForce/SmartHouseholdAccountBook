@@ -15,6 +15,7 @@ import { getCategoryColor } from "@/lib/category-colors"
 import { formatCurrency, formatMonth, getCurrentMonthString } from "@/lib/formatters"
 import { useMonthlySummary } from "@/hooks/use-monthly-summary"
 import { useAvailableMonths } from "@/hooks/use-available-months"
+import { transformMonthlySummaryToChartData } from "@/lib/chart-data-transformers"
 
 interface SummarySectionProps {
   refreshTrigger?: number // 支出追加後に再取得するためのトリガー
@@ -24,10 +25,10 @@ export function MonthlySummarySection({
   refreshTrigger,
 }: SummarySectionProps) {
   const [selectedMonth, setSelectedMonth] = useState(() => getCurrentMonthString())
-  
+
   // バックエンドAPIから月別サマリーを取得
   const { monthlySummary, isLoaded: isSummaryLoaded, fetchMonthlySummary } = useMonthlySummary(selectedMonth)
-  
+
   // バックエンドAPIから利用可能な月のリストを取得
   const { availableMonths, isLoaded: isMonthsLoaded, fetchAvailableMonths } = useAvailableMonths()
 
@@ -37,18 +38,12 @@ export function MonthlySummarySection({
       fetchMonthlySummary()
       fetchAvailableMonths()
     }
-  }, [refreshTrigger, fetchMonthlySummary, fetchAvailableMonths])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger]) // fetchMonthlySummaryとfetchAvailableMonthsは安定した参照であることを前提
 
   // チャート用のデータを準備（バックエンドから取得したデータを使用）
   const chartData = useMemo(() => {
-    if (!monthlySummary || !monthlySummary.byCategory) {
-      return []
-    }
-    return monthlySummary.byCategory.map((item) => ({
-      name: item.category,
-      value: item.amount,
-      color: getCategoryColor(item.category),
-    }))
+    return transformMonthlySummaryToChartData(monthlySummary)
   }, [monthlySummary])
 
   // 読み込み中の表示

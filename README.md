@@ -12,6 +12,7 @@
 - 📈 カテゴリー別支出の割合をドーナツグラフで可視化
 - 📥 CSVインポート機能（一括登録）
 - 📄 支出一覧ページ（全データの閲覧・編集・削除）
+- 🤖 AI家計アドバイザー（支出データを分析してアドバイスを提供）
 
 ## 🎯 プロジェクト概要
 
@@ -22,6 +23,7 @@
 - ✨ **モダンなUI/UX**: Next.js 15とTailwind CSS 4.xを使用したレスポンシブデザイン、shadcn/uiによる高品質なコンポーネント
 - 🔐 **セキュアな認証**: AWS Cognitoによる認証・認可
 - 📊 **データ可視化**: Rechartsによるインタラクティブなグラフ表示
+- 🤖 **AI機能**: OpenAI APIを統合したAI家計アドバイザー（過去30日間の支出データを分析）
 - 🔄 **API設計**: OpenAPI/Swaggerによる型安全なAPI開発
 - 🏗️ **DDDアーキテクチャ**: ドメイン駆動設計（DDD）の原則に従った設計で、保守性と拡張性を確保
 - ⚡ **パフォーマンス最適化**: 月別サマリー計算をバックエンドで実行し、通信量とフロントエンド計算を削減
@@ -57,10 +59,12 @@
 - **認証**: AWS Cognito
 - **API仕様**: OpenAPI 3.0 (Swagger)
 - **依存性注入**: Spring Framework
+- **AI統合**: OpenAI API (GPT-4o-mini) による家計アドバイザー機能
 - **アーキテクチャ**: ドメイン駆動設計（DDD）
   - **ドメイン層**: 値オブジェクト（ExpenseAmount、Category、ExpenseDate、MonthlySummary、CategorySummary）、リポジトリインターフェース
   - **アプリケーション層**: アプリケーションサービス（ユースケース実装）、DTO変換マッパー
   - **プレゼンテーション層**: REST APIコントローラー
+  - **例外処理**: グローバル例外ハンドラーによる統一的なエラー処理
 - **データアクセス**: Spring Data JPA（ページネーション対応）
 
 ### インフラストラクチャ・ツール
@@ -86,7 +90,13 @@
 - ✅ CSVファイルからの支出データインポート（複数件一括登録対応）
 - 📤 データエクスポート機能（予定）
 
-### 4. セキュリティ機能
+### 4. AI家計アドバイザー
+- 🤖 **AIチャット機能**: OpenAI APIを活用した家計アドバイス
+- 💬 **会話履歴管理**: 過去の会話履歴を保存・表示
+- 📊 **データ分析**: 過去30日間の支出データを自動的に分析し、コンテキストとして提供
+- 💡 **アドバイス提供**: 支出の改善方法や節約のヒントを提案
+
+### 5. セキュリティ機能
 - 🔐 AWS Cognitoによるユーザー認証・認可
 - 🛡️ JWT トークンによるAPI認証
 - 🔒 SQLインジェクション対策
@@ -102,8 +112,14 @@ SmartHouseholdAccountBook/
 │   │   │   ├── java/
 │   │   │   │   └── com/example/backend/
 │   │   │   │       ├── controller/              # REST API コントローラー
+│   │   │   │       │   ├── ExpenseController.java    # 支出管理API
+│   │   │   │       │   ├── AiChatController.java     # AIチャットAPI
+│   │   │   │       │   └── HomeController.java       # ホームAPI
 │   │   │   │       ├── application/             # アプリケーション層
 │   │   │   │       │   ├── service/             # アプリケーションサービス（ユースケース実装）
+│   │   │   │       │   │   ├── ExpenseApplicationService.java  # 支出管理サービス
+│   │   │   │       │   │   ├── AiChatService.java              # AIチャットサービス
+│   │   │   │       │   │   └── UserApplicationService.java     # ユーザー管理サービス
 │   │   │   │       │   └── mapper/              # DTO変換マッパー
 │   │   │   │       ├── domain/                  # ドメイン層（ビジネスロジック）
 │   │   │   │       │   ├── repository/          # リポジトリインターフェース
@@ -114,6 +130,13 @@ SmartHouseholdAccountBook/
 │   │   │   │       │       ├── MonthlySummary.java   # 月別サマリー
 │   │   │   │       │       └── CategorySummary.java  # カテゴリー別集計
 │   │   │   │       ├── entity/                  # エンティティ（データベースのテーブルに対応するクラス。IDで管理され、可変である）
+│   │   │   │       │   ├── Expense.java         # 支出エンティティ
+│   │   │   │       │   ├── User.java            # ユーザーエンティティ
+│   │   │   │       │   └── ChatMessage.java     # チャットメッセージエンティティ
+│   │   │   │       ├── exception/               # 例外処理
+│   │   │   │       │   ├── GlobalExceptionHandler.java  # グローバル例外ハンドラー
+│   │   │   │       │   ├── ExpenseNotFoundException.java
+│   │   │   │       │   └── UserNotFoundException.java
 │   │   │   │       ├── auth/                    # 認証・認可関連
 │   │   │   │       │   ├── filter/              # 認証フィルター
 │   │   │   │       │   └── provider/            # 認証プロバイダー
@@ -141,20 +164,29 @@ SmartHouseholdAccountBook/
 │   │   │   ├── ui/           # shadcn/uiコンポーネント
 │   │   │   ├── dashboard/    # ダッシュボード関連コンポーネント
 │   │   │   ├── auth/         # 認証関連コンポーネント
-│   │   │   └── expense-*.tsx # 支出関連コンポーネント
+│   │   │   ├── expense-*.tsx # 支出関連コンポーネント
+│   │   │   ├── ai-chat-dialog.tsx  # AIチャットダイアログ
+│   │   │   ├── csv-upload-dialog.tsx  # CSVアップロードダイアログ
+│   │   │   └── user-menu.tsx  # ユーザーメニュー
 │   │   ├── hooks/             # カスタムフック
 │   │   │   ├── use-expenses.ts           # 支出管理フック（全データ取得）
 │   │   │   ├── use-monthly-expenses.ts   # 月別支出取得フック
 │   │   │   ├── use-monthly-summary.ts   # 月別サマリー取得フック
 │   │   │   ├── use-monthly-summary-range.ts # 範囲指定月別サマリー取得フック
-│   │   │   └── use-available-months.ts  # 利用可能な月取得フック
+│   │   │   ├── use-available-months.ts  # 利用可能な月取得フック
+│   │   │   ├── use-date-navigation.ts    # 日付ナビゲーションフック
+│   │   │   ├── use-expenses-page-logic.ts # 支出一覧ページロジック
+│   │   │   └── use-home-page-logic.ts    # ホームページロジック
 │   │   ├── lib/               # ユーティリティ関数
 │   │   │   └── formatters.ts  # フォーマッター
 │   │   ├── contexts/          # React Context
 │   │   │   └── auth-provider.tsx # 認証プロバイダー
 │   │   ├── config/            # 設定ファイル
 │   │   └── api/               # API クライアント
-│   │       └── generated/    # OpenAPI Generatorで自動生成
+│   │       ├── generated/    # OpenAPI Generatorで自動生成
+│   │       ├── chatApi.ts    # チャットAPIクライアント
+│   │       ├── apiClient.ts  # APIクライアント設定
+│   │       └── authUtils.ts  # 認証ユーティリティ
 │   ├── public/                # 静的ファイル
 │   ├── components.json        # shadcn/ui設定
 │   ├── postcss.config.mjs     # PostCSS設定（Tailwind CSS 4.x）
@@ -169,8 +201,9 @@ SmartHouseholdAccountBook/
 │   └── openapi.yaml           # OpenAPI 3.0仕様
 ├── docs/                       # ドキュメント
 │   └── images/                # スクリーンショット画像
-├── docker-compose.yaml         # 本番環境用（Spring Boot + MySQL）
 ├── docker-compose.dev.yaml     # 開発環境用（MySQLのみ）
+├── docker-compose.mysql.yaml   # 本番環境用（MySQLのみ）
+├── docker-compose.backend.yaml # 本番環境用（Spring Bootのみ）
 └── README.md
 ```
 
@@ -202,6 +235,7 @@ NEXT_PUBLIC_API_URL=バックエンドAPIのベースURL
 - `MYSQL_DATABASE`: データベース名（デフォルト: demo）
 - `SPRING_DATASOURCE_URL_DEV`: ローカル開発環境でのMySQL接続URL
 - `COGNITO_JWK_SET_URL`: AWS CognitoのJWK Set URL（実際のCognito URLに変更してください）
+- `OPENAI_API_KEY`: OpenAI APIキー（AIチャット機能で使用）
 ```
 ### 3. ローカル開発環境の起動
 
@@ -223,7 +257,21 @@ docker-compose -f docker-compose.dev.yaml up -d
 
 ### 4. 本番環境での起動（Docker）
 
-本番環境ではMySQL は外部（RDS等）を使用し、Spring BootのみDockerで起動します。
+本番環境ではMySQLとSpring Bootを別々のDocker Composeファイルで起動します。
+
+#### ステップ1: MySQLを起動
+```bash
+# MySQLコンテナを起動
+docker-compose -f docker-compose.mysql.yaml up -d
+```
+
+#### ステップ2: Spring Bootを起動
+```bash
+# Spring Bootコンテナを起動
+docker-compose -f docker-compose.backend.yaml up -d
+```
+
+**注意**: 本番環境ではMySQLは外部（RDS等）を使用することも可能です。その場合は`docker-compose.mysql.yaml`は使用せず、`docker-compose.backend.yaml`の環境変数で外部MySQLの接続URLを設定してください。
 
 ### 5. OpenAPI自動生成
 
@@ -288,6 +336,14 @@ docker build -f backend/Dockerfile -t smart-household-backend:prod .
 - `GET /api/expenses/months` - 利用可能な月のリスト取得
   - レスポンス: 月の文字列配列（YYYY-MM形式、降順でソート済み）
 
+#### AIチャット
+- `GET /api/chat` - 会話履歴取得
+  - レスポンス: 現在のユーザーの会話履歴（時系列順、古い順）
+- `POST /api/chat` - AIチャット送信
+  - リクエスト: ユーザーメッセージ
+  - レスポンス: AIからの応答メッセージ
+  - 機能: 過去30日間の支出データを自動的に分析し、コンテキストとして使用
+
 ### パフォーマンス最適化
 
 - **月別フィルタリング**: 必要な月のデータのみ取得することで通信量を削減
@@ -316,6 +372,7 @@ docker build -f backend/Dockerfile -t smart-household-backend:prod .
 
 3. **プレゼンテーション層** (`controller/`)
    - **コントローラー**: REST APIエンドポイントの実装
+   - **例外処理**: グローバル例外ハンドラーによる統一的なエラー処理
    - **責務**: HTTPリクエスト/レスポンスの処理
 
 #### 値オブジェクトの利点
@@ -327,10 +384,10 @@ docker build -f backend/Dockerfile -t smart-household-backend:prod .
 
 ## 🚧 今後の拡張予定
 
-- [ ] AIチャット機能の追加
+- [x] AIチャット機能 ✅
 - [x] CSVインポート機能 ✅
 - [x] 月別サマリーAPI ✅
-- [ ] ページネーション対応 ✅
+- [ ] ページネーション対応（APIは対応済み、フロントエンド実装予定）
 - [ ] 収入管理機能の追加
 - [ ] 予算設定・管理機能
 - [ ] レポート生成機能（PDF出力）
