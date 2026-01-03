@@ -7,7 +7,7 @@
  * フロントエンドでのフィルタリングを削減し、通信量を最適化するために使用します。
  */
 
-import { useState, useMemo, useEffect } from "react"
+import { useMemo, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import {
@@ -22,11 +22,14 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { ExpenseForm } from "./expense-form"
+import type { ExpenseFormProps } from "./expense-form"
 import { Pencil, Trash2, ChevronLeft, ChevronRight } from "lucide-react"
-import type { ExpenseFormData } from "@/lib/types"
+import type { Expense, ExpenseFormData } from "@/lib/types"
 import { getCategoryColor } from "@/lib/category-colors"
 import { formatCurrency } from "@/lib/formatters"
+import { formatDate, formatMonthYear } from "@/lib/date-formatters"
 import { useMonthlyExpenses } from "@/hooks/use-monthly-expenses"
+import { useDateNavigation } from "@/hooks/use-date-navigation"
 
 interface ExpenseListProps {
   onUpdate: (id: string, data: ExpenseFormData) => void
@@ -35,15 +38,15 @@ interface ExpenseListProps {
 }
 
 export function ExpenseList({ onUpdate, onDelete, refreshTrigger }: ExpenseListProps) {
-  const [selectedDate, setSelectedDate] = useState(new Date())
-
-  // 選択された月をYYYY-MM形式に変換
-  const selectedMonth = useMemo(() => {
-    const year = selectedDate.getFullYear()
-    const month = String(selectedDate.getMonth() + 1).padStart(2, "0")
-    return `${year}-${month}`
-  }, [selectedDate])
-  
+  // 日付ナビゲーションロジックをカスタムフックから取得
+  const {
+    selectedDate,
+    selectedMonth,
+    isCurrentMonth,
+    goToPreviousMonth,
+    goToNextMonth,
+    goToCurrentMonth,
+  } = useDateNavigation()
 
   // バックエンドAPIから月別支出を取得
   const { expenses, isLoaded, fetchMonthlyExpenses } = useMonthlyExpenses(selectedMonth)
@@ -53,52 +56,35 @@ export function ExpenseList({ onUpdate, onDelete, refreshTrigger }: ExpenseListP
     if (refreshTrigger !== undefined && refreshTrigger > 0) {
       fetchMonthlyExpenses()
     }
-  }, [refreshTrigger, fetchMonthlyExpenses])
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return new Intl.DateTimeFormat("ja-JP", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-    }).format(date)
-  }
-
-  const goToPreviousMonth = () => {
-    setSelectedDate((prev) => {
-      const newDate = new Date(prev)
-      newDate.setMonth(newDate.getMonth() - 1)
-      return newDate
-    })
-  }
-
-  const goToNextMonth = () => {
-    setSelectedDate((prev) => {
-      const newDate = new Date(prev)
-      newDate.setMonth(newDate.getMonth() + 1)
-      return newDate
-    })
-  }
-
-  const goToCurrentMonth = () => {
-    setSelectedDate(new Date())
-  }
-
-  const formatMonthYear = (date: Date) => {
-    return new Intl.DateTimeFormat("ja-JP", {
-      year: "numeric",
-      month: "long",
-    }).format(date)
-  }
-
-  const isCurrentMonth = () => {
-    const now = new Date()
-    return selectedDate.getFullYear() === now.getFullYear() && selectedDate.getMonth() === now.getMonth()
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger]) // fetchMonthlyExpensesは安定した参照であることを前提
 
   const monthTotal = useMemo(() => {
     return expenses.reduce((sum, expense) => sum + expense.amount, 0)
   }, [expenses])
+
+  /**
+   * 編集用のExpenseFormのプロップスを生成するヘルパー関数
+   * 
+   * useCallbackでメモ化して、再レンダリングを最適化します。
+   */
+  const createEditFormProps = useCallback(
+    (expense: Expense): ExpenseFormProps => ({
+      expense: expense,
+      onSubmit: (data) => onUpdate(expense.id, data),
+      reactNode: (
+        <Button
+          variant="ghost"
+          size="icon"
+          className="rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
+        >
+          <Pencil className="h-4 w-4" />
+          <span className="sr-only">編集</span>
+        </Button>
+      ),
+    }),
+    [onUpdate]
+  )
 
   // 読み込み中の表示
   if (!isLoaded) {
@@ -146,7 +132,7 @@ export function ExpenseList({ onUpdate, onDelete, refreshTrigger }: ExpenseListP
         </div>
       </Card>
 
-      {!isCurrentMonth() && (
+      {!isCurrentMonth && (
         <div className="text-center">
           <Button
             variant="ghost"
@@ -192,20 +178,7 @@ export function ExpenseList({ onUpdate, onDelete, refreshTrigger }: ExpenseListP
                   </p>
                 </div>
                 <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <ExpenseForm
-                    expense={expense}
-                    onSubmit={(data) => onUpdate(expense.id, data)}
-                    trigger={
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
-                      >
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">編集</span>
-                      </Button>
-                    }
-                  />
+                  <ExpenseForm {...createEditFormProps(expense)} />
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button

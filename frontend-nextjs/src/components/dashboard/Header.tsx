@@ -1,9 +1,11 @@
 "use client"
 
+import React from "react"
 import { usePathname } from "next/navigation"
 import { Wallet, Home, List } from "lucide-react"
 import Link from "next/link"
 import { ExpenseForm } from "@/components/expense-form"
+import type { ExpenseFormProps } from "@/components/expense-form"
 import { CsvUploadDialog } from "@/components/csv-upload-dialog"
 import { UserMenu } from "@/components/user-menu"
 import { AiChatDialog } from "@/components/ai-chat-dialog"
@@ -11,7 +13,6 @@ import { cn } from "@/lib/utils"
 import type { Expense, ExpenseFormData } from "@/lib/types"
 
 interface HeaderProps {
-  expenses: Expense[]
   username: string
   onLogout: () => void
   onAddExpense: (data: ExpenseFormData) => void
@@ -23,14 +24,28 @@ const navigationItems = [
   { href: "/expenses", label: "支出一覧", icon: List },
 ] as const
 
-export function Header({
-  expenses,
+/**
+ * ヘッダーコンポーネント
+ * 
+ * アプリケーションのヘッダー部分を表示します。
+ * ナビゲーション、支出追加、CSVインポートなどの機能を提供します。
+ * 
+ * React.memoでメモ化されており、propsが変更されない限り再レンダリングされません。
+ */
+export const Header = React.memo(function Header({
   username,
   onLogout,
   onAddExpense,
   onAddExpenses,
 }: HeaderProps) {
   const pathname = usePathname()
+
+  /**
+   * 新規追加用のExpenseFormのPropsを生成
+   */
+  const addExpenseFormProps: ExpenseFormProps = {
+    onSubmit: onAddExpense,
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-border/50 bg-card/98 backdrop-blur-xl supports-[backdrop-filter]:bg-card/80 shadow-sm">
@@ -76,12 +91,12 @@ export function Header({
           <div className="flex items-center gap-1.5 md:gap-2.5 flex-shrink-0">
             <AiChatDialog />
             <CsvUploadDialog onUpload={onAddExpenses} />
-            <ExpenseForm onSubmit={onAddExpense} />
+            <ExpenseForm {...addExpenseFormProps} />
             <UserMenu username={username} onLogout={onLogout} />
           </div>
         </div>
       </div>
     </header>
   )
-}
+})
 

@@ -4,57 +4,31 @@
  * 支出一覧ページコンポーネント
  * 
  * 支出更新・削除後に画面を自動的に再取得します。
+ * ロジックはuse-expenses-page-logicカスタムフックに分離されています。
  */
 
-import { useMemo, useState, useCallback } from "react"
+import { useMemo } from "react"
 import { useAuthenticator } from "@aws-amplify/ui-react"
 import { useExpenses } from "@/hooks/use-expenses"
 import { Header } from "@/components/dashboard/Header"
 import { ExpenseList } from "@/components/expense-list"
-import type { ExpenseFormData } from "@/lib/types"
-
-function LoadingSpinner() {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <p className="text-muted-foreground">読み込み中...</p>
-    </div>
-  )
-}
-
-function getUserDisplayName(user: ReturnType<typeof useAuthenticator>["user"]): string {
-  return user.signInDetails?.loginId || user.username
-}
+import { LoadingSpinner } from "@/components/ui/loading-spinner"
+import { getUserDisplayName } from "@/lib/user-utils"
+import { useExpensesPageLogic } from "@/hooks/use-expenses-page-logic"
 
 export default function ExpensesPage() {
   const { user, signOut } = useAuthenticator((context) => [context.user])
-  const { expenseItems, addExpenseItem, addExpenseItems, updateExpenseItem, deleteExpenseItem, isLoaded } =
-    useExpenses()
+  const { expenseItems, isLoaded } = useExpenses()
   const username = useMemo(() => getUserDisplayName(user), [user])
 
-
-  // 支出更新・削除後に画面を再取得するためのトリガー
-  const [refreshTrigger, setRefreshTrigger] = useState(0)
-
-  // 支出追加後にrefetchを呼び出すラッパー関数
-  const handleAddExpense = useCallback(async (data: ExpenseFormData) => {
-    await addExpenseItem(data)
-    setRefreshTrigger(prev => prev + 1)
-  }, [addExpenseItem])
-
-  const handleAddExpenses = useCallback(async (dataArray: ExpenseFormData[]) => {
-    await addExpenseItems(dataArray)
-    setRefreshTrigger(prev => prev + 1)
-  }, [addExpenseItems])
-
-  const handleUpdateExpense = useCallback(async (id: string, data: ExpenseFormData) => {
-    await updateExpenseItem(id, data)
-    setRefreshTrigger(prev => prev + 1)
-  }, [updateExpenseItem])
-
-  const handleDeleteExpense = useCallback(async (id: string) => {
-    await deleteExpenseItem(id)
-    setRefreshTrigger(prev => prev + 1)
-  }, [deleteExpenseItem])
+  // 支出一覧ページのロジック（支出操作処理、リフレッシュトリガー管理）をカスタムフックから取得
+  const {
+    refreshTrigger,
+    handleAddExpense,
+    handleAddExpenses,
+    handleUpdateExpense,
+    handleDeleteExpense,
+  } = useExpensesPageLogic()
 
   if (!isLoaded) {
     return <LoadingSpinner />
@@ -63,7 +37,6 @@ export default function ExpensesPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <Header
-        expenses={expenseItems}
         username={username}
         onLogout={signOut}
         onAddExpense={handleAddExpense}

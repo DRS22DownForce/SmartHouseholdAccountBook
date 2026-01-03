@@ -203,14 +203,21 @@ const updated2 = { ...formData, age: 26, city: "大阪" }
 `frontend-nextjs/src/components/expense-form.tsx`:
 
 ```typescript
-export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
+export function ExpenseForm({ expense, onSubmit, reactNode }: ExpenseFormProps) {
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState<ExpenseFormData>(getInitialFormData())
   
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <div className="space-y-4">
-        <h1 className="text-2xl font-bold">支出フォーム</h1>
+      <DialogTrigger asChild>
+        {reactNode || (
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            支出を追加
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent>
         <form onSubmit={handleSubmit}>
           <input
             type="text"
@@ -218,7 +225,7 @@ export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           />
         </form>
-      </div>
+      </DialogContent>
     </Dialog>
   )
 }
@@ -316,24 +323,45 @@ function Welcome({ name = "ゲスト", age = 0 }: WelcomeProps) {
 
 ### 実際のプロジェクトでの使用例
 
-`frontend-nextjs/src/components/expense-form.tsx` (15-19行目):
+`frontend-nextjs/src/components/expense-form.tsx` (15-37行目):
 
 ```typescript
-interface ExpenseFormProps {
+/**
+ * ExpenseFormコンポーネントのプロップス型定義
+ */
+export interface ExpenseFormProps {
   expense?: Expense
   onSubmit: (data: ExpenseFormData) => void
-  trigger?: React.ReactNode
+  reactNode?: React.ReactNode
 }
 
-export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
+export function ExpenseForm({ expense, onSubmit, reactNode }: ExpenseFormProps) {
   // コンポーネントの実装
 }
 ```
 
 **解説**:
+- `export interface ExpenseFormProps`: 型をexportすることで、親コンポーネントでも型を参照できる
 - `expense?: Expense`: オプショナルなProps（`?`で省略可能）
 - `onSubmit: (data: ExpenseFormData) => void`: 関数型のProps（コールバック関数）
-- `trigger?: React.ReactNode`: React要素をPropsとして渡す
+- `reactNode?: React.ReactNode`: ダイアログを開くためのトリガー要素（ボタンなど）。指定されない場合はデフォルトボタンが表示される
+
+**親コンポーネントでの型の使用例**:
+
+```typescript
+// Header.tsx
+import type { ExpenseFormProps } from "@/components/expense-form"
+
+const addExpenseFormProps: ExpenseFormProps = {
+  onSubmit: onAddExpense,
+}
+
+<ExpenseForm {...addExpenseFormProps} />
+```
+
+**解説**:
+- 親コンポーネントで`ExpenseFormProps`型をインポートして使用することで、型安全性が向上する
+- 型を明示的に使用することで、コードの可読性と保守性が向上する
 
 **学習ポイント**:
 - **Props**: 親から子へデータを渡す
@@ -870,7 +898,18 @@ function UserList() {
 
 ## カスタムフック
 
-**カスタムフック**は、ロジックを再利用可能なフックに抽出する機能です。カスタムフックは`use`で始まる関数です。状態と更新ロジックをセットで提供するのが典型的なパターン
+**カスタムフック**は、**Stateや副作用を含むロジックを再利用するための仕組み**です。カスタムフックは`use`で始まる関数です。
+
+### カスタムフックの目的
+
+カスタムフックの主な目的は、**UIから処理を切り離してコンポーネントを読みやすくする**ことです。
+
+**具体的なメリット**:
+- **ロジックの再利用**: 複数のコンポーネントで同じロジック（State管理、API呼び出しなど）を共有できる
+- **関心の分離**: UIの表示ロジックとデータ処理ロジックを分離し、コンポーネントをシンプルに保つ
+- **可読性の向上**: コンポーネントがUIの表示に集中でき、ビジネスロジックが別の場所に整理される
+
+**典型的なパターン**: 状態（State）と更新ロジックをセットで提供する
 
 ### カスタムフックの定義
 
@@ -929,7 +968,7 @@ export function useExpenses() {
     async (data: ExpenseFormData) => {
       try {
         const newExpense = await createExpense(data)
-        setExpenses((prev) => [newExpense, ...prev])//新しい要素を先頭に置き、その後に既存要素を並べた新しい配列を作成
+        setExpenses((prev) => [newExpense, ...prev]) // 新しい要素を先頭に置き、その後に既存要素を並べた新しい配列を作成
         toast.success("支出を追加しました")
       } catch (error) {
         showApiErrorMessage(error, "支出の追加に失敗しました")
@@ -938,9 +977,51 @@ export function useExpenses() {
     []
   )
 
+  const addExpenseItems = useCallback(
+    async (dataArray: ExpenseFormData[]) => {
+      try {
+        const newExpenses = await createExpenses(dataArray)
+        setExpenses((prev) => [...newExpenses, ...prev]) // 複数の新しい要素を先頭に追加
+        toast.success(`${newExpenses.length}件の支出を追加しました`)
+      } catch (error) {
+        showApiErrorMessage(error, "支出の一括追加に失敗しました")
+      }
+    },
+    []
+  )
+
+  const updateExpenseItem = useCallback(
+    async (id: string, data: ExpenseFormData) => {
+      try {
+        const updatedExpense = await updateExpense(id, data)
+        setExpenses((prev) =>
+          prev.map((expense) => (expense.id === id ? updatedExpense : expense))
+        )
+        toast.success("支出を更新しました")
+      } catch (error) {
+        showApiErrorMessage(error, "支出の更新に失敗しました")
+      }
+    },
+    []
+  )
+
+  const deleteExpenseItem = useCallback(
+    async (id: string) => {
+      try {
+        await deleteExpense(id)
+        setExpenses((prev) => prev.filter((expense) => expense.id !== id))
+        toast.success("支出を削除しました")
+      } catch (error) {
+        showApiErrorMessage(error, "支出の削除に失敗しました")
+      }
+    },
+    []
+  )
+
   return {
     expenseItems,
     addExpenseItem,
+    addExpenseItems,
     updateExpenseItem,
     deleteExpenseItem,
     isLoaded,
@@ -951,7 +1032,10 @@ export function useExpenses() {
 **解説**:
 - `useExpenses`: 支出データを管理するカスタムフック
 - `expenseItems`: 支出のリスト
-- `addExpenseItem`: 支出を追加する関数
+- `addExpenseItem`: 支出を1件追加する関数
+- `addExpenseItems`: 支出を複数件一括追加する関数（CSVインポートなどで使用）
+- `updateExpenseItem`: 支出を更新する関数
+- `deleteExpenseItem`: 支出を削除する関数
 - `isLoaded`: データが読み込まれたかどうか
 
 **再レンダリング時の動作**:
@@ -960,16 +1044,109 @@ export function useExpenses() {
 - `useCallback`でラップしていない関数: 再レンダリングのたびに新しい関数が生成される
 - `useEffect`: 依存配列の値が変わったときのみ実行される（`fetchExpensesList`が`useCallback`でメモ化されているため、初回のみ実行）
 
+### ページ固有のロジックを管理するカスタムフック
+
+複雑なページでは、ページ固有のロジック（支出操作処理、リフレッシュトリガー管理など）を別のカスタムフックに分離することで、コンポーネントをより読みやすく保つことができます。
+
+#### use-home-page-logic（ホームページ用）
+
+`frontend-nextjs/src/hooks/use-home-page-logic.ts`:
+
+```typescript
+export function useHomePageLogic() {
+    const { addExpenseItem, addExpenseItems } = useExpenses()
+    const [refreshTrigger, setRefreshTrigger] = useState(0)
+
+    const handleAddExpense = useCallback(async (data: ExpenseFormData) => {
+        await addExpenseItem(data)
+        // 月別サマリーと支出の推移を再取得するためにトリガーを更新
+        setRefreshTrigger((prev) => prev + 1)
+    }, [addExpenseItem])
+
+    const handleAddExpenses = useCallback(async (dataArray: ExpenseFormData[]) => {
+        await addExpenseItems(dataArray)
+        // 月別サマリーと支出の推移を再取得するためにトリガーを更新
+        setRefreshTrigger((prev) => prev + 1)
+    }, [addExpenseItems])
+
+    return {
+        refreshTrigger,
+        handleAddExpense,
+        handleAddExpenses,
+    }
+}
+```
+
+**解説**:
+- **目的**: ホームページで使用するビジネスロジック（支出追加処理、リフレッシュトリガー管理）をUIコンポーネントから分離
+- **`refreshTrigger`**: 月別サマリーや支出の推移チャートを再取得するためのトリガー（数値が増えると再取得が実行される）
+- **`handleAddExpense`**: 支出を追加した後、自動的にチャートを更新するためのハンドラー
+- **`handleAddExpenses`**: CSVインポートなどで複数の支出を追加した後、自動的にチャートを更新するためのハンドラー
+
+#### use-expenses-page-logic（支出一覧ページ用）
+
+`frontend-nextjs/src/hooks/use-expenses-page-logic.ts`:
+
+```typescript
+export function useExpensesPageLogic() {
+    const { addExpenseItem, addExpenseItems, updateExpenseItem, deleteExpenseItem } = useExpenses()
+    const [refreshTrigger, setRefreshTrigger] = useState(0)
+
+    const handleAddExpense = useCallback(async (data: ExpenseFormData) => {
+        await addExpenseItem(data)
+        setRefreshTrigger((prev) => prev + 1)
+    }, [addExpenseItem])
+
+    const handleAddExpenses = useCallback(async (dataArray: ExpenseFormData[]) => {
+        await addExpenseItems(dataArray)
+        setRefreshTrigger((prev) => prev + 1)
+    }, [addExpenseItems])
+
+    const handleUpdateExpense = useCallback(async (id: string, data: ExpenseFormData) => {
+        await updateExpenseItem(id, data)
+        setRefreshTrigger((prev) => prev + 1)
+    }, [updateExpenseItem])
+
+    const handleDeleteExpense = useCallback(async (id: string) => {
+        await deleteExpenseItem(id)
+        setRefreshTrigger((prev) => prev + 1)
+    }, [deleteExpenseItem])
+
+    return {
+        refreshTrigger,
+        handleAddExpense,
+        handleAddExpenses,
+        handleUpdateExpense,
+        handleDeleteExpense,
+    }
+}
+```
+
+**解説**:
+- **目的**: 支出一覧ページで使用するビジネスロジック（支出追加・更新・削除処理、リフレッシュトリガー管理）をUIコンポーネントから分離
+- **`handleUpdateExpense`**: 支出を更新した後、画面を再取得するためのハンドラー
+- **`handleDeleteExpense`**: 支出を削除した後、画面を再取得するためのハンドラー
+- ホームページ用と同様に、`refreshTrigger`で画面の再取得を管理
+
+**ページ固有のロジックフックのメリット**:
+- **関心の分離**: UIコンポーネントからビジネスロジックを分離し、コンポーネントを読みやすくする
+- **再利用性**: 同じページで複数回使用されるロジックを1つのフックにまとめる
+- **テスト容易性**: ページ固有のロジックを独立してテストできる
+
 ### カスタムフックのメリット
 
-1. **再利用性**: 複数のコンポーネントで同じロジックを共有できる
-2. **関心の分離**: UIロジックとデータ取得ロジックを分離
-3. **テスト容易性**: フック単体でテストできる
+1. **再利用性**: 複数のコンポーネントで同じロジック（State管理、API呼び出し、副作用処理など）を共有できる
+2. **関心の分離**: UIロジック（表示）とデータ処理ロジック（State管理、API呼び出しなど）を分離し、コンポーネントを読みやすくする
+3. **可読性の向上**: コンポーネントがUIの表示に集中でき、ビジネスロジックが別の場所に整理される
+4. **テスト容易性**: フック単体でテストできる
+5. **ページ固有のロジックの管理**: 複雑なページでは、ページ固有のロジック（支出操作処理、リフレッシュトリガー管理など）を別のカスタムフックに分離することで、コンポーネントをより読みやすく保つことができる
 
 **学習ポイント**:
-- **カスタムフック**: `use`で始まる関数でロジックを抽出
-- **再利用性**: 複数のコンポーネントで同じロジックを共有
-- **関心の分離**: UIロジックとデータ取得ロジックを分離
+- **カスタムフック**: `use`で始まる関数で、Stateや副作用を含むロジックを抽出
+- **目的**: UIから処理を切り離してコンポーネントを読みやすくする
+- **再利用性**: 複数のコンポーネントで同じロジックを共有できる
+- **関心の分離**: UIロジック（表示）とデータ処理ロジック（State管理、API呼び出しなど）を分離
+- **ページ固有のロジック**: 複雑なページでは、ページ固有のロジックを別のカスタムフック（例: `use-home-page-logic`、`use-expenses-page-logic`）に分離することで、コンポーネントをより読みやすく保つ
 
 ---
 
@@ -980,19 +1157,16 @@ export function useExpenses() {
 `frontend-nextjs/src/components/expense-form.tsx`:
 
 ```typescript
-export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
+export function ExpenseForm({ expense, onSubmit, reactNode }: ExpenseFormProps) {
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState<ExpenseFormData>(getInitialFormData())
 
   useEffect(() => {
     if (expense) {
-      setFormData({
-        amount: expense.amount,
-        category: expense.category,
-        description: expense.description,
-        date: expense.date,
-      })
-    } else if (!open) {
+      // 編集モード: 既存の支出データをフォームに設定
+      setFormData(expenseToFormData(expense))
+    } else if (open) {
+      // 新規追加モード: ダイアログが開いた時にフォームをリセット
       setFormData(getInitialFormData())
     }
   }, [expense, open])
@@ -1005,17 +1179,28 @@ export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      {/* JSXの内容 */}
+      <DialogTrigger asChild>
+        {reactNode || (
+          <Button className="gap-2">
+            <Plus className="h-4 w-4" />
+            支出を追加
+          </Button>
+        )}
+      </DialogTrigger>
+      <DialogContent>
+        {/* フォームの内容 */}
+      </DialogContent>
     </Dialog>
   )
 }
 ```
 
 **解説**:
-- **Props**: `expense`, `onSubmit`, `trigger`を受け取る
+- **Props**: `expense`, `onSubmit`, `reactNode`を受け取る
 - **State**: `open`, `formData`を管理
 - **useEffect**: `expense`や`open`が変更された時に実行
 - **イベントハンドリング**: `handleSubmit`でフォーム送信を処理
+- **型のexport**: `ExpenseFormProps`をexportすることで、親コンポーネントでも型を参照できる
 
 ### 2. カスタムフックの使用
 
@@ -1023,32 +1208,92 @@ export function ExpenseForm({ expense, onSubmit, trigger }: ExpenseFormProps) {
 
 ```typescript
 export default function HomePage() {
-  const { expenseItems, addExpenseItem, isLoaded } = useExpenses()
-  const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const { user, signOut } = useAuthenticator((context) => [context.user])
+  const { isLoaded } = useExpenses()
+  const username = useMemo(() => getUserDisplayName(user), [user])
 
-  const handleAddExpense = useCallback(async (data: ExpenseFormData) => {
-    await addExpenseItem(data)
-    setRefreshTrigger(prev => prev + 1)
-  }, [addExpenseItem])
+  // ホームページのロジック（支出追加処理、リフレッシュトリガー管理）をカスタムフックから取得
+  const { refreshTrigger, handleAddExpense, handleAddExpenses } = useHomePageLogic()
 
   if (!isLoaded) {
     return <LoadingSpinner />
   }
 
   return (
-    <div>
-      <Header onAddExpense={handleAddExpense} />
-      {/* 他のコンポーネント */}
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      <Header
+        username={username}
+        onLogout={signOut}
+        onAddExpense={handleAddExpense}
+        onAddExpenses={handleAddExpenses}
+      />
+
+      <main className="container mx-auto max-w-7xl px-6 md:px-8 lg:px-12 py-1 md:py-2">
+        <div className="space-y-2 md:space-y-2.5">
+          <ExpenseTrendChart refreshTrigger={refreshTrigger} />
+          <MonthlySummarySection refreshTrigger={refreshTrigger} />
+        </div>
+      </main>
     </div>
   )
 }
 ```
 
 **解説**:
-- **カスタムフック**: `useExpenses()`で支出データを取得
-- **useState**: `refreshTrigger`で再取得をトリガー
-- **useCallback**: `handleAddExpense`をメモ化
+- **カスタムフック**: `useExpenses()`で支出データの読み込み状態を取得
+- **ページ固有のロジック**: `useHomePageLogic()`でホームページ固有のロジック（支出追加処理、リフレッシュトリガー管理）を取得
+- **`refreshTrigger`**: 月別サマリーや支出の推移チャートに渡し、データ更新時に自動的に再取得される
+- **`handleAddExpense`と`handleAddExpenses`**: Headerコンポーネントに渡し、支出追加時に自動的にチャートが更新される
 - **条件付きレンダリング**: `isLoaded`が`false`の時はローディングを表示
+
+### 3. 支出一覧ページでの使用例
+
+`frontend-nextjs/app/expenses/page.tsx`:
+
+```typescript
+export default function ExpensesPage() {
+  const { user, signOut } = useAuthenticator((context) => [context.user])
+  const { expenseItems, isLoaded } = useExpenses()
+  const username = useMemo(() => getUserDisplayName(user), [user])
+
+  // 支出一覧ページのロジック（支出操作処理、リフレッシュトリガー管理）をカスタムフックから取得
+  const {
+    refreshTrigger,
+    handleAddExpense,
+    handleAddExpenses,
+    handleUpdateExpense,
+    handleDeleteExpense,
+  } = useExpensesPageLogic()
+
+  if (!isLoaded) {
+    return <LoadingSpinner />
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
+      <Header
+        username={username}
+        onLogout={signOut}
+        onAddExpense={handleAddExpense}
+        onAddExpenses={handleAddExpenses}
+      />
+
+      <main className="container mx-auto max-w-7xl px-6 md:px-8 lg:px-12 py-8 md:py-12">
+        <ExpenseList
+          onUpdate={handleUpdateExpense}
+          onDelete={handleDeleteExpense}
+          refreshTrigger={refreshTrigger}
+        />
+      </main>
+    </div>
+  )
+}
+```
+
+**解説**:
+- **ページ固有のロジック**: `useExpensesPageLogic()`で支出一覧ページ固有のロジック（支出追加・更新・削除処理、リフレッシュトリガー管理）を取得
+- **`handleUpdateExpense`と`handleDeleteExpense`**: ExpenseListコンポーネントに渡し、支出更新・削除時に自動的に画面が再取得される
+- **`refreshTrigger`**: ExpenseListコンポーネントに渡し、データ更新時に自動的に再取得される
 
 ---
 

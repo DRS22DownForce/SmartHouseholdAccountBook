@@ -14,6 +14,7 @@ import {
 import { Upload, FileText, AlertCircle, CheckCircle2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { ExpenseFormData } from "@/lib/types"
+import { parseCSV } from "@/lib/csv-parser"
 
 interface CsvUploadDialogProps {
   onUpload: (expenses: ExpenseFormData[]) => void
@@ -24,45 +25,6 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null)
   const [open, setOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const parseCSV = (text: string): ExpenseFormData[] => {
-    const lines = text.trim().split("\n")
-    if (lines.length < 2) {
-      throw new Error("CSVファイルが空か、ヘッダー行のみです")
-    }
-
-    const headers = lines[0].split(",").map((h) => h.trim().toLowerCase())
-    const expenses: ExpenseFormData[] = []
-
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split(",").map((v) => v.trim())
-      if (values.length < 3) continue
-
-      const dateIndex = headers.findIndex((h) => h.includes("日付") || h.includes("date"))
-      const amountIndex = headers.findIndex((h) => h.includes("金額") || h.includes("amount") || h.includes("price"))
-      const categoryIndex = headers.findIndex((h) => h.includes("カテゴリ") || h.includes("category"))
-      const descriptionIndex = headers.findIndex(
-        (h) => h.includes("説明") || h.includes("description") || h.includes("memo") || h.includes("メモ"),
-      )
-
-      const date = dateIndex >= 0 ? values[dateIndex] : values[0]
-      const amount = amountIndex >= 0 ? values[amountIndex] : values[1]
-      const category = categoryIndex >= 0 ? values[categoryIndex] : values[2]
-      const description = descriptionIndex >= 0 ? values[descriptionIndex] : values[3] || ""
-
-      const parsedAmount = Number.parseFloat(amount.replace(/[^0-9.-]/g, ""))
-      if (isNaN(parsedAmount)) continue
-
-      expenses.push({
-        date: date,
-        amount: Math.abs(parsedAmount),
-        category: category || "その他",
-        description: description,
-      })
-    }
-
-    return expenses
-  }
 
   const handleFile = async (file: File) => {
     if (!file.name.endsWith(".csv")) {
@@ -145,9 +107,8 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-              isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-            }`}
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+              }`}
           >
             <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
             <p className="text-sm text-foreground mb-2">ファイルをドラッグ&ドロップ</p>
