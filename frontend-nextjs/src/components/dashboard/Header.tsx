@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { usePathname } from "next/navigation"
 import { Wallet, Home, List } from "lucide-react"
 import Link from "next/link"
@@ -12,7 +13,6 @@ import { cn } from "@/lib/utils"
 import type { Expense, ExpenseFormData } from "@/lib/types"
 
 interface HeaderProps {
-  expenses: Expense[]
   username: string
   onLogout: () => void
   onAddExpense: (data: ExpenseFormData) => void
@@ -24,8 +24,15 @@ const navigationItems = [
   { href: "/expenses", label: "支出一覧", icon: List },
 ] as const
 
-export function Header({
-  expenses,
+/**
+ * ヘッダーコンポーネント
+ * 
+ * アプリケーションのヘッダー部分を表示します。
+ * ナビゲーション、支出追加、CSVインポートなどの機能を提供します。
+ * 
+ * React.memoでメモ化されており、propsが変更されない限り再レンダリングされません。
+ */
+export const Header = React.memo(function Header({
   username,
   onLogout,
   onAddExpense,
@@ -91,5 +98,5 @@ export function Header({
       </div>
     </header>
   )
-}
+})
 

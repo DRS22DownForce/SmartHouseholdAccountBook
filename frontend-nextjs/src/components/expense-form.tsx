@@ -8,9 +8,10 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Plus } from "lucide-react"
-import type { Expense, ExpenseFormData } from "@/lib/types"
+import type { ExpenseFormData } from "@/lib/types"
 import { EXPENSE_CATEGORIES } from "@/lib/constants"
-import { getCurrentDateString } from "@/lib/formatters"
+import { getInitialFormData, expenseToFormData } from "@/lib/form-data-utils"
+import type { Expense } from "@/lib/types"
 
 /**
  * ExpenseFormコンポーネントのプロップス型定義
@@ -36,26 +37,6 @@ export interface ExpenseFormProps {
   reactNode?: React.ReactNode
 }
 
-/**
- * 初期フォームデータを生成する関数
- */
-const getInitialFormData = (): ExpenseFormData => ({
-  amount: 0,
-  category: "",
-  description: "",
-  date: getCurrentDateString(),
-})
-
-/**
- * 既存の支出データをフォームデータに変換する関数
- */
-const expenseToFormData = (expense: Expense): ExpenseFormData => ({
-  amount: expense.amount,
-  category: expense.category,
-  description: expense.description,
-  date: expense.date,
-})
-
 export function ExpenseForm({ expense, onSubmit, reactNode }: ExpenseFormProps) {
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState<ExpenseFormData>(getInitialFormData())
@@ -73,7 +54,7 @@ export function ExpenseForm({ expense, onSubmit, reactNode }: ExpenseFormProps) 
     if (expense) {
       // 編集モード: 既存の支出データをフォームに設定
       setFormData(expenseToFormData(expense))
-    } else if(open) {
+    } else if (open) {
       setFormData(getInitialFormData())
     }
   }, [expense, open])
