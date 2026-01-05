@@ -32,6 +32,27 @@ export const CATEGORY_COLORS: Record<string, string> = {
  * - getCategoryColor("食費") → "#FF6B35"
  * - getCategoryColor("未定義カテゴリー", 2) → "#4A90E2"（DEFAULT_COLORSから）
  */
+/**
+ * カテゴリーに対応する色を取得する関数
+ */
 export function getCategoryColor(category: string): string {
-    return CATEGORY_COLORS[category]
+  return CATEGORY_COLORS[category] || "#94a3b8"
+}
+
+/**
+ * カテゴリーに対応する色をRGBA形式（透過度指定）で取得する関数
+ * 
+ * @param category - カテゴリー名
+ * @param alpha - 透過度（0.0 〜 1.0）
+ * @returns rgba(r, g, b, a) 形式の文字列
+ */
+export function getCategoryColorWithAlpha(category: string, alpha: number): string {
+  const hex = getCategoryColor(category)
+
+  // HEXをRGBに変換
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
