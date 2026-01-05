@@ -124,19 +124,35 @@ export function ExpenseTrendChart({ refreshTrigger }: ExpenseTrendChartProps) {
   }, [monthlySummaries, allMonths, categories])
 
   return (
-    <Card className="group overflow-hidden border-border/40 shadow-sm hover:shadow-md transition-all duration-300 bg-gradient-to-br from-card to-muted/10">
-      <CardHeader className="pb-4 space-y-0">
+    <Card className="group overflow-hidden border-border/40 shadow-sm hover:shadow-xl transition-all duration-300 bg-gradient-to-br from-card to-muted/10">
+      <CardHeader className="pb-6 border-b border-border/40 bg-muted/5">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-lg font-bold tracking-tight bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
+            <CardTitle className="text-xl font-bold tracking-tight bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent flex items-center gap-2">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5"
+                >
+                  <line x1="12" x2="12" y1="20" y2="10" />
+                  <line x1="18" x2="18" y1="20" y2="4" />
+                  <line x1="6" x2="6" y1="20" y2="16" />
+                </svg>
+              </span>
               支出の推移
             </CardTitle>
-            <p className="text-xs text-muted-foreground font-medium">
-              過去{monthRange}ヶ月間の支出傾向
+            <p className="text-xs text-muted-foreground font-medium ml-1">
+              過去{monthRange}ヶ月間の支出傾向分析
             </p>
           </div>
           <Select value={monthRange} onValueChange={setMonthRange}>
-            <SelectTrigger className="w-[130px] h-9 text-xs font-medium rounded-full border-border/60 bg-background/50 backdrop-blur-sm hover:bg-background/80 transition-all focus:ring-1 focus:ring-primary/20">
+            <SelectTrigger className="w-[140px] h-9 text-xs font-medium rounded-full border-border/60 bg-background/50 backdrop-blur-sm hover:bg-background/80 transition-all focus:ring-1 focus:ring-primary/20 shadow-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent align="end" className="rounded-xl border-border/60 shadow-xl">

@@ -70,21 +70,23 @@ export function MonthlySummarySection({
 
   return (
     <Card className="border-border/40 shadow-sm hover:shadow-md transition-all duration-300 bg-gradient-to-br from-card to-muted/10 overflow-hidden">
-      <CardHeader className="pb-2 border-b border-border/40 bg-muted/5">
+      <CardHeader className="pb-4 border-b border-border/40 bg-muted/5">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
-            <CardTitle className="text-lg font-bold tracking-tight flex items-center gap-2">
-              <Calendar className="w-4 h-4 text-primary" />
+            <CardTitle className="text-xl font-bold tracking-tight flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500 shadow-sm">
+                <Calendar className="w-5 h-5" />
+              </div>
               <span className="bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
                 月別サマリー
               </span>
             </CardTitle>
-            <p className="text-xs text-muted-foreground font-medium">
-              選択した月の収支内訳と分析
+            <p className="text-xs text-muted-foreground font-medium ml-1">
+              選択した月の収支内訳と分析レポート
             </p>
           </div>
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-full md:w-[180px] h-9 text-xs font-medium rounded-full border-border/60 bg-background/50 backdrop-blur-sm hover:bg-background/80 transition-all focus:ring-1 focus:ring-primary/20">
+            <SelectTrigger className="w-full md:w-[200px] h-9 text-xs font-medium rounded-full border-border/60 bg-background/50 backdrop-blur-sm hover:bg-background/80 transition-all focus:ring-1 focus:ring-primary/20 shadow-sm">
               <SelectValue />
             </SelectTrigger>
             <SelectContent align="end" className="rounded-xl border-border/60 shadow-xl max-h-[300px]">
@@ -103,44 +105,58 @@ export function MonthlySummarySection({
 
           {/* 左カラム: 合計と主要ステータス */}
           <div className="p-6 flex flex-col justify-center space-y-6 bg-gradient-to-br from-primary/5 via-transparent to-transparent">
-            <div className="relative overflow-hidden rounded-2xl bg-card border border-border/50 p-6 shadow-sm group hover:shadow-md transition-all duration-300">
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Wallet className="w-24 h-24 -mr-8 -mt-8 rotate-12" />
+            {/* 総支出カード */}
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-card to-background border border-border/60 p-6 shadow-sm group hover:shadow-lg transition-all duration-300">
+              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                <Wallet className="w-32 h-32 -mr-10 -mt-10 rotate-12 text-primary" />
               </div>
-              <p className="text-sm font-medium text-muted-foreground mb-1">総支出額</p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-3xl font-extrabold tracking-tight text-foreground">
-                  {formatCurrency(totalAmount)}
-                </span>
-              </div>
-              <div className="mt-4 flex items-center gap-2 text-xs font-medium text-muted-foreground bg-muted/50 w-fit px-2 py-1 rounded-full">
-                <span className="flex items-center gap-1">
+
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="p-2 rounded-full bg-primary/10 text-primary">
+                    <Wallet className="w-4 h-4" />
+                  </div>
+                  <p className="text-sm font-semibold text-muted-foreground">総支出額</p>
+                </div>
+
+                <div className="flex items-baseline gap-1">
+                  <span className="text-4xl font-extrabold tracking-tight text-foreground">
+                    {formatCurrency(totalAmount)}
+                  </span>
+                </div>
+
+                <div className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-primary bg-primary/10 px-3 py-1.5 rounded-full border border-primary/10">
                   <TrendingUp className="w-3 h-3" />
-                  合計 {totalCount} 件の取引
-                </span>
+                  <span>合計 {totalCount} 件の取引</span>
+                </div>
               </div>
             </div>
 
-            <div className="space-y-3">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider pl-1">
+            {/* トップカテゴリー */}
+            <div className="space-y-3 pt-2">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1 flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary/50" />
                 支出内訳トップ3
               </p>
               <div className="space-y-2">
                 {monthlySummary && monthlySummary.byCategory.slice(0, 3).map((item, i) => (
-                  <div key={item.category} className="flex items-center justify-between p-2 rounded-lg bg-card/50 hover:bg-muted/50 border border-transparent hover:border-border/50 transition-all">
-                    <div className="flex items-center gap-2">
+                  <div
+                    key={item.category}
+                    className="group flex items-center justify-between p-2.5 rounded-xl bg-card/40 hover:bg-card border border-transparent hover:border-border/50 hover:shadow-sm transition-all duration-200"
+                  >
+                    <div className="flex items-center gap-3">
                       <div
-                        className="w-2 h-8 rounded-full shadow-sm"
+                        className="w-1.5 h-8 rounded-full shadow-sm group-hover:scale-y-110 transition-transform"
                         style={{ backgroundColor: getCategoryColor(item.category) }}
                       />
-                      <div className="flex flex-col">
-                        <span className="text-xs font-semibold">{item.category}</span>
-                        <span className="text-[10px] text-muted-foreground">
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-xs font-bold text-foreground/90">{item.category}</span>
+                        <span className="text-[10px] text-muted-foreground font-medium bg-muted/50 px-1.5 py-0.5 rounded-md w-fit">
                           {((item.amount / totalAmount) * 100).toFixed(1)}%
                         </span>
                       </div>
                     </div>
-                    <span className="text-sm font-bold font-mono">
+                    <span className="text-sm font-bold font-mono tracking-tight text-foreground/80 group-hover:text-foreground">
                       {formatCurrency(item.amount)}
                     </span>
                   </div>
@@ -150,31 +166,32 @@ export function MonthlySummarySection({
           </div>
 
           {/* 右/中央カラム: ドーナツチャート */}
-          <div className="p-6 md:col-span-1 lg:col-span-2 flex flex-col items-center justify-center relative min-h-[300px]">
+          <div className="p-6 md:col-span-1 lg:col-span-2 flex flex-col items-center justify-center relative min-h-[350px]">
             {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
+              <ResponsiveContainer width="100%" height={350}>
                 <PieChart>
                   <Pie
                     data={chartData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={80}
-                    outerRadius={110}
-                    paddingAngle={0}
+                    innerRadius={90}
+                    outerRadius={125}
+                    paddingAngle={2}
                     dataKey="value"
                     onMouseEnter={(_, index) => setActiveIndex(index)}
                     onMouseLeave={() => setActiveIndex(undefined)}
                     stroke="none"
+                    cornerRadius={4}
                   >
                     {chartData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
                         fill={entry.color}
                         stroke="none"
-                        className="transition-all duration-300 hover:opacity-80 cursor-pointer"
+                        className="transition-all duration-300 hover:opacity-90 cursor-pointer"
                         style={{
-                          filter: activeIndex === index ? `drop-shadow(0 0 8px ${entry.color}60)` : undefined,
-                          transform: activeIndex === index ? 'scale(1.02)' : 'scale(1)',
+                          filter: activeIndex === index ? `drop-shadow(0 0 10px ${entry.color}70)` : `drop-shadow(0 0 2px ${entry.color}20)`,
+                          transform: activeIndex === index ? 'scale(1.03)' : 'scale(1)',
                           transformOrigin: 'center center',
                           outline: 'none'
                         }}
@@ -186,16 +203,18 @@ export function MonthlySummarySection({
                       if (active && payload && payload.length) {
                         const data = payload[0].payload;
                         return (
-                          <div className="bg-popover/95 backdrop-blur-md border border-border/50 rounded-xl shadow-xl p-3 text-xs">
-                            <div className="flex items-center gap-2 mb-1">
-                              <div className="w-2 h-2 rounded-full" style={{ backgroundColor: data.color }} />
-                              <span className="font-bold">{data.name}</span>
+                          <div className="bg-popover/95 backdrop-blur-md border border-border/50 rounded-xl shadow-2xl p-4 text-xs animate-in fade-in-0 zoom-in-95">
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="w-3 h-3 rounded-full shadow-sm ring-2 ring-transparent" style={{ backgroundColor: data.color, boxShadow: `0 0 8px ${data.color}80` }} />
+                              <span className="font-bold text-sm">{data.name}</span>
                             </div>
-                            <div className="text-lg font-bold font-mono">
+                            <div className="text-xl font-bold font-mono tracking-tight mb-1">
                               {formatCurrency(data.value)}
                             </div>
-                            <div className="text-muted-foreground">
-                              {((data.value / totalAmount) * 100).toFixed(1)}%
+                            <div className="flex items-center gap-2">
+                              <span className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-full">
+                                シェア {((data.value / totalAmount) * 100).toFixed(1)}%
+                              </span>
                             </div>
                           </div>
                         )
@@ -204,26 +223,26 @@ export function MonthlySummarySection({
                     }}
                   />
                   <Legend
-                    width={160}
+                    width={180}
                     layout="vertical"
                     verticalAlign="middle"
                     align="right"
                     content={({ payload }) => (
-                      <div className="flex flex-col gap-1.5 max-h-[240px] overflow-y-auto pr-2 custom-scrollbar ml-4">
+                      <div className="flex flex-col gap-2 max-h-[280px] overflow-y-auto pr-2 custom-scrollbar ml-6">
                         {payload?.map((entry: any, index) => (
                           <div
                             key={`legend-${index}`}
-                            className={`flex items-center justify-between gap-2 text-xs p-1.5 rounded-md transition-colors cursor-pointer ${activeIndex === index ? 'bg-muted' : 'hover:bg-muted/50'}`}
+                            className={`flex items-center justify-between gap-3 text-xs p-2 rounded-lg transition-all cursor-pointer border border-transparent ${activeIndex === index ? 'bg-muted shadow-sm border-border/50 scale-105' : 'hover:bg-muted/50'}`}
                             onMouseEnter={() => setActiveIndex(index)}
                             onMouseLeave={() => setActiveIndex(undefined)}
                           >
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2.5">
                               <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: entry.color }} />
-                              <span className={`font-medium ${activeIndex === index ? 'text-foreground' : 'text-muted-foreground'}`}>
+                              <span className={`font-medium ${activeIndex === index ? 'text-foreground font-bold' : 'text-muted-foreground'}`}>
                                 {entry.value}
                               </span>
                             </div>
-                            <span className="font-mono font-semibold opacity-70">
+                            <span className="font-mono font-semibold opacity-80">
                               {((entry.payload.value / totalAmount) * 100).toFixed(0)}%
                             </span>
                           </div>
@@ -232,21 +251,24 @@ export function MonthlySummarySection({
                     )}
                   />
                   <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
-                    <tspan x="50%" dy="-10" fontSize="12" fill="hsl(var(--muted-foreground))" fontWeight="500">
-                      Total
+                    <tspan x="50%" dy="-12" fontSize="11" fill="hsl(var(--muted-foreground))" fontWeight="600" letterSpacing="0.05em">
+                      TOTAL
                     </tspan>
-                    <tspan x="50%" dy="24" fontSize="20" fill="hsl(var(--foreground))" fontWeight="bold">
+                    <tspan x="50%" dy="26" fontSize="22" fill="hsl(var(--foreground))" fontWeight="800" letterSpacing="-0.02em">
                       {formatCurrency(totalAmount)}
                     </tspan>
                   </text>
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-[300px] items-center justify-center flex-col gap-3">
-                <div className="p-4 bg-muted/20 rounded-full">
-                  <TrendingDown className="w-8 h-8 text-muted-foreground/40" />
+              <div className="flex h-[350px] items-center justify-center flex-col gap-4">
+                <div className="p-6 bg-muted/20 rounded-full border border-border/20">
+                  <TrendingDown className="w-10 h-10 text-muted-foreground/30" />
                 </div>
-                <p className="text-sm text-muted-foreground font-medium">データがありません</p>
+                <div className="text-center space-y-1">
+                  <p className="text-sm text-foreground/80 font-medium">データがありません</p>
+                  <p className="text-xs text-muted-foreground">この月の支出データはまだ登録されていません</p>
+                </div>
               </div>
             )}
           </div>
