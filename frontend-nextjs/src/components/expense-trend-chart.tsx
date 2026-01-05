@@ -11,7 +11,7 @@
 import { useMemo, useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
+import { ComposedChart, Line, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts"
 import { getCategoryColor } from "@/lib/category-colors"
 import { formatCurrencyForChart } from "@/lib/formatters"
 import { MONTH_RANGES } from "@/lib/constants"
@@ -26,17 +26,21 @@ interface ExpenseTrendChartProps {
 
 interface TooltipProps {
   active?: boolean
-  payload?: Array<{ name: string; value: number; fill: string; color: string }>
+  payload?: Array<{ name: string; value: number; fill: string; color: string; dataKey: string }>
   label?: string
 }
 
 function CustomTooltip({ active, payload, label }: TooltipProps) {
   if (!active || !payload || !payload.length) return null
 
-  const validItems = payload.filter((item) => item.value > 0)
-  if (validItems.length === 0) return null
+  // Lineチャートのデータ(total)とBarチャートのデータを分離
+  const totalItem = payload.find(item => item.dataKey === "total")
+  const barItems = payload.filter((item) => item.dataKey !== "total" && item.value > 0)
 
-  const total = validItems.reduce((sum, item) => sum + item.value, 0)
+  // 合計金額（Lineのデータがあればそれを使用、なければ積み上げの合計）
+  const total = totalItem ? totalItem.value : barItems.reduce((sum, item) => sum + item.value, 0)
+
+  if (barItems.length === 0 && (!totalItem || totalItem.value === 0)) return null
 
   return (
     <div className="bg-popover/95 backdrop-blur-md border border-border/50 rounded-xl shadow-2xl p-4 min-w-[240px] animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 duration-200">
@@ -49,7 +53,7 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
         </span>
       </div>
       <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-        {validItems.map((item, index) => {
+        {barItems.map((item, index) => {
           // Rechartsのitem.fillはグラデーションの場合URL文字列になることがあるため、
           // getCategoryColorを直接呼び出して純色を取得する
           const pureColor = getCategoryColor(item.name);
@@ -176,7 +180,7 @@ export function ExpenseTrendChart({ refreshTrigger }: ExpenseTrendChartProps) {
         ) : chartData.length > 0 ? (
           <div className="h-[280px] w-full mt-2">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart
+              <ComposedChart
                 data={chartData}
                 margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
                 onMouseMove={(state) => {
@@ -228,7 +232,15 @@ export function ExpenseTrendChart({ refreshTrigger }: ExpenseTrendChartProps) {
                   }}
                   content={({ payload }) => (
                     <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
-                      {payload?.map((entry: any, index) => {
+                      {/* 合計の凡例 */}
+                      <div className="flex items-center gap-2 group cursor-default">
+                        <div className="w-3 h-1 rounded-full bg-amber-500 shadow-sm" />
+                        <span className="text-[11px] font-bold text-foreground/80 group-hover:text-foreground transition-colors">
+                          合計
+                        </span>
+                      </div>
+                      {/* カテゴリーの凡例 */}
+                      {payload?.filter(p => p.dataKey !== 'total').map((entry: any, index) => {
                         const pureColor = getCategoryColor(entry.value);
                         return (
                           <div key={`legend-${index}`} className="flex items-center gap-2 group cursor-default">
@@ -262,7 +274,16 @@ export function ExpenseTrendChart({ refreshTrigger }: ExpenseTrendChartProps) {
                     }}
                   />
                 ))}
-              </BarChart>
+                <Line
+                  type="linear"
+                  dataKey="total"
+                  stroke="#f59e0b"
+                  strokeWidth={2.5}
+                  dot={{ r: 4, fill: "#f59e0b", strokeWidth: 2, stroke: "hsl(var(--background))" }}
+                  activeDot={{ r: 6, strokeWidth: 0 }}
+                  animationDuration={1000}
+                />
+              </ComposedChart>
             </ResponsiveContainer>
           </div>
         ) : (

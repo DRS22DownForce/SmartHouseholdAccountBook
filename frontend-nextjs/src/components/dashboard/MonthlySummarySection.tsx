@@ -16,7 +16,8 @@ import { formatCurrency, formatMonth, getCurrentMonthString } from "@/lib/format
 import { useMonthlySummary } from "@/hooks/use-monthly-summary"
 import { useAvailableMonths } from "@/hooks/use-available-months"
 import { transformMonthlySummaryToChartData } from "@/lib/chart-data-transformers"
-import { TrendingDown, TrendingUp, Calendar, Wallet } from "lucide-react"
+import { TrendingDown, TrendingUp, Calendar, Wallet, Sparkles } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface SummarySectionProps {
   refreshTrigger?: number // 支出追加後に再取得するためのトリガー
@@ -165,112 +166,157 @@ export function MonthlySummarySection({
             </div>
           </div>
 
-          {/* 右/中央カラム: ドーナツチャート */}
-          <div className="p-6 md:col-span-1 lg:col-span-2 flex flex-col items-center justify-center relative min-h-[350px]">
-            {chartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={350}>
-                <PieChart>
-                  <Pie
-                    data={chartData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={90}
-                    outerRadius={125}
-                    paddingAngle={2}
-                    dataKey="value"
-                    onMouseEnter={(_, index) => setActiveIndex(index)}
-                    onMouseLeave={() => setActiveIndex(undefined)}
-                    stroke="none"
-                    cornerRadius={4}
-                  >
-                    {chartData.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={entry.color}
+          {/* 中・右カラム: チャートとAI分析 */}
+          <div className="md:col-span-1 lg:col-span-2 p-0">
+            <div className="grid grid-cols-1 lg:grid-cols-2 h-full divide-y lg:divide-y-0 lg:divide-x divide-border/40">
+
+              {/* 中央: ドーナツチャート */}
+              <div className="p-6 flex flex-col items-center justify-center relative min-h-[300px]">
+                {chartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie
+                        data={chartData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={90}
+                        paddingAngle={2}
+                        dataKey="value"
+                        onMouseEnter={(_, index) => setActiveIndex(index)}
+                        onMouseLeave={() => setActiveIndex(undefined)}
                         stroke="none"
-                        className="transition-all duration-300 hover:opacity-90 cursor-pointer"
-                        style={{
-                          filter: activeIndex === index ? `drop-shadow(0 0 10px ${entry.color}70)` : `drop-shadow(0 0 2px ${entry.color}20)`,
-                          transform: activeIndex === index ? 'scale(1.03)' : 'scale(1)',
-                          transformOrigin: 'center center',
-                          outline: 'none'
+                        cornerRadius={4}
+                      >
+                        {chartData.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={entry.color}
+                            stroke="none"
+                            className="transition-all duration-300 hover:opacity-90 cursor-pointer"
+                            style={{
+                              filter: activeIndex === index ? `drop-shadow(0 0 10px ${entry.color}70)` : `drop-shadow(0 0 2px ${entry.color}20)`,
+                              transform: activeIndex === index ? 'scale(1.03)' : 'scale(1)',
+                              transformOrigin: 'center center',
+                              outline: 'none'
+                            }}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        content={({ active, payload }) => {
+                          if (active && payload && payload.length) {
+                            const data = payload[0].payload;
+                            return (
+                              <div className="bg-popover/95 backdrop-blur-md border border-border/50 rounded-xl shadow-2xl p-4 text-xs animate-in fade-in-0 zoom-in-95">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <div className="w-3 h-3 rounded-full shadow-sm ring-2 ring-transparent" style={{ backgroundColor: data.color, boxShadow: `0 0 8px ${data.color}80` }} />
+                                  <span className="font-bold text-sm">{data.name}</span>
+                                </div>
+                                <div className="text-xl font-bold font-mono tracking-tight mb-1">
+                                  {formatCurrency(data.value)}
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-full">
+                                    シェア {((data.value / totalAmount) * 100).toFixed(1)}%
+                                  </span>
+                                </div>
+                              </div>
+                            )
+                          }
+                          return null;
                         }}
                       />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        const data = payload[0].payload;
-                        return (
-                          <div className="bg-popover/95 backdrop-blur-md border border-border/50 rounded-xl shadow-2xl p-4 text-xs animate-in fade-in-0 zoom-in-95">
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="w-3 h-3 rounded-full shadow-sm ring-2 ring-transparent" style={{ backgroundColor: data.color, boxShadow: `0 0 8px ${data.color}80` }} />
-                              <span className="font-bold text-sm">{data.name}</span>
-                            </div>
-                            <div className="text-xl font-bold font-mono tracking-tight mb-1">
-                              {formatCurrency(data.value)}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-full">
-                                シェア {((data.value / totalAmount) * 100).toFixed(1)}%
-                              </span>
-                            </div>
+                      <Legend
+                        width={150}
+                        layout="vertical"
+                        verticalAlign="middle"
+                        align="right"
+                        content={({ payload }) => (
+                          <div className="flex flex-col gap-1.5 max-h-[260px] overflow-y-auto pr-2 custom-scrollbar ml-2">
+                            {payload?.map((entry: any, index) => (
+                              <div
+                                key={`legend-${index}`}
+                                className={`flex items-center justify-between gap-2 text-xs p-1.5 rounded-lg transition-all cursor-pointer border border-transparent ${activeIndex === index ? 'bg-muted shadow-sm border-border/50 scale-105' : 'hover:bg-muted/50'}`}
+                                onMouseEnter={() => setActiveIndex(index)}
+                                onMouseLeave={() => setActiveIndex(undefined)}
+                              >
+                                <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 rounded-full shadow-sm flex-shrink-0" style={{ backgroundColor: entry.color }} />
+                                  <span className={`font-medium truncate max-w-[60px] ${activeIndex === index ? 'text-foreground font-bold' : 'text-muted-foreground'}`}>
+                                    {entry.value}
+                                  </span>
+                                </div>
+                                <span className="font-mono font-semibold opacity-80">
+                                  {((entry.payload.value / totalAmount) * 100).toFixed(0)}%
+                                </span>
+                              </div>
+                            ))}
                           </div>
-                        )
-                      }
-                      return null;
-                    }}
-                  />
-                  <Legend
-                    width={180}
-                    layout="vertical"
-                    verticalAlign="middle"
-                    align="right"
-                    content={({ payload }) => (
-                      <div className="flex flex-col gap-2 max-h-[280px] overflow-y-auto pr-2 custom-scrollbar ml-6">
-                        {payload?.map((entry: any, index) => (
-                          <div
-                            key={`legend-${index}`}
-                            className={`flex items-center justify-between gap-3 text-xs p-2 rounded-lg transition-all cursor-pointer border border-transparent ${activeIndex === index ? 'bg-muted shadow-sm border-border/50 scale-105' : 'hover:bg-muted/50'}`}
-                            onMouseEnter={() => setActiveIndex(index)}
-                            onMouseLeave={() => setActiveIndex(undefined)}
-                          >
-                            <div className="flex items-center gap-2.5">
-                              <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: entry.color }} />
-                              <span className={`font-medium ${activeIndex === index ? 'text-foreground font-bold' : 'text-muted-foreground'}`}>
-                                {entry.value}
-                              </span>
-                            </div>
-                            <span className="font-mono font-semibold opacity-80">
-                              {((entry.payload.value / totalAmount) * 100).toFixed(0)}%
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  />
-                  <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
-                    <tspan x="50%" dy="-12" fontSize="11" fill="hsl(var(--muted-foreground))" fontWeight="600" letterSpacing="0.05em">
-                      TOTAL
-                    </tspan>
-                    <tspan x="50%" dy="26" fontSize="22" fill="hsl(var(--foreground))" fontWeight="800" letterSpacing="-0.02em">
-                      {formatCurrency(totalAmount)}
-                    </tspan>
-                  </text>
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-[350px] items-center justify-center flex-col gap-4">
-                <div className="p-6 bg-muted/20 rounded-full border border-border/20">
-                  <TrendingDown className="w-10 h-10 text-muted-foreground/30" />
-                </div>
-                <div className="text-center space-y-1">
-                  <p className="text-sm text-foreground/80 font-medium">データがありません</p>
-                  <p className="text-xs text-muted-foreground">この月の支出データはまだ登録されていません</p>
+                        )}
+                      />
+                      <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
+                        <tspan x="50%" dy="-10" fontSize="10" fill="hsl(var(--muted-foreground))" fontWeight="600" letterSpacing="0.05em">
+                          TOTAL
+                        </tspan>
+                        <tspan x="50%" dy="22" fontSize="18" fill="hsl(var(--foreground))" fontWeight="800" letterSpacing="-0.02em">
+                          {formatCurrency(totalAmount)}
+                        </tspan>
+                      </text>
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex h-[300px] items-center justify-center flex-col gap-4">
+                    <div className="p-6 bg-muted/20 rounded-full border border-border/20">
+                      <TrendingDown className="w-10 h-10 text-muted-foreground/30" />
+                    </div>
+                    <div className="text-center space-y-1">
+                      <p className="text-sm text-foreground/80 font-medium">データがありません</p>
+                      <p className="text-xs text-muted-foreground">この月の支出データはまだ登録されていません</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 右: AI分析レポート (モック) */}
+              <div className="p-6 flex flex-col justify-center bg-muted/5">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <h3 className="font-bold text-foreground">AI家計診断</h3>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="p-4 rounded-xl bg-card border border-border/50 shadow-sm">
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        <span className="font-bold text-foreground">今月の傾向: </span>
+                        食費が先月と比較して<span className="text-red-500 font-bold">約15%増加</span>しています。外食の回数が増えているようです。一方で、光熱費は節約できており<span className="text-green-500 font-bold">5%減少</span>しました素晴らしいです！
+                      </p>
+                    </div>
+
+                    <div className="p-4 rounded-xl bg-card border border-border/50 shadow-sm">
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        <span className="font-bold text-foreground">アドバイス: </span>
+                        来週は自炊の頻度を週2回増やすことで、目標予算内に収めることが可能です。スーパーのセール情報を活用しましょう。
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <Button className="w-full gap-2 bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-500/20 rounded-xl transition-all hover:scale-[1.02]">
+                      <Sparkles className="w-4 h-4" />
+                      詳細な分析レポートを見る
+                    </Button>
+                    <p className="text-[10px] text-center text-muted-foreground mt-2">
+                      ※ これはAIによる自動生成された分析のサンプルです
+                    </p>
+                  </div>
                 </div>
               </div>
-            )}
+
+            </div>
           </div>
         </div>
       </CardContent>

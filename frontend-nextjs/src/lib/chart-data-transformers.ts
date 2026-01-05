@@ -76,13 +76,14 @@ export function transformMonthlySummariesToChartData(
 
     // 各月のデータを生成
     return allMonths.map((month) => {
+        const summary = summaryMap.get(month)
         const data: Record<string, string | number> = {
             month: formatMonthForChart(month), // チャート表示用のフォーマット（例: "2024/01"）
+            total: summary?.total ?? 0, // 合計金額を追加
         }
 
         // 各カテゴリーの金額を設定
         categories.forEach((category) => {
-            const summary = summaryMap.get(month)
             const categoryItem = summary?.byCategory.find((item) => item.category === category)
             data[category] = categoryItem?.amount ?? 0 // データがない場合は0を設定
         })
