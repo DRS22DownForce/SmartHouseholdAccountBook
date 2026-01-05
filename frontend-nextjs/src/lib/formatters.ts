@@ -32,10 +32,12 @@ export function formatMonthForChart(month: string): string {
  * グラフ用の金額フォーマット（簡易版）
  */
 export function formatCurrencyForChart(value: number): string {
-  if (value === 0) return "¥0"
-  if (value < 1000) return `¥${Math.round(value)}`
-  if (value < 10000) return `¥${(value / 1000).toFixed(1)}k`
-  return `¥${Math.round(value / 1000)}k`
+  if (value === 0) return "0"
+  if (value >= 10000) {
+    const v = value / 10000
+    return `${Number.isInteger(v) ? v : v.toFixed(1)}万`
+  }
+  return value.toLocaleString()
 }
 
 /**
