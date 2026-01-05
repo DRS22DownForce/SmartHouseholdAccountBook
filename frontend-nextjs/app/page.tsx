@@ -19,6 +19,7 @@ import { AlertsSection } from "@/components/dashboard/AlertsSection"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { getUserDisplayName } from "@/lib/user-utils"
 import { useHomePageLogic } from "@/hooks/use-home-page-logic"
+import { Home } from "lucide-react"
 
 export default function HomePage() {
   const { user, signOut } = useAuthenticator((context) => [context.user])
@@ -41,7 +42,10 @@ export default function HomePage() {
     >
       <div className="space-y-4 md:space-y-6">
         <div>
-          <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight mb-1">
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight mb-1 flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+              <Home className="h-5 w-5" />
+            </div>
             ダッシュボード
           </h1>
           <p className="text-sm text-muted-foreground">

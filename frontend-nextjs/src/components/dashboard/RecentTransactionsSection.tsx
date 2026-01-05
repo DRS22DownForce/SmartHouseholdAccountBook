@@ -9,7 +9,7 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ArrowUpCircle, ArrowDownCircle, ChevronRight } from "lucide-react"
+import { ArrowUpCircle, ArrowDownCircle, ChevronRight, List } from "lucide-react"
 import { formatCurrency } from "@/lib/formatters"
 import { formatDate } from "@/lib/date-formatters"
 import Link from "next/link"
@@ -28,7 +28,12 @@ export function RecentTransactionsSection() {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg md:text-xl font-semibold text-foreground">最近の取引</h2>
+        <h2 className="text-lg md:text-xl font-bold text-foreground flex items-center gap-2">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+            <List className="h-4 w-4" />
+          </div>
+          最近の取引
+        </h2>
         <Link href="/expenses">
           <Button variant="ghost" size="sm" className="gap-1">
             すべて見る
@@ -53,16 +58,16 @@ export function RecentTransactionsSection() {
                   <div className="flex items-center gap-3 flex-1 min-w-0">
                     <div
                       className={cn(
-                        "flex h-10 w-10 items-center justify-center rounded-full flex-shrink-0",
+                        "flex h-10 w-10 items-center justify-center rounded-xl flex-shrink-0",
                         transaction.type === "income"
-                          ? "bg-green-100 dark:bg-green-900/30"
-                          : "bg-red-100 dark:bg-red-900/30"
+                          ? "bg-green-500/10"
+                          : "bg-rose-500/10"
                       )}
                     >
                       {transaction.type === "income" ? (
-                        <ArrowUpCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                        <ArrowUpCircle className="h-5 w-5 text-green-600 shadow-sm" />
                       ) : (
-                        <ArrowDownCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                        <ArrowDownCircle className="h-5 w-5 text-rose-600 shadow-sm" />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">

@@ -89,8 +89,10 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="ghost" className="w-full justify-start gap-3 px-3 py-2.5 h-auto hover:bg-muted/50 text-muted-foreground hover:text-foreground">
-          <Upload className="h-5 w-5" />
+        <Button variant="ghost" className="w-full justify-start gap-3 px-3 py-2.5 h-auto hover:bg-muted/50 text-muted-foreground hover:text-foreground group">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 group-hover:bg-amber-500/20 flex-shrink-0 transition-colors">
+            <Upload className="h-5 w-5" />
+          </div>
           <span className="text-sm font-medium">CSVインポート</span>
         </Button>
       </DialogTrigger>

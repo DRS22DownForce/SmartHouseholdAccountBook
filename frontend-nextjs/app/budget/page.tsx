@@ -48,7 +48,9 @@ export default function BudgetPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight mb-1 flex items-center gap-2">
-              <Wallet className="h-6 w-6 md:h-7 md:w-7 text-primary" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-500/10 text-indigo-500">
+                <Wallet className="h-5 w-5" />
+              </div>
               予算管理
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -128,7 +130,7 @@ export default function BudgetPage() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div
-                          className="w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-110"
+                          className="w-10 h-10 rounded-lg flex items-center justify-center text-white shadow-sm transition-transform group-hover:scale-110"
                           style={{ backgroundColor: color }}
                         >
                           <Icon className="w-5 h-5" />
