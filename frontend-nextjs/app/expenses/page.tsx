@@ -45,21 +45,21 @@ export default function ExpensesPage() {
       onAddExpense={handleAddExpense}
       onAddExpenses={handleAddExpenses}
     >
-      <div className="space-y-4 md:space-y-6">
+      <div className="space-y-6 md:space-y-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight mb-1 flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/10 text-orange-500">
-                <List className="h-5 w-5" />
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight mb-2 flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-orange-500/10 text-orange-500 shadow-sm">
+                <List className="h-6 w-6" />
               </div>
               支出一覧
             </h1>
-            <p className="text-sm text-muted-foreground">
-              全ての支出を確認し、編集・削除できます
+            <p className="text-sm text-muted-foreground ml-1">
+              全ての支出履歴の確認・編集・分析
             </p>
           </div>
-          <Button variant="outline" className="gap-2">
-            <Sparkles className="h-4 w-4" />
+          <Button variant="outline" className="gap-2 shadow-sm hover:shadow-md transition-all">
+            <Sparkles className="h-4 w-4 text-orange-500" />
             AI自動分類
           </Button>
         </div>
