@@ -10,9 +10,12 @@
 import { useMemo } from "react"
 import { useAuthenticator } from "@aws-amplify/ui-react"
 import { useExpenses } from "@/hooks/use-expenses"
-import { Header } from "@/components/dashboard/Header"
-import { ExpenseTrendChart } from "@/components/expense-trend-chart"
-import { MonthlySummarySection } from "@/components/dashboard/MonthlySummarySection"
+import { AppLayout } from "@/components/layout/AppLayout"
+import { BalanceSummarySection } from "@/components/dashboard/BalanceSummarySection"
+import { BudgetStatusSection } from "@/components/dashboard/BudgetStatusSection"
+import { GoalsStatusSection } from "@/components/dashboard/GoalsStatusSection"
+import { RecentTransactionsSection } from "@/components/dashboard/RecentTransactionsSection"
+import { AlertsSection } from "@/components/dashboard/AlertsSection"
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { getUserDisplayName } from "@/lib/user-utils"
 import { useHomePageLogic } from "@/hooks/use-home-page-logic"
@@ -30,20 +33,37 @@ export default function HomePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <Header
-        username={username}
-        onLogout={signOut}
-        onAddExpense={handleAddExpense}
-        onAddExpenses={handleAddExpenses}
-      />
-
-      <main className="container mx-auto max-w-7xl px-6 md:px-8 lg:px-12 py-1 md:py-2">
-        <div className="space-y-2 md:space-y-2.5">
-          <ExpenseTrendChart refreshTrigger={refreshTrigger} />
-          <MonthlySummarySection refreshTrigger={refreshTrigger} />
+    <AppLayout
+      username={username}
+      onLogout={signOut}
+      onAddExpense={handleAddExpense}
+      onAddExpenses={handleAddExpenses}
+    >
+      <div className="space-y-4 md:space-y-6">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight mb-1">
+            ダッシュボード
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            収支の概要と分析を確認できます
+          </p>
         </div>
-      </main>
-    </div>
+
+        {/* 収支バランスサマリー */}
+        <BalanceSummarySection refreshTrigger={refreshTrigger} />
+
+        {/* アラート・通知 */}
+        <AlertsSection />
+
+        {/* 予算達成状況 */}
+        <BudgetStatusSection />
+
+        {/* 目標達成状況 */}
+        <GoalsStatusSection />
+
+        {/* 最近の取引 */}
+        <RecentTransactionsSection />
+      </div>
+    </AppLayout>
   )
 }

@@ -100,9 +100,9 @@ export function AiChatDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="default">
-          <MessageCircle className="h-4 w-4 mr-2" />
-          AI相談
+        <Button variant="ghost" className="w-full justify-start gap-3 px-3 py-2.5 h-auto hover:bg-muted/50 text-muted-foreground hover:text-foreground">
+          <MessageCircle className="h-5 w-5" />
+          <span className="text-sm font-medium">AIチャット</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl h-[600px] flex flex-col">
