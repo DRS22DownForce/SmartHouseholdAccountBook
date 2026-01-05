@@ -40,7 +40,9 @@ export default function IncomePage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight mb-1 flex items-center gap-2">
-              <ArrowDownCircle className="h-6 w-6 md:h-7 md:w-7 text-primary" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+                <ArrowDownCircle className="h-5 w-5" />
+              </div>
               収入管理
             </h1>
             <p className="text-sm text-muted-foreground">

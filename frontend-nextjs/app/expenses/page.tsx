@@ -18,7 +18,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { getUserDisplayName } from "@/lib/user-utils"
 import { useExpensesPageLogic } from "@/hooks/use-expenses-page-logic"
 import { Button } from "@/components/ui/button"
-import { Sparkles } from "lucide-react"
+import { Sparkles, List } from "lucide-react"
 
 export default function ExpensesPage() {
   const { user, signOut } = useAuthenticator((context) => [context.user])
@@ -48,7 +48,10 @@ export default function ExpensesPage() {
       <div className="space-y-4 md:space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight mb-1">
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight mb-1 flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-500/10 text-orange-500">
+                <List className="h-5 w-5" />
+              </div>
               支出一覧
             </h1>
             <p className="text-sm text-muted-foreground">

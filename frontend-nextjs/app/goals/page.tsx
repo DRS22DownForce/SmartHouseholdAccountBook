@@ -57,7 +57,9 @@ export default function GoalsPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold text-foreground tracking-tight mb-1 flex items-center gap-2">
-              <Target className="h-6 w-6 md:h-7 md:w-7 text-primary" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-rose-500/10 text-rose-500">
+                <Target className="h-5 w-5" />
+              </div>
               目標設定
             </h1>
             <p className="text-sm text-muted-foreground">
@@ -105,7 +107,7 @@ export default function GoalsPage() {
                       <div className="flex items-start justify-between">
                         <div className="flex items-center gap-4">
                           <div
-                            className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-110"
+                            className="w-12 h-12 rounded-lg flex items-center justify-center text-white shadow-md transition-transform group-hover:scale-110"
                             style={{ backgroundColor: color || "hsl(var(--primary))" }}
                           >
                             <Icon className="w-6 h-6" />
