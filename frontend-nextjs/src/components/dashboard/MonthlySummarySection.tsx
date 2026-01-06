@@ -3,24 +3,93 @@
 /**
  * 月別サマリーセクションコンポーネント
  * 
- * このコンポーネントは、バックエンドAPIから月別サマリーを取得して表示します。
- * フロントエンドでの計算を削減し、通信量を最適化するために使用します。
+ * バックエンドAPIから月別サマリーを取得して表示します。
+ * モダンでインタラクティブな円グラフを中心に、リッチなデザインを採用しています。
+ * 
+ * 【初心者向け解説】
+ * - PieChart: 円グラフ（ドーナツチャート）でカテゴリ別の割合を表示
+ * - Cell: 円グラフの各セグメントにスタイルを適用
+ * - activeIndex: ホバー中のセグメントを追跡してハイライト表示
+ * - 中央表示: ホバー時にそのカテゴリの詳細を表示（インタラクティブ）
+ * 
+ * 【デザインのポイント】
+ * - グラス効果（backdrop-blur）で奥行きを演出
+ * - ホバー時にセグメントが浮き上がる3D的な効果
+ * - 凡例は横スクロール可能なピル型ボタン
+ * - アニメーションで心地よいインタラクション
  */
 
 import { useState, useMemo, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts"
+import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from "recharts"
 import { getCategoryColor } from "@/lib/category-colors"
 import { formatCurrency, formatMonth, getCurrentMonthString } from "@/lib/formatters"
 import { useMonthlySummary } from "@/hooks/use-monthly-summary"
 import { useAvailableMonths } from "@/hooks/use-available-months"
 import { transformMonthlySummaryToChartData } from "@/lib/chart-data-transformers"
-import { TrendingDown, TrendingUp, Calendar, Wallet, Sparkles } from "lucide-react"
+import { 
+  TrendingUp, 
+  Calendar, 
+  Wallet, 
+  Sparkles,
+  PieChart as PieChartIcon,
+  ArrowUpRight,
+  Lightbulb,
+  Zap,
+  Target
+} from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 interface SummarySectionProps {
-  refreshTrigger?: number // 支出追加後に再取得するためのトリガー
+  refreshTrigger?: number
+}
+
+/**
+ * アクティブなセグメント（ホバー中）を描画するコンポーネント
+ * 
+ * 【初心者向け解説】
+ * Rechartsの円グラフでは、通常のセグメントとは別に
+ * アクティブなセグメントをカスタム描画できます。
+ * ここでは、ホバー時にセグメントを外側に膨らませて
+ * 強調表示しています。
+ */
+const renderActiveShape = (props: any) => {
+  const {
+    cx, cy, innerRadius, outerRadius, startAngle, endAngle,
+    fill, payload, percent
+  } = props
+
+  return (
+    <g>
+      {/* アクティブセグメント（外側に膨らむ） */}
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={innerRadius - 4}
+        outerRadius={outerRadius + 12}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={fill}
+        style={{
+          filter: `drop-shadow(0 8px 24px ${payload.color}60)`,
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        }}
+      />
+      {/* グロー効果用の追加セグメント */}
+      <Sector
+        cx={cx}
+        cy={cy}
+        innerRadius={outerRadius + 14}
+        outerRadius={outerRadius + 18}
+        startAngle={startAngle}
+        endAngle={endAngle}
+        fill={payload.color}
+        opacity={0.3}
+      />
+    </g>
+  )
 }
 
 export function MonthlySummarySection({
@@ -29,290 +98,472 @@ export function MonthlySummarySection({
   const [selectedMonth, setSelectedMonth] = useState(() => getCurrentMonthString())
   const [activeIndex, setActiveIndex] = useState<number | undefined>(undefined)
 
-  // バックエンドAPIから月別サマリーを取得
   const { monthlySummary, isLoaded: isSummaryLoaded, fetchMonthlySummary } = useMonthlySummary(selectedMonth)
-
-  // バックエンドAPIから利用可能な月のリストを取得
   const { availableMonths, isLoaded: isMonthsLoaded, fetchAvailableMonths } = useAvailableMonths()
 
-  // refreshTriggerが変更されたときに再取得
   useEffect(() => {
     if (refreshTrigger !== undefined && refreshTrigger > 0) {
       fetchMonthlySummary()
       fetchAvailableMonths()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshTrigger])
+  }, [refreshTrigger, fetchMonthlySummary, fetchAvailableMonths])
 
-  // チャート用のデータを準備
   const chartData = useMemo(() => {
-    // データがない場合は空配列を返す
     if (!monthlySummary || !monthlySummary.byCategory) return []
-
-    // 金額が大きい順にソートし、その他をまとめる処理などはtransformMonthlySummaryToChartDataで行われている前提
     return transformMonthlySummaryToChartData(monthlySummary)
   }, [monthlySummary])
 
-  // 読み込み中の表示
+  // ローディング表示
   if (!isSummaryLoaded || !isMonthsLoaded) {
     return (
-      <Card className="border-border/40 shadow-sm bg-gradient-to-br from-card to-muted/10 h-[400px]">
+      <Card className={cn(
+        "relative overflow-hidden",
+        "border-border/40 shadow-rich",
+        "bg-gradient-to-br from-card via-card to-indigo-500/5",
+        "h-[500px]"
+      )}>
         <div className="flex h-full items-center justify-center flex-col gap-4">
-          <div className="w-8 h-8 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-          <p className="text-muted-foreground text-sm font-medium animate-pulse">データを読み込み中...</p>
+          <div className="relative w-12 h-12">
+            <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
+            <div className="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+          </div>
+          <p className="text-sm text-muted-foreground font-medium animate-pulse">
+            データを読み込み中...
+          </p>
         </div>
       </Card>
     )
   }
 
-  // 合計金額の計算（バックエンドから来るが、チャート表示用に念のため）
   const totalAmount = monthlySummary?.total ?? 0
   const totalCount = monthlySummary?.count ?? 0
 
   return (
-    <Card className="border-border/40 shadow-sm hover:shadow-md transition-all duration-300 bg-gradient-to-br from-card to-muted/10 overflow-hidden">
-      <CardHeader className="pb-4 border-b border-border/40 bg-muted/5">
+    <Card className={cn(
+      "relative overflow-hidden",
+      "border-border/40 shadow-rich shadow-rich-hover",
+      "bg-gradient-to-br from-card via-card to-indigo-500/5",
+      "transition-all duration-500"
+    )}>
+      {/* 背景装飾 */}
+      <div className="absolute inset-0 pattern-dots pointer-events-none opacity-30" />
+      <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-purple-500/10 to-transparent rounded-full translate-y-1/2 -translate-x-1/2" />
+
+      {/* ヘッダー */}
+      <div className="relative px-6 py-5 border-b border-border/40">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <CardTitle className="text-xl font-bold tracking-tight flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500 shadow-sm">
-                <Calendar className="w-5 h-5" />
+          <div className="flex items-center gap-3">
+            {/* グローイングアイコン */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-indigo-500/20 rounded-xl blur-md" />
+              <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-400 to-purple-500 text-white shadow-lg">
+                <Calendar className="h-5 w-5" />
               </div>
-              <span className="bg-gradient-to-br from-foreground to-muted-foreground bg-clip-text text-transparent">
+            </div>
+            <div>
+              <h2 className="text-lg font-black text-foreground tracking-tight">
                 月別サマリー
-              </span>
-            </CardTitle>
-            <p className="text-xs text-muted-foreground font-medium ml-1">
-              選択した月の収支内訳と分析レポート
-            </p>
+              </h2>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Sparkles className="w-3 h-3" />
+                選択した月の収支内訳と分析レポート
+              </p>
+            </div>
           </div>
+
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-full md:w-[200px] h-9 text-xs font-medium rounded-full border-border/60 bg-background/50 backdrop-blur-sm hover:bg-background/80 transition-all focus:ring-1 focus:ring-primary/20 shadow-sm">
+            <SelectTrigger className={cn(
+              "w-full md:w-[180px] h-9 text-xs font-bold rounded-xl",
+              "border-border/60 bg-background/50 backdrop-blur-sm",
+              "hover:bg-background/80 transition-all",
+              "focus:ring-2 focus:ring-primary/20 shadow-sm"
+            )}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent align="end" className="rounded-xl border-border/60 shadow-xl max-h-[300px]">
               {availableMonths.map((month) => (
-                <SelectItem key={month} value={month} className="text-xs focus:bg-primary/10 rounded-lg cursor-pointer">
+                <SelectItem 
+                  key={month} 
+                  value={month} 
+                  className="text-xs font-medium focus:bg-primary/10 rounded-lg cursor-pointer"
+                >
                   {formatMonth(month)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-      </CardHeader>
+      </div>
 
-      <CardContent className="p-0">
+      {/* メインコンテンツ */}
+      <CardContent className="relative p-0">
         <div className="grid md:grid-cols-2 lg:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border/40">
 
-          {/* 左カラム: 合計と主要ステータス */}
-          <div className="p-6 flex flex-col justify-center space-y-6 bg-gradient-to-br from-primary/5 via-transparent to-transparent">
+          {/* 左カラム: 総支出とトップカテゴリ */}
+          <div className="p-6 space-y-6">
             {/* 総支出カード */}
-            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-card to-background border border-border/60 p-6 shadow-sm group hover:shadow-lg transition-all duration-300">
-              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                <Wallet className="w-32 h-32 -mr-10 -mt-10 rotate-12 text-primary" />
+            <div className={cn(
+              "relative overflow-hidden rounded-2xl p-5",
+              "bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-transparent",
+              "border border-indigo-500/20",
+              "group hover:border-indigo-500/40 transition-all duration-300"
+            )}>
+              {/* 背景装飾 */}
+              <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                <Wallet className="w-24 h-24 -mr-6 -mt-6 rotate-12 text-indigo-500" />
               </div>
 
-              <div className="relative z-10">
+              <div className="relative">
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="p-2 rounded-full bg-primary/10 text-primary">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center text-white shadow-lg">
                     <Wallet className="w-4 h-4" />
                   </div>
-                  <p className="text-sm font-semibold text-muted-foreground">総支出額</p>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                    総支出額
+                  </p>
                 </div>
 
-                <div className="flex items-baseline gap-1">
-                  <span className="text-4xl font-extrabold tracking-tight text-foreground">
-                    {formatCurrency(totalAmount)}
+                <p className="text-3xl font-black text-foreground tracking-tight tabular-nums mb-3">
+                  {formatCurrency(totalAmount)}
+                </p>
+
+                <div className="flex items-center gap-2">
+                  <span className={cn(
+                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold",
+                    "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400",
+                    "border border-indigo-500/20"
+                  )}>
+                    <TrendingUp className="w-3 h-3" />
+                    {totalCount} 件の取引
                   </span>
-                </div>
-
-                <div className="mt-4 inline-flex items-center gap-2 text-xs font-medium text-primary bg-primary/10 px-3 py-1.5 rounded-full border border-primary/10">
-                  <TrendingUp className="w-3 h-3" />
-                  <span>合計 {totalCount} 件の取引</span>
                 </div>
               </div>
             </div>
 
-            {/* トップカテゴリー */}
-            <div className="space-y-3 pt-2">
-              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider pl-1 flex items-center gap-2">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary/50" />
+            {/* トップカテゴリ */}
+            <div className="space-y-3">
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
                 支出内訳トップ3
               </p>
               <div className="space-y-2">
-                {monthlySummary && monthlySummary.byCategory.slice(0, 3).map((item, i) => (
-                  <div
-                    key={item.category}
-                    className="group flex items-center justify-between p-2.5 rounded-xl bg-card/40 hover:bg-card border border-transparent hover:border-border/50 hover:shadow-sm transition-all duration-200"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div
-                        className="w-1.5 h-8 rounded-full shadow-sm group-hover:scale-y-110 transition-transform"
-                        style={{ backgroundColor: getCategoryColor(item.category) }}
-                      />
-                      <div className="flex flex-col gap-0.5">
-                        <span className="text-xs font-bold text-foreground/90">{item.category}</span>
-                        <span className="text-[10px] text-muted-foreground font-medium bg-muted/50 px-1.5 py-0.5 rounded-md w-fit">
-                          {((item.amount / totalAmount) * 100).toFixed(1)}%
-                        </span>
+                {monthlySummary && monthlySummary.byCategory.slice(0, 3).map((item, i) => {
+                  const percentage = totalAmount > 0 ? ((item.amount / totalAmount) * 100).toFixed(1) : "0"
+                  const color = getCategoryColor(item.category)
+
+                  return (
+                    <div
+                      key={item.category}
+                      className={cn(
+                        "group flex items-center justify-between p-3 rounded-xl",
+                        "bg-muted/30 hover:bg-muted/50",
+                        "border border-transparent hover:border-border/50",
+                        "transition-all duration-200 cursor-default",
+                        "animate-fade-in",
+                        i === 0 ? "stagger-1" : i === 1 ? "stagger-2" : "stagger-3"
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-2 h-10 rounded-full shadow-lg transition-transform group-hover:scale-y-110"
+                          style={{ 
+                            backgroundColor: color,
+                            boxShadow: `0 0 10px ${color}40`
+                          }}
+                        />
+                        <div className="space-y-0.5">
+                          <span className="text-sm font-bold text-foreground">{item.category}</span>
+                          <span className={cn(
+                            "block text-[10px] font-bold px-2 py-0.5 rounded-full w-fit",
+                            "bg-muted/50 text-muted-foreground"
+                          )}>
+                            {percentage}%
+                          </span>
+                        </div>
                       </div>
+                      <span className="text-sm font-black tabular-nums text-foreground/80 group-hover:text-foreground">
+                        {formatCurrency(item.amount)}
+                      </span>
                     </div>
-                    <span className="text-sm font-bold font-mono tracking-tight text-foreground/80 group-hover:text-foreground">
-                      {formatCurrency(item.amount)}
-                    </span>
-                  </div>
-                ))}
+                  )
+                })}
               </div>
             </div>
           </div>
 
-          {/* 中・右カラム: チャートとAI分析 */}
+          {/* 中・右カラム */}
           <div className="md:col-span-1 lg:col-span-2 p-0">
             <div className="grid grid-cols-1 lg:grid-cols-2 h-full divide-y lg:divide-y-0 lg:divide-x divide-border/40">
 
-              {/* 中央: ドーナツチャート */}
-              <div className="p-6 flex flex-col items-center justify-center relative min-h-[300px]">
+              {/* 中央: モダンなインタラクティブドーナツチャート */}
+              <div className="p-6 flex flex-col items-center justify-center relative min-h-[400px]">
                 {chartData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={300}>
-                    <PieChart>
-                      <Pie
-                        data={chartData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={90}
-                        paddingAngle={2}
-                        dataKey="value"
-                        onMouseEnter={(_, index) => setActiveIndex(index)}
-                        onMouseLeave={() => setActiveIndex(undefined)}
-                        stroke="none"
-                        cornerRadius={4}
-                      >
-                        {chartData.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={entry.color}
-                            stroke="none"
-                            className="transition-all duration-300 hover:opacity-90 cursor-pointer"
-                            style={{
-                              filter: activeIndex === index ? `drop-shadow(0 0 10px ${entry.color}70)` : `drop-shadow(0 0 2px ${entry.color}20)`,
-                              transform: activeIndex === index ? 'scale(1.03)' : 'scale(1)',
-                              transformOrigin: 'center center',
-                              outline: 'none'
-                            }}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        content={({ active, payload }) => {
-                          if (active && payload && payload.length) {
-                            const data = payload[0].payload;
-                            return (
-                              <div className="bg-popover/95 backdrop-blur-md border border-border/50 rounded-xl shadow-2xl p-4 text-xs animate-in fade-in-0 zoom-in-95">
-                                <div className="flex items-center gap-2 mb-2">
-                                  <div className="w-3 h-3 rounded-full shadow-sm ring-2 ring-transparent" style={{ backgroundColor: data.color, boxShadow: `0 0 8px ${data.color}80` }} />
-                                  <span className="font-bold text-sm">{data.name}</span>
-                                </div>
-                                <div className="text-xl font-bold font-mono tracking-tight mb-1">
-                                  {formatCurrency(data.value)}
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  <span className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded-full">
-                                    シェア {((data.value / totalAmount) * 100).toFixed(1)}%
-                                  </span>
-                                </div>
-                              </div>
-                            )
-                          }
-                          return null;
-                        }}
-                      />
-                      <Legend
-                        width={150}
-                        layout="vertical"
-                        verticalAlign="middle"
-                        align="right"
-                        content={({ payload }) => (
-                          <div className="flex flex-col gap-1.5 max-h-[260px] overflow-y-auto pr-2 custom-scrollbar ml-2">
-                            {payload?.map((entry: any, index) => (
-                              <div
-                                key={`legend-${index}`}
-                                className={`flex items-center justify-between gap-2 text-xs p-1.5 rounded-lg transition-all cursor-pointer border border-transparent ${activeIndex === index ? 'bg-muted shadow-sm border-border/50 scale-105' : 'hover:bg-muted/50'}`}
-                                onMouseEnter={() => setActiveIndex(index)}
-                                onMouseLeave={() => setActiveIndex(undefined)}
+                  <div className="relative w-full flex flex-col items-center gap-6">
+                    {/* 円グラフ本体 */}
+                    <div className="relative w-[280px] h-[280px]">
+                      {/* 背景の装飾リング */}
+                      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-muted/30 to-muted/10 blur-xl scale-110" />
+                      
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          {/* グラデーション定義 */}
+                          <defs>
+                            {chartData.map((entry, index) => (
+                              <linearGradient 
+                                key={`gradient-pie-${index}`} 
+                                id={`gradient-pie-${index}`} 
+                                x1="0" y1="0" x2="1" y2="1"
                               >
-                                <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 rounded-full shadow-sm flex-shrink-0" style={{ backgroundColor: entry.color }} />
-                                  <span className={`font-medium truncate max-w-[60px] ${activeIndex === index ? 'text-foreground font-bold' : 'text-muted-foreground'}`}>
-                                    {entry.value}
-                                  </span>
-                                </div>
-                                <span className="font-mono font-semibold opacity-80">
-                                  {((entry.payload.value / totalAmount) * 100).toFixed(0)}%
-                                </span>
-                              </div>
+                                <stop offset="0%" stopColor={entry.color} stopOpacity={1} />
+                                <stop offset="100%" stopColor={entry.color} stopOpacity={0.75} />
+                              </linearGradient>
                             ))}
-                          </div>
-                        )}
-                      />
-                      <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
-                        <tspan x="50%" dy="-10" fontSize="10" fill="hsl(var(--muted-foreground))" fontWeight="600" letterSpacing="0.05em">
-                          TOTAL
-                        </tspan>
-                        <tspan x="50%" dy="22" fontSize="18" fill="hsl(var(--foreground))" fontWeight="800" letterSpacing="-0.02em">
-                          {formatCurrency(totalAmount)}
-                        </tspan>
-                      </text>
-                    </PieChart>
-                  </ResponsiveContainer>
+                            {/* 中央の背景用 */}
+                            <radialGradient id="centerGlow" cx="50%" cy="50%" r="50%">
+                              <stop offset="0%" stopColor="hsl(var(--background))" stopOpacity={1} />
+                              <stop offset="100%" stopColor="hsl(var(--muted))" stopOpacity={0.3} />
+                            </radialGradient>
+                          </defs>
+                          <Pie
+                            data={chartData}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={75}
+                            outerRadius={115}
+                            paddingAngle={4}
+                            dataKey="value"
+                            activeIndex={activeIndex}
+                            activeShape={renderActiveShape}
+                            onMouseEnter={(_, index) => setActiveIndex(index)}
+                            onMouseLeave={() => setActiveIndex(undefined)}
+                            stroke="none"
+                            cornerRadius={8}
+                            animationBegin={0}
+                            animationDuration={800}
+                            animationEasing="ease-out"
+                          >
+                            {chartData.map((entry, index) => (
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={`url(#gradient-pie-${index})`}
+                                className="cursor-pointer outline-none"
+                                style={{
+                                  filter: activeIndex === undefined || activeIndex === index
+                                    ? `drop-shadow(0 4px 12px ${entry.color}40)`
+                                    : 'none',
+                                  opacity: activeIndex === undefined || activeIndex === index ? 1 : 0.4,
+                                  transition: 'opacity 0.3s ease, filter 0.3s ease',
+                                }}
+                              />
+                            ))}
+                          </Pie>
+                        </PieChart>
+                      </ResponsiveContainer>
+
+                      {/* 中央のインタラクティブ表示（ホバー時に変化） */}
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div className={cn(
+                          "flex flex-col items-center justify-center",
+                          "w-[130px] h-[130px] rounded-full",
+                          "bg-gradient-to-br from-background via-background to-muted/20",
+                          "shadow-inner border border-border/20",
+                          "transition-all duration-300"
+                        )}>
+                          {activeIndex !== undefined && chartData[activeIndex] ? (
+                            // ホバー時: 選択されたカテゴリの情報を表示
+                            <>
+                              <div 
+                                className="w-3 h-3 rounded-full mb-1.5 shadow-lg transition-transform animate-pulse"
+                                style={{ 
+                                  backgroundColor: chartData[activeIndex].color,
+                                  boxShadow: `0 0 16px ${chartData[activeIndex].color}80`
+                                }}
+                              />
+                              <span className="text-xs font-bold text-muted-foreground mb-0.5 truncate max-w-[100px]">
+                                {chartData[activeIndex].name}
+                              </span>
+                              <span className="text-xl font-black text-foreground tabular-nums tracking-tight">
+                                {formatCurrency(chartData[activeIndex].value)}
+                              </span>
+                              <span className="text-[10px] font-bold text-muted-foreground mt-0.5 px-2 py-0.5 rounded-full bg-muted/50">
+                                シェア {totalAmount > 0 
+                                  ? ((chartData[activeIndex].value / totalAmount) * 100).toFixed(1) 
+                                  : "0"}%
+                              </span>
+                            </>
+                          ) : (
+                            // 通常時: 合計を表示
+                            <>
+                              <Target className="w-4 h-4 text-muted-foreground mb-1" />
+                              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+                                Total
+                              </span>
+                              <span className="text-2xl font-black text-foreground tabular-nums tracking-tight">
+                                {formatCurrency(totalAmount)}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* 凡例 - 横スクロール可能なピル型ボタン */}
+                    <div className="w-full overflow-x-auto scrollbar-hide">
+                      <div className="flex items-center justify-center gap-2 px-2 min-w-max">
+                        {chartData.map((entry, index) => {
+                          const isActive = activeIndex === index
+                          const percentage = totalAmount > 0 
+                            ? ((entry.value / totalAmount) * 100).toFixed(0) 
+                            : "0"
+                          return (
+                            <button
+                              key={`legend-${index}`}
+                              className={cn(
+                                "flex items-center gap-2 px-3 py-1.5 rounded-full",
+                                "text-xs font-bold whitespace-nowrap",
+                                "border transition-all duration-200",
+                                "focus:outline-none focus:ring-2 focus:ring-primary/20",
+                                isActive 
+                                  ? "bg-foreground/5 border-border shadow-md scale-105" 
+                                  : "bg-transparent border-transparent hover:bg-muted/50 hover:border-border/50"
+                              )}
+                              style={{
+                                borderColor: isActive ? `${entry.color}40` : undefined,
+                                boxShadow: isActive ? `0 4px 12px ${entry.color}20` : undefined,
+                              }}
+                              onMouseEnter={() => setActiveIndex(index)}
+                              onMouseLeave={() => setActiveIndex(undefined)}
+                            >
+                              <div 
+                                className="w-2.5 h-2.5 rounded-full shadow-sm flex-shrink-0 transition-all duration-200"
+                                style={{ 
+                                  backgroundColor: entry.color,
+                                  boxShadow: isActive ? `0 0 8px ${entry.color}80` : `0 0 4px ${entry.color}40`,
+                                  transform: isActive ? 'scale(1.2)' : 'scale(1)'
+                                }} 
+                              />
+                              <span className={cn(
+                                "transition-colors duration-200",
+                                isActive ? "text-foreground" : "text-muted-foreground"
+                              )}>
+                                {entry.name}
+                              </span>
+                              <span className={cn(
+                                "tabular-nums transition-colors duration-200",
+                                isActive ? "text-foreground" : "text-muted-foreground/70"
+                              )}>
+                                {percentage}%
+                              </span>
+                            </button>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
                 ) : (
-                  <div className="flex h-[300px] items-center justify-center flex-col gap-4">
-                    <div className="p-6 bg-muted/20 rounded-full border border-border/20">
-                      <TrendingDown className="w-10 h-10 text-muted-foreground/30" />
+                  // データがない場合の表示
+                  <div className="flex h-[320px] items-center justify-center flex-col gap-4">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-muted/20 rounded-full blur-xl animate-pulse" />
+                      <div className="relative w-24 h-24 rounded-full bg-gradient-to-br from-muted/30 to-muted/10 flex items-center justify-center border border-border/20">
+                        <PieChartIcon className="w-10 h-10 text-muted-foreground/40" />
+                      </div>
                     </div>
                     <div className="text-center space-y-1">
-                      <p className="text-sm text-foreground/80 font-medium">データがありません</p>
-                      <p className="text-xs text-muted-foreground">この月の支出データはまだ登録されていません</p>
+                      <p className="text-sm font-bold text-foreground/80">
+                        データがありません
+                      </p>
+                      <p className="text-xs text-muted-foreground max-w-[200px]">
+                        この月の支出データはまだ登録されていません
+                      </p>
                     </div>
                   </div>
                 )}
               </div>
 
-              {/* 右: AI分析レポート (モック) */}
-              <div className="p-6 flex flex-col justify-center bg-muted/5">
+              {/* 右: AI分析レポート */}
+              <div className="p-6 flex flex-col justify-center bg-gradient-to-br from-purple-500/5 via-transparent to-transparent">
                 <div className="space-y-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="p-2 rounded-lg bg-purple-500/10 text-purple-600">
-                      <Sparkles className="w-4 h-4" />
+                  {/* ヘッダー */}
+                  <div className="flex items-center gap-2">
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-purple-500/20 rounded-xl blur-md animate-pulse" />
+                      <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-white shadow-lg">
+                        <Sparkles className="w-4 h-4" />
+                      </div>
                     </div>
-                    <h3 className="font-bold text-foreground">AI家計診断</h3>
+                    <div>
+                      <h3 className="font-bold text-foreground">AI家計診断</h3>
+                      <p className="text-[10px] text-muted-foreground">AIによる自動分析</p>
+                    </div>
                   </div>
 
+                  {/* 分析カード */}
                   <div className="space-y-3">
-                    <div className="p-4 rounded-xl bg-card border border-border/50 shadow-sm">
-                      <p className="text-sm leading-relaxed text-muted-foreground">
-                        <span className="font-bold text-foreground">今月の傾向: </span>
-                        食費が先月と比較して<span className="text-red-500 font-bold">約15%増加</span>しています。外食の回数が増えているようです。一方で、光熱費は節約できており<span className="text-green-500 font-bold">5%減少</span>しました素晴らしいです！
-                      </p>
+                    {/* 傾向分析 */}
+                    <div className={cn(
+                      "p-4 rounded-xl",
+                      "bg-card/80 backdrop-blur-sm",
+                      "border border-border/50",
+                      "shadow-sm hover:shadow-md transition-all duration-300",
+                      "group"
+                    )}>
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 flex-shrink-0 group-hover:scale-110 transition-transform">
+                          <TrendingUp className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-foreground mb-1">今月の傾向</p>
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            食費が先月と比較して
+                            <span className="font-bold text-rose-500 mx-1">約15%増加</span>
+                            しています。一方で、光熱費は
+                            <span className="font-bold text-emerald-500 mx-1">5%減少</span>
+                            しました。
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="p-4 rounded-xl bg-card border border-border/50 shadow-sm">
-                      <p className="text-sm leading-relaxed text-muted-foreground">
-                        <span className="font-bold text-foreground">アドバイス: </span>
-                        来週は自炊の頻度を週2回増やすことで、目標予算内に収めることが可能です。スーパーのセール情報を活用しましょう。
-                      </p>
+                    {/* アドバイス */}
+                    <div className={cn(
+                      "p-4 rounded-xl",
+                      "bg-card/80 backdrop-blur-sm",
+                      "border border-border/50",
+                      "shadow-sm hover:shadow-md transition-all duration-300",
+                      "group"
+                    )}>
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 flex-shrink-0 group-hover:scale-110 transition-transform animate-float">
+                          <Lightbulb className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-foreground mb-1">アドバイス</p>
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            来週は自炊の頻度を週2回増やすことで、目標予算内に収めることが可能です。
+                          </p>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="pt-2">
-                    <Button className="w-full gap-2 bg-purple-600 hover:bg-purple-700 text-white shadow-md shadow-purple-500/20 rounded-xl transition-all hover:scale-[1.02]">
-                      <Sparkles className="w-4 h-4" />
-                      詳細な分析レポートを見る
-                    </Button>
-                    <p className="text-[10px] text-center text-muted-foreground mt-2">
-                      ※ これはAIによる自動生成された分析のサンプルです
-                    </p>
-                  </div>
+                  {/* アクションボタン */}
+                  <Button className={cn(
+                    "w-full gap-2 rounded-xl shadow-lg",
+                    "bg-gradient-to-r from-purple-500 to-pink-500",
+                    "hover:from-purple-600 hover:to-pink-600",
+                    "text-white font-bold",
+                    "transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
+                  )}>
+                    <Sparkles className="w-4 h-4" />
+                    詳細な分析レポートを見る
+                    <ArrowUpRight className="w-4 h-4" />
+                  </Button>
+
+                  <p className="text-[10px] text-center text-muted-foreground/60 flex items-center justify-center gap-1">
+                    <Zap className="w-3 h-3" />
+                    AIによる自動生成された分析のサンプルです
+                  </p>
                 </div>
               </div>
 
@@ -323,4 +574,3 @@ export function MonthlySummarySection({
     </Card>
   )
 }
-

@@ -56,3 +56,54 @@ export function getCategoryColorWithAlpha(category: string, alpha: number): stri
 
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
+
+/**
+ * カテゴリーに対応するグラデーションを取得する関数
+ * 
+ * 【初心者向け解説】
+ * - グラデーション: 2色以上が滑らかに変化する配色
+ * - ホームページと統一感のあるリッチなデザインを実現
+ * 
+ * @param category - カテゴリー名
+ * @returns グラデーションのCSSクラス名
+ */
+export const CATEGORY_GRADIENTS: Record<string, { gradient: string; shadow: string }> = {
+  食費: { 
+    gradient: "from-orange-400 to-rose-500", 
+    shadow: "shadow-orange-500/30" 
+  },
+  住居費: { 
+    gradient: "from-blue-400 to-indigo-500", 
+    shadow: "shadow-blue-500/30" 
+  },
+  交通費: { 
+    gradient: "from-cyan-400 to-blue-500", 
+    shadow: "shadow-cyan-500/30" 
+  },
+  娯楽: { 
+    gradient: "from-purple-400 to-pink-500", 
+    shadow: "shadow-purple-500/30" 
+  },
+  光熱費: { 
+    gradient: "from-emerald-400 to-green-500", 
+    shadow: "shadow-emerald-500/30" 
+  },
+  医療費: { 
+    gradient: "from-red-400 to-rose-500", 
+    shadow: "shadow-red-500/30" 
+  },
+  その他: { 
+    gradient: "from-amber-400 to-orange-500", 
+    shadow: "shadow-amber-500/30" 
+  },
+}
+
+/**
+ * カテゴリーに対応するグラデーションを取得
+ */
+export function getCategoryGradient(category: string): { gradient: string; shadow: string } {
+  return CATEGORY_GRADIENTS[category] || { 
+    gradient: "from-slate-400 to-slate-500", 
+    shadow: "shadow-slate-500/30" 
+  }
+}
