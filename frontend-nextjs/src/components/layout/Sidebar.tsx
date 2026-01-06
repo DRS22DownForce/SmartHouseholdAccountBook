@@ -4,13 +4,12 @@
  * サイドバーコンポーネント
  * 
  * アプリケーション全体のナビゲーションを提供するサイドバーです。
- * メインナビゲーション、ツール、ユーザーセクションを含みます。
+ * ホームページと統一感のあるグラデーションアイコンを採用しています。
  * 
- * 機能:
- * - ページ間のナビゲーション
- * - AIチャット、CSVインポートへのアクセス
- * - ユーザーメニュー（ログアウト）
- * - モバイル対応（ドロワーメニュー）
+ * 【初心者向け解説】
+ * - グラデーションアイコン: 2色以上が滑らかに変化する背景
+ * - シャドウ: アイコンに立体感を与える影
+ * - ホバーエフェクト: マウスを乗せたときのアニメーション
  */
 
 import React, { useState } from "react"
@@ -57,13 +56,43 @@ interface SidebarProps {
   onCollapsedChange?: (collapsed: boolean) => void
 }
 
-// メインナビゲーションアイテムの定義
+// メインナビゲーションアイテムの定義（グラデーションスタイル）
 const mainNavigationItems = [
-  { href: "/", label: "ホーム", icon: Home, color: "text-blue-500", bg: "bg-blue-500/10" },
-  { href: "/expenses", label: "支出", icon: List, color: "text-orange-500", bg: "bg-orange-500/10" },
-  { href: "/income", label: "収入", icon: ArrowDownCircle, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-  { href: "/budget", label: "予算", icon: Wallet, color: "text-indigo-500", bg: "bg-indigo-500/10" },
-  { href: "/goals", label: "目標", icon: Target, color: "text-rose-500", bg: "bg-rose-500/10" },
+  { 
+    href: "/", 
+    label: "ホーム", 
+    icon: Home, 
+    gradient: "from-blue-400 to-cyan-500",
+    shadowColor: "shadow-blue-500/25"
+  },
+  { 
+    href: "/expenses", 
+    label: "支出", 
+    icon: List, 
+    gradient: "from-orange-400 to-rose-500",
+    shadowColor: "shadow-orange-500/25"
+  },
+  { 
+    href: "/income", 
+    label: "収入", 
+    icon: ArrowDownCircle, 
+    gradient: "from-emerald-400 to-green-500",
+    shadowColor: "shadow-emerald-500/25"
+  },
+  { 
+    href: "/budget", 
+    label: "予算", 
+    icon: Wallet, 
+    gradient: "from-indigo-400 to-purple-500",
+    shadowColor: "shadow-indigo-500/25"
+  },
+  { 
+    href: "/goals", 
+    label: "目標", 
+    icon: Target, 
+    gradient: "from-amber-400 to-orange-500",
+    shadowColor: "shadow-amber-500/25"
+  },
 ] as const
 
 export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCollapsedChange }: SidebarProps) {
@@ -138,7 +167,7 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCol
             <span className="sr-only">サイドバーを閉じる</span>
           </Button>
         )}
-        {/* 折りたたみボタン（PCのみ表示、折りたたみ状態のときは右端に表示） */}
+        {/* 折りたたみボタン（PCのみ表示） */}
         {!isCollapsed && (
           <Button
             variant="ghost"
@@ -155,7 +184,7 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCol
 
       {/* メインナビゲーションセクション */}
       <nav className="flex-1 px-2 py-4 space-y-1">
-        {mainNavigationItems.map(({ href, label, icon: Icon, color, bg }) => {
+        {mainNavigationItems.map(({ href, label, icon: Icon, gradient, shadowColor }) => {
           const active = isActive(href)
           return (
             <Link
@@ -163,28 +192,39 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCol
               href={href}
               onClick={() => setIsMobileOpen(false)}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative",
+                "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative",
                 active
-                  ? "bg-muted text-foreground"
+                  ? "bg-muted/80 text-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
                 isCollapsed && "justify-center"
               )}
               title={isCollapsed ? label : undefined}
             >
+              {/* グラデーションアイコン（ホームページと同じスタイル） */}
               <div className={cn(
-                "flex h-8 w-8 items-center justify-center rounded-lg transition-colors flex-shrink-0",
-                bg
+                "flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-lg transition-all duration-300 flex-shrink-0",
+                "bg-gradient-to-br",
+                gradient,
+                shadowColor,
+                "group-hover:scale-110 group-hover:rotate-3"
               )}>
-                <Icon
-                  className={cn(
-                    "h-5 w-5 transition-transform group-hover:scale-110",
-                    color
-                  )}
-                />
+                <Icon className="h-5 w-5" />
               </div>
-              {!isCollapsed && <span className={cn(active && "font-bold")}>{label}</span>}
+              {!isCollapsed && (
+                <span className={cn(
+                  "transition-colors",
+                  active && "font-bold"
+                )}>
+                  {label}
+                </span>
+              )}
+              {/* アクティブインジケーター */}
               {active && !isCollapsed && (
-                <div className={cn("absolute left-0 w-1 h-5 rounded-full", color.replace("text-", "bg-"))} />
+                <div className={cn(
+                  "absolute right-3 w-2 h-2 rounded-full",
+                  "bg-gradient-to-br",
+                  gradient
+                )} />
               )}
             </Link>
           )
@@ -193,14 +233,14 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCol
 
       {/* 区切り線 */}
       <div className="px-4 py-2">
-        <div className="h-px bg-border/50" />
+        <div className="h-px bg-gradient-to-r from-border/60 via-border/30 to-transparent" />
       </div>
 
       {/* ツールセクション */}
       {!isCollapsed && (
         <div className="px-2 py-2 space-y-1">
           <div className="px-3 py-1.5">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               ツール
             </p>
           </div>
@@ -212,9 +252,10 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCol
                   reactNode={
                     <Button
                       variant="ghost"
-                      className="w-full justify-start gap-3 px-3 py-2.5 h-auto hover:bg-muted/50 text-muted-foreground hover:text-foreground group"
+                      className="w-full justify-start gap-3 px-3 py-2.5 h-auto hover:bg-muted/50 text-muted-foreground hover:text-foreground group rounded-xl"
                     >
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-500/10 text-sky-500 group-hover:bg-sky-500/20 flex-shrink-0 transition-colors">
+                      {/* グラデーションアイコン */}
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-sky-400 to-blue-500 text-white shadow-lg shadow-sky-500/25 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 flex-shrink-0">
                         <Plus className="h-5 w-5" />
                       </div>
                       <span className="text-sm font-medium">支出を追加</span>
@@ -227,27 +268,20 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCol
               <Link
                 href="/ai-chat"
                 className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group relative",
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative",
                   isActive("/ai-chat")
-                    ? "bg-muted text-foreground"
+                    ? "bg-muted/80 text-foreground shadow-sm"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 )}
                 title="AIチャット"
               >
-                <div className={cn(
-                  "flex h-8 w-8 items-center justify-center rounded-lg transition-colors flex-shrink-0",
-                  "bg-purple-500/10"
-                )}>
-                  <BotMessageSquare
-                    className={cn(
-                      "h-5 w-5 transition-transform group-hover:scale-110",
-                      "text-purple-600"
-                    )}
-                  />
+                {/* グラデーションアイコン */}
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 text-white shadow-lg shadow-purple-500/25 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 flex-shrink-0">
+                  <BotMessageSquare className="h-5 w-5" />
                 </div>
                 <span className={cn(isActive("/ai-chat") && "font-bold")}>AIチャット</span>
                 {isActive("/ai-chat") && (
-                  <div className="absolute left-0 w-1 h-5 rounded-full bg-purple-500" />
+                  <div className="absolute right-3 w-2 h-2 rounded-full bg-gradient-to-br from-purple-400 to-pink-500" />
                 )}
               </Link>
             </div>
@@ -262,7 +296,7 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCol
 
       {/* 区切り線 */}
       <div className="px-4 py-2">
-        <div className="h-px bg-border/50" />
+        <div className="h-px bg-gradient-to-r from-border/60 via-border/30 to-transparent" />
       </div>
 
       {/* ユーザーセクション */}
@@ -272,13 +306,14 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCol
             <Button
               variant="ghost"
               className={cn(
-                "w-full justify-start gap-3 px-3 py-2.5 h-auto hover:bg-muted/50",
+                "w-full justify-start gap-3 px-3 py-2.5 h-auto hover:bg-muted/50 rounded-xl group",
                 isCollapsed && "justify-center"
               )}
               title={isCollapsed ? username : undefined}
             >
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500 flex-shrink-0">
-                <User className="h-4 w-4" />
+              {/* グラデーションアイコン */}
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-slate-400 to-slate-600 text-white shadow-lg shadow-slate-500/25 group-hover:scale-110 transition-all duration-300 flex-shrink-0">
+                <User className="h-5 w-5" />
               </div>
               {!isCollapsed && (
                 <div className="flex-1 text-left">
@@ -290,7 +325,7 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCol
               )}
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuContent align="end" className="w-56 rounded-xl">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">ユーザー情報</p>
@@ -298,14 +333,14 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCol
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem className="cursor-pointer rounded-lg">
               <Settings className="mr-2 h-4 w-4" />
               <span>設定</span>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={handleLogout}
-              className="text-destructive focus:text-destructive cursor-pointer"
+              className="text-destructive focus:text-destructive cursor-pointer rounded-lg"
             >
               <LogOut className="mr-2 h-4 w-4" />
               <span>ログアウト</span>
@@ -324,7 +359,7 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCol
           variant="outline"
           size="icon"
           onClick={() => setIsMobileOpen(!isMobileOpen)}
-          className="h-10 w-10"
+          className="h-10 w-10 rounded-xl shadow-lg"
         >
           {isMobileOpen ? (
             <X className="h-5 w-5" />
@@ -337,7 +372,7 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCol
       {/* モバイル用オーバーレイ */}
       {isMobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
@@ -354,7 +389,7 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCol
         <div className="flex h-full flex-col overflow-y-auto relative">
           <SidebarContent />
 
-          {/* 折りたたみ状態のときの展開ボタン（サイドバーの内側右端に配置） */}
+          {/* 折りたたみ状態のときの展開ボタン */}
           {isCollapsed && (
             <div className="hidden lg:flex absolute top-4 right-2 z-50">
               <Button
@@ -374,4 +409,3 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCol
     </>
   )
 }
-

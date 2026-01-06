@@ -27,7 +27,7 @@ import { ExpenseForm } from "./expense-form"
 import type { ExpenseFormProps } from "./expense-form"
 import { Pencil, Trash2, ChevronLeft, ChevronRight, Search, Calendar, Tag, AlertCircle, MoreHorizontal } from "lucide-react"
 import type { Expense, ExpenseFormData } from "@/lib/types"
-import { getCategoryColor, getCategoryColorWithAlpha } from "@/lib/category-colors"
+import { getCategoryColor, getCategoryColorWithAlpha, getCategoryGradient } from "@/lib/category-colors"
 import { getCategoryIcon } from "@/lib/category-icons"
 import { formatCurrency } from "@/lib/formatters"
 import { formatDate, formatMonthYear } from "@/lib/date-formatters"
@@ -276,32 +276,46 @@ export function ExpenseList({ onUpdate, onDelete, refreshTrigger }: ExpenseListP
                     >
                       <div className="flex items-start gap-4 sm:gap-5">
                         <div className="shrink-0 pt-1 sm:pt-0">
-                          <div
-                            className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm group-hover:scale-110 transition-transform duration-300"
-                            style={{
-                              backgroundColor: getCategoryColorWithAlpha(expense.category, 0.15),
-                              color: getCategoryColor(expense.category),
-                              boxShadow: `0 4px 12px ${getCategoryColor(expense.category)}20`
-                            }}
-                          >
-                            {(() => {
-                              const Icon = getCategoryIcon(expense.category);
-                              return <Icon className="w-6 h-6" />;
-                            })()}
-                          </div>
+                          {/* グラデーションアイコン（ホームページと統一感のあるデザイン） */}
+                          {(() => {
+                            const Icon = getCategoryIcon(expense.category);
+                            const { gradient, shadow } = getCategoryGradient(expense.category);
+                            return (
+                              <div
+                                className={cn(
+                                  "w-12 h-12 rounded-2xl flex items-center justify-center",
+                                  "bg-gradient-to-br text-white shadow-lg",
+                                  "group-hover:scale-110 group-hover:rotate-3",
+                                  "transition-all duration-300",
+                                  gradient,
+                                  shadow
+                                )}
+                              >
+                                <Icon className="w-6 h-6" />
+                              </div>
+                            );
+                          })()}
                         </div>
                         <div className="space-y-1.5 flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            <span
-                              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider shadow-sm transition-transform hover:scale-105 select-none"
-                              style={{
-                                backgroundColor: getCategoryColor(expense.category),
-                                color: "#fff",
-                                boxShadow: `0 2px 6px ${getCategoryColor(expense.category)}40`
-                              }}
-                            >
-                              {expense.category}
-                            </span>
+                            {/* カテゴリーバッジ（グラデーション対応） */}
+                            {(() => {
+                              const { gradient, shadow } = getCategoryGradient(expense.category);
+                              return (
+                                <span
+                                  className={cn(
+                                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg",
+                                    "text-[10px] font-bold uppercase tracking-wider",
+                                    "bg-gradient-to-r text-white shadow-md",
+                                    "transition-all hover:scale-105 hover:-translate-y-0.5 select-none",
+                                    gradient,
+                                    shadow
+                                  )}
+                                >
+                                  {expense.category}
+                                </span>
+                              );
+                            })()}
                           </div>
                           <p className="font-semibold text-foreground text-base sm:text-lg line-clamp-1 group-hover:text-primary transition-colors">
                             {expense.description}
