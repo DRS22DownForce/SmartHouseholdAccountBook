@@ -23,24 +23,8 @@ export function useAvailableMonths() {
   const [availableMonths, setAvailableMonths] = useState<string[]>([])
   const [isLoaded, setIsLoaded] = useState(false)
 
-  // 初回マウント時にデータを取得（依存配列が空なので1回のみ実行）
-  useEffect(() => {
-    const fetchMonths = async () => {
-      try {
-        const months = await fetchAvailableMonths()
-        setAvailableMonths(months)
-        setIsLoaded(true)
-      } catch (error) {
-        showApiErrorMessage(error, "利用可能な月の取得に失敗しました")
-        setIsLoaded(true)
-      }
-    }
-
-    fetchMonths()
-  }, [])
-
-  // 再取得用の関数（外部から呼び出し可能）
-  const refetch = useCallback(async () => {
+  // データ取得の共通ロジック（他のhooksと同じパターンに統一）
+  const fetchData = useCallback(async () => {
     try {
       const months = await fetchAvailableMonths()
       setAvailableMonths(months)
@@ -51,10 +35,15 @@ export function useAvailableMonths() {
     }
   }, [])
 
+  // 初回マウント時にデータを取得
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
   return {
     availableMonths,
     isLoaded,
-    fetchAvailableMonths: refetch
+    fetchAvailableMonths: fetchData
   }
 }
 

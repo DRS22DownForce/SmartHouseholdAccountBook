@@ -62,10 +62,57 @@ function groupExpensesByDate(expenses: Expense[]) {
   return groups
 }
 
+/**
+ * カテゴリアイコンをレンダリング
+ * 
+ * カテゴリに応じたグラデーション背景とアイコンを表示します。
+ */
+function renderCategoryIcon(category: string) {
+  const Icon = getCategoryIcon(category)
+  const { gradient, shadow } = getCategoryGradient(category)
+  return (
+    <div
+      className={cn(
+        "w-12 h-12 rounded-2xl flex items-center justify-center",
+        "bg-gradient-to-br text-white shadow-lg",
+        "group-hover:scale-110 group-hover:rotate-3",
+        "transition-all duration-300",
+        gradient,
+        shadow
+      )}
+    >
+      <Icon className="w-6 h-6" />
+    </div>
+  )
+}
+
+/**
+ * カテゴリバッジをレンダリング
+ * 
+ * カテゴリ名をグラデーション背景のバッジとして表示します。
+ */
+function renderCategoryBadge(category: string) {
+  const { gradient, shadow } = getCategoryGradient(category)
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg",
+        "text-[10px] font-bold uppercase tracking-wider",
+        "bg-gradient-to-r text-white shadow-md",
+        "transition-all hover:scale-105 hover:-translate-y-0.5 select-none",
+        gradient,
+        shadow
+      )}
+    >
+      {category}
+    </span>
+  )
+}
+
 export function ExpenseList({ onUpdate, onDelete, refreshTrigger }: ExpenseListProps) {
   // ページネーションとフィルター状態
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
+  const pageSize = 10 // ページサイズは固定。変更機能が必要な場合はuseStateに戻す
   const [searchQuery, setSearchQuery] = useState("")
 
   // 日付ナビゲーションロジックをカスタムフックから取得
@@ -276,46 +323,13 @@ export function ExpenseList({ onUpdate, onDelete, refreshTrigger }: ExpenseListP
                     >
                       <div className="flex items-start gap-4 sm:gap-5">
                         <div className="shrink-0 pt-1 sm:pt-0">
-                          {/* グラデーションアイコン（ホームページと統一感のあるデザイン） */}
-                          {(() => {
-                            const Icon = getCategoryIcon(expense.category);
-                            const { gradient, shadow } = getCategoryGradient(expense.category);
-                            return (
-                              <div
-                                className={cn(
-                                  "w-12 h-12 rounded-2xl flex items-center justify-center",
-                                  "bg-gradient-to-br text-white shadow-lg",
-                                  "group-hover:scale-110 group-hover:rotate-3",
-                                  "transition-all duration-300",
-                                  gradient,
-                                  shadow
-                                )}
-                              >
-                                <Icon className="w-6 h-6" />
-                              </div>
-                            );
-                          })()}
+                          {/* グラデーションアイコン */}
+                          {renderCategoryIcon(expense.category)}
                         </div>
                         <div className="space-y-1.5 flex-1 min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
-                            {/* カテゴリーバッジ（グラデーション対応） */}
-                            {(() => {
-                              const { gradient, shadow } = getCategoryGradient(expense.category);
-                              return (
-                                <span
-                                  className={cn(
-                                    "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg",
-                                    "text-[10px] font-bold uppercase tracking-wider",
-                                    "bg-gradient-to-r text-white shadow-md",
-                                    "transition-all hover:scale-105 hover:-translate-y-0.5 select-none",
-                                    gradient,
-                                    shadow
-                                  )}
-                                >
-                                  {expense.category}
-                                </span>
-                              );
-                            })()}
+                            {/* カテゴリーバッジ */}
+                            {renderCategoryBadge(expense.category)}
                           </div>
                           <p className="font-semibold text-foreground text-base sm:text-lg line-clamp-1 group-hover:text-primary transition-colors">
                             {expense.description}
@@ -379,8 +393,6 @@ export function ExpenseList({ onUpdate, onDelete, refreshTrigger }: ExpenseListP
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
-                pageSize={pageSize}
-                onPageSizeChange={setPageSize}
               />
             </div>
           )}

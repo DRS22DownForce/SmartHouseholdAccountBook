@@ -57,3 +57,22 @@ export function generateMonthKeys(monthsToShow: number): string[] {
     return monthKeys
 }
 
+/**
+ * DateオブジェクトをYYYY-MM形式の文字列に変換
+ * 
+ * 日付オブジェクトから年月のみをYYYY-MM形式で取得します。
+ * APIリクエストや月のキー生成で使用する標準フォーマットです。
+ * 
+ * @param date - 変換するDateオブジェクト
+ * @returns YYYY-MM形式の文字列
+ * 
+ * @example
+ * ```typescript
+ * const monthKey = formatYearMonth(new Date(2024, 0, 15))
+ * // 結果: "2024-01"
+ * ```
+ */
+export function formatYearMonth(date: Date): string {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+}
+
