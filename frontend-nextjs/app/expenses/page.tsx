@@ -31,20 +31,20 @@ import { getUserDisplayName } from "@/lib/user-utils"
 import { useExpensesPageLogic } from "@/hooks/use-expenses-page-logic"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { 
-  Sparkles, 
-  List, 
-  TrendingDown, 
+import {
+  Sparkles,
+  List,
+  TrendingDown,
   TrendingUp,
   Filter,
   Download,
   Receipt,
   CalendarDays,
-  Calculator,
   ArrowDownCircle
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { formatCurrency } from "@/lib/formatters"
+import { formatYearMonth } from "@/lib/date-utils"
 
 export default function ExpensesPage() {
   const { user, signOut } = useAuthenticator((context) => [context.user])
@@ -60,13 +60,25 @@ export default function ExpensesPage() {
     handleDeleteExpense,
   } = useExpensesPageLogic()
 
-  // モックデータ（実際のロジックでは expenseItems から計算）
-  const mockSummary = {
-    monthlyTotal: 350000,
-    transactionCount: 48,
-    dailyAverage: 11290,
-    monthlyChange: -5.2,  // 前月比
-  }
+  // 今月の支出サマリーを計算
+  const summaryData = useMemo(() => {
+    // 今月のデータのみをフィルタリング
+    const now = new Date()
+    const currentMonth = formatYearMonth(now)
+    const currentMonthExpenses = expenseItems.filter(e => e.date.startsWith(currentMonth))
+
+    const monthlyTotal = currentMonthExpenses.reduce((sum, e) => sum + e.amount, 0)
+    const transactionCount = currentMonthExpenses.length
+    const daysInMonth = now.getDate()
+    const dailyAverage = daysInMonth > 0 ? Math.round(monthlyTotal / daysInMonth) : 0
+
+    return {
+      monthlyTotal,
+      transactionCount,
+      dailyAverage,
+      monthlyChange: 0, // TODO: 前月比は別API呼び出しが必要
+    }
+  }, [expenseItems])
 
   if (!isLoaded) {
     return <LoadingSpinner />
@@ -76,20 +88,20 @@ export default function ExpensesPage() {
   const summaryCards = [
     {
       title: "今月の支出",
-      value: mockSummary.monthlyTotal,
+      value: summaryData.monthlyTotal,
       icon: ArrowDownCircle,
-      trend: {
-        value: Math.abs(mockSummary.monthlyChange),
-        isPositive: mockSummary.monthlyChange < 0,  // 支出は減少がポジティブ
+      trend: summaryData.monthlyChange !== 0 ? {
+        value: Math.abs(summaryData.monthlyChange),
+        isPositive: summaryData.monthlyChange < 0,  // 支出は減少がポジティブ
         label: "前月比"
-      },
+      } : undefined,
       gradient: "from-rose-500/10 via-rose-500/5 to-transparent",
       iconBg: "bg-gradient-to-br from-rose-400 to-pink-500",
       valueColor: "text-rose-600 dark:text-rose-400"
     },
     {
       title: "取引件数",
-      value: mockSummary.transactionCount,
+      value: summaryData.transactionCount,
       isCount: true,
       icon: Receipt,
       gradient: "from-blue-500/10 via-blue-500/5 to-transparent",
@@ -98,7 +110,7 @@ export default function ExpensesPage() {
     },
     {
       title: "日平均支出",
-      value: mockSummary.dailyAverage,
+      value: summaryData.dailyAverage,
       icon: CalendarDays,
       gradient: "from-amber-500/10 via-amber-500/5 to-transparent",
       iconBg: "bg-gradient-to-br from-amber-400 to-orange-500",
@@ -140,9 +152,9 @@ export default function ExpensesPage() {
 
             {/* アクションボタン群 */}
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className={cn(
                   "gap-2 shadow-sm hover:shadow-md transition-all",
                   "border-border/50 rounded-xl"
@@ -152,9 +164,9 @@ export default function ExpensesPage() {
                 <span className="hidden sm:inline">フィルター</span>
               </Button>
 
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 className={cn(
                   "gap-2 shadow-sm hover:shadow-md transition-all",
                   "border-border/50 rounded-xl"
@@ -164,7 +176,7 @@ export default function ExpensesPage() {
                 <span className="hidden sm:inline">エクスポート</span>
               </Button>
 
-              <Button 
+              <Button
                 className={cn(
                   "gap-2 shadow-lg rounded-xl",
                   "bg-gradient-to-r from-orange-400 to-rose-500 hover:from-orange-500 hover:to-rose-600",
@@ -185,7 +197,7 @@ export default function ExpensesPage() {
           {summaryCards.map((card, index) => {
             const Icon = card.icon
             return (
-              <Card 
+              <Card
                 key={card.title}
                 className={cn(
                   "relative overflow-hidden group",
@@ -201,10 +213,10 @@ export default function ExpensesPage() {
                   "absolute inset-0 bg-gradient-to-br",
                   card.gradient
                 )} />
-                
+
                 {/* 装飾的な円形要素 */}
                 <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-current opacity-[0.03] group-hover:opacity-[0.06] transition-opacity" />
-                
+
                 {/* シマー効果（ホバー時） */}
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500">
                   <div className="absolute inset-0 animate-shimmer" />
@@ -227,7 +239,7 @@ export default function ExpensesPage() {
                       <div className={cn(
                         "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold",
                         "transition-transform duration-300 group-hover:scale-105",
-                        card.trend.isPositive 
+                        card.trend.isPositive
                           ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                           : "bg-rose-500/10 text-rose-600 dark:text-rose-400"
                       )}>
@@ -259,7 +271,7 @@ export default function ExpensesPage() {
                   {card.trend && (
                     <div className="flex items-center gap-2 mt-3">
                       <p className="text-xs text-muted-foreground">
-                        {card.trend.label}: 
+                        {card.trend.label}:
                         <span className={cn(
                           "ml-1 font-bold",
                           card.trend.isPositive ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400"
