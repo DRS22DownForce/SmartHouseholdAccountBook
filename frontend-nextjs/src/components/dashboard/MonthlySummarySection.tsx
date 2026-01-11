@@ -4,22 +4,9 @@
  * 月別サマリーセクションコンポーネント
  * 
  * バックエンドAPIから月別サマリーを取得して表示します。
- * モダンでインタラクティブな円グラフを中心に、リッチなデザインを採用しています。
- * 
- * 【初心者向け解説】
- * - PieChart: 円グラフ（ドーナツチャート）でカテゴリ別の割合を表示
- * - Cell: 円グラフの各セグメントにスタイルを適用
- * - activeIndex: ホバー中のセグメントを追跡してハイライト表示
- * - 中央表示: ホバー時にそのカテゴリの詳細を表示（インタラクティブ）
- * 
- * 【デザインのポイント】
- * - グラス効果（backdrop-blur）で奥行きを演出
- * - ホバー時にセグメントが浮き上がる3D的な効果
- * - 凡例は横スクロール可能なピル型ボタン
- * - アニメーションで心地よいインタラクション
  */
 
-import { useState, useMemo, useEffect } from "react"
+import { useState, useMemo } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { PieChart, Pie, Cell, ResponsiveContainer, Sector } from "recharts"
@@ -27,6 +14,7 @@ import { getCategoryColor } from "@/lib/category-colors"
 import { formatCurrency, formatMonth, getCurrentMonthString } from "@/lib/formatters"
 import { useMonthlySummary } from "@/hooks/use-monthly-summary"
 import { useAvailableMonths } from "@/hooks/use-available-months"
+import { useRefreshTrigger } from "@/hooks/use-refresh-trigger"
 import { transformMonthlySummaryToChartData } from "@/lib/chart-data-transformers"
 import { 
   TrendingUp, 
@@ -48,12 +36,6 @@ interface SummarySectionProps {
 
 /**
  * アクティブなセグメント（ホバー中）を描画するコンポーネント
- * 
- * 【初心者向け解説】
- * Rechartsの円グラフでは、通常のセグメントとは別に
- * アクティブなセグメントをカスタム描画できます。
- * ここでは、ホバー時にセグメントを外側に膨らませて
- * 強調表示しています。
  */
 const renderActiveShape = (props: any) => {
   const {
@@ -101,12 +83,8 @@ export function MonthlySummarySection({
   const { monthlySummary, isLoaded: isSummaryLoaded, fetchMonthlySummary } = useMonthlySummary(selectedMonth)
   const { availableMonths, isLoaded: isMonthsLoaded, fetchAvailableMonths } = useAvailableMonths()
 
-  useEffect(() => {
-    if (refreshTrigger !== undefined && refreshTrigger > 0) {
-      fetchMonthlySummary()
-      fetchAvailableMonths()
-    }
-  }, [refreshTrigger, fetchMonthlySummary, fetchAvailableMonths])
+  //refreshTriggerが変化したときにデータを再取得
+  useRefreshTrigger(refreshTrigger, fetchMonthlySummary, fetchAvailableMonths)
 
   const chartData = useMemo(() => {
     if (!monthlySummary || !monthlySummary.byCategory) return []
@@ -243,7 +221,7 @@ export function MonthlySummarySection({
             {/* トップカテゴリ */}
             <div className="space-y-3">
               <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
                 支出内訳トップ3
               </p>
               <div className="space-y-2">

@@ -38,7 +38,7 @@ export function useAvailableMonths() {
   // 初回マウント時にデータを取得
   useEffect(() => {
     fetchData()
-  }, [fetchData])
+  }, [])
 
   return {
     availableMonths,

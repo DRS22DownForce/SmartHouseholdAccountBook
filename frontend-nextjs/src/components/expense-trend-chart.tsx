@@ -18,13 +18,14 @@
  * - 赤: 支出が多い（要注意）
  */
 
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { formatCurrency } from "@/lib/formatters"
 import { getCategoryColor } from "@/lib/category-colors"
 import { MONTH_RANGES } from "@/lib/constants"
 import { useMonthlySummaryRange } from "@/hooks/use-monthly-summary-range"
+import { useRefreshTrigger } from "@/hooks/use-refresh-trigger"
 import { calculateMonthRange, generateMonthKeys } from "@/lib/date-utils"
 import { transformMonthlySummariesToChartData } from "@/lib/chart-data-transformers"
 import { cn } from "@/lib/utils"
@@ -65,12 +66,8 @@ export function ExpenseTrendChart({ refreshTrigger }: ExpenseTrendChartProps) {
   // バックエンドAPIから月別サマリーを取得
   const { monthlySummaries, isLoaded, refetch } = useMonthlySummaryRange(startMonth, endMonth)
 
-  // refreshTriggerが変更されたらデータを再取得
-  useEffect(() => {
-    if (refreshTrigger !== undefined && refreshTrigger > 0) {
-      refetch()
-    }
-  }, [refreshTrigger, refetch])
+  // refreshTriggerが変化したときにデータを再取得
+  useRefreshTrigger(refreshTrigger, refetch)
 
   // 表示する月のキーリストを生成（YYYY-MM形式）
   const allMonths = useMemo(() => generateMonthKeys(monthsToShow), [monthsToShow])
