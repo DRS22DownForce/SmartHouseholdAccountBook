@@ -6,7 +6,6 @@
  * 支出更新・削除後に画面を自動的に再取得します。
  */
 
-import { useMemo } from "react"
 import { useAuthenticator } from "@aws-amplify/ui-react"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { ExpenseList } from "@/components/expense-list"
@@ -16,6 +15,7 @@ import { ExpenseSummarySection } from "@/components/dashboard/ExpenseSummarySect
 import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { getUserDisplayName } from "@/lib/user-utils"
 import { useExpensesPageLogic } from "@/hooks/use-expenses-page-logic"
+import { useExpenseSummary } from "@/hooks/use-expense-summary"
 import { Button } from "@/components/ui/button"
 import {
   Sparkles,
@@ -24,7 +24,7 @@ import {
   Download,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { formatYearMonth } from "@/lib/date-utils"
+import { useMemo } from "react"
 
 export default function ExpensesPage() {
   const { user, signOut } = useAuthenticator((context) => [context.user])
@@ -40,25 +40,9 @@ export default function ExpensesPage() {
     handleDeleteExpense,
   } = useExpensesPageLogic()
 
-  // 今月の支出サマリーを計算
-  const summaryData = useMemo(() => {
-    // 今月のデータのみをフィルタリング
-    const now = new Date()
-    const currentMonth = formatYearMonth(now)
-    const currentMonthExpenses = expenseItems.filter(e => e.date.startsWith(currentMonth))
-
-    const monthlyTotal = currentMonthExpenses.reduce((sum, e) => sum + e.amount, 0)
-    const transactionCount = currentMonthExpenses.length
-    const daysInMonth = now.getDate()
-    const dailyAverage = daysInMonth > 0 ? Math.round(monthlyTotal / daysInMonth) : 0
-
-    return {
-      monthlyTotal,
-      transactionCount,
-      dailyAverage,
-      monthlyChange: 0, // TODO: 前月比は別API呼び出しが必要
-    }
-  }, [expenseItems])
+  // 今月の支出サマリーを取得（前月比含む）
+  // refreshTriggerを渡すことで、支出追加・更新・削除時に自動的にデータが更新されます
+  const summaryData = useExpenseSummary(refreshTrigger)
 
   if (!isLoaded) {
     return <LoadingSpinner />
