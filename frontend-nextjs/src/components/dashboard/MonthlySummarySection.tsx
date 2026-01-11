@@ -470,8 +470,18 @@ export function MonthlySummarySection({
                         <Sparkles className="w-4 h-4" />
                       </div>
                     </div>
-                    <div>
-                      <h3 className="font-bold text-foreground">AI家計診断</h3>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-bold text-foreground">AI家計診断</h3>
+                        {/* 開発中バッジ */}
+                        <span className={cn(
+                          "px-1.5 py-0.5 text-[10px] font-bold rounded-md",
+                          "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+                          "border border-amber-300 dark:border-amber-700"
+                        )}>
+                          開発中
+                        </span>
+                      </div>
                       <p className="text-[10px] text-muted-foreground">AIによる自動分析</p>
                     </div>
                   </div>

@@ -186,6 +186,8 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCol
       <nav className="flex-1 px-2 py-4 space-y-1">
         {mainNavigationItems.map(({ href, label, icon: Icon, gradient, shadowColor }) => {
           const active = isActive(href)
+          // 支出ページ以外は開発中マークを表示
+          const isInDevelopment = href !== "/expenses"
           return (
             <Link
               key={href}
@@ -211,12 +213,24 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCol
                 <Icon className="h-5 w-5" />
               </div>
               {!isCollapsed && (
-                <span className={cn(
-                  "transition-colors",
-                  active && "font-bold"
-                )}>
-                  {label}
-                </span>
+                <div className="flex items-center gap-2 flex-1">
+                  <span className={cn(
+                    "transition-colors",
+                    active && "font-bold"
+                  )}>
+                    {label}
+                  </span>
+                  {/* 開発中バッジ */}
+                  {isInDevelopment && (
+                    <span className={cn(
+                      "px-1.5 py-0.5 text-[10px] font-bold rounded-md",
+                      "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+                      "border border-amber-300 dark:border-amber-700"
+                    )}>
+                      開発中
+                    </span>
+                  )}
+                </div>
               )}
               {/* アクティブインジケーター */}
               {active && !isCollapsed && (
