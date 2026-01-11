@@ -86,8 +86,6 @@ export function ExpenseSummarySection({
   summaryData
 }: ExpenseSummarySectionProps) {
   // サマリーカードの設定配列
-  // 【初心者向け解説】
-  // この配列に3つのカードの設定を定義し、後でmap関数でレンダリングします
   const summaryCards: SummaryCard[] = [
     {
       title: "今月の支出",
@@ -95,9 +93,9 @@ export function ExpenseSummarySection({
       icon: ArrowDownCircle,
       // 前月比がある場合のみトレンド情報を表示
       trend: summaryData.monthlyChange !== 0 ? {
-        value: Math.abs(summaryData.monthlyChange),
+        value: Math.abs(summaryData.monthlyChange ?? 0),
         // 支出は減少がポジティブ（良いこと）なので、負の値がポジティブ
-        isPositive: summaryData.monthlyChange < 0,
+        isPositive: (summaryData.monthlyChange ?? 0) < 0,
         label: "前月比"
       } : undefined,
       gradient: "from-rose-500/10 via-rose-500/5 to-transparent",
