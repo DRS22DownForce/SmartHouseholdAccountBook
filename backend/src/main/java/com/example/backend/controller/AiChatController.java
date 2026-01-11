@@ -31,7 +31,7 @@ public class AiChatController implements ChatApi {
 
 
     @Override
-    public ResponseEntity<ChatHistoryResponse> apiChatGet() {
+    public ResponseEntity<ChatHistoryResponse> apiAiChatGet() {
         // 1. サービスから会話履歴を取得
         List<ChatMessage> messages = aiChatService.getChatHistory();
 
@@ -54,7 +54,7 @@ public class AiChatController implements ChatApi {
      * @return チャットレスポンス
      */
     @Override
-    public ResponseEntity<ChatResponse> apiChatPost(ChatRequest chatRequest) {
+    public ResponseEntity<ChatResponse> apiAiChatPost(ChatRequest chatRequest) {
         String responseMessage = aiChatService.chat(chatRequest.getMessage());
         ChatResponse response = new ChatResponse();
         response.setMessage(responseMessage);

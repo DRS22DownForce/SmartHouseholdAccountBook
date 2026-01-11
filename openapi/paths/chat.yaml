@@ -1,4 +1,4 @@
-/api/chat:
+/api/ai/chat:
     get:
       tags:
         - chat

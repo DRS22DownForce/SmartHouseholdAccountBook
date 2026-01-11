@@ -7,12 +7,14 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Plus, Sparkles } from "lucide-react"
+import { Plus, Sparkles, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { ExpenseFormData } from "@/lib/types"
 import { EXPENSE_CATEGORIES } from "@/lib/constants"
 import { getInitialFormData, expenseToFormData } from "@/lib/form-data-utils"
 import type { Expense } from "@/lib/types"
+import { predictCategory } from "@/api/aiCategoryApi"
+import { toast } from "sonner"
 
 /**
  * ExpenseFormコンポーネントのプロップス型定義
@@ -41,6 +43,7 @@ export interface ExpenseFormProps {
 export function ExpenseForm({ expense, onSubmit, reactNode }: ExpenseFormProps) {
   const [open, setOpen] = useState(false)
   const [formData, setFormData] = useState<ExpenseFormData>(getInitialFormData())
+  const [isPredictingCategory, setIsPredictingCategory] = useState(false)
 
   /**
    * フォームデータの初期化とリセットを管理するuseEffect
@@ -86,6 +89,37 @@ export function ExpenseForm({ expense, onSubmit, reactNode }: ExpenseFormProps) 
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
+  /**
+   * AIカテゴリー自動分類ハンドラー
+   * 
+   * 説明フィールドの内容を分析して、AIが適切なカテゴリーを推論します。
+   * ローディング状態を管理し、成功時はカテゴリーを自動選択、失敗時はエラーメッセージを表示します。
+   */
+  const handlePredictCategory = async () => {
+    // 説明フィールドが空の場合は処理をスキップ
+    if (!formData.description || formData.description.trim().length === 0) {
+      toast.error('説明を入力してからAI自動分類を実行してください。')
+      return
+    }
+
+    setIsPredictingCategory(true)
+    try {
+      // AI APIを呼び出してカテゴリーを推論
+      const predictedCategory = await predictCategory(formData.description)
+      
+      // 推論されたカテゴリーをフォームに設定
+      updateExpenseFormData('category', predictedCategory)
+      
+      toast.success(`カテゴリーを「${predictedCategory}」に自動分類しました。`)
+    } catch (error) {
+      // エラーハンドリング: ユーザーに分かりやすいエラーメッセージを表示
+      const errorMessage = error instanceof Error ? error.message : 'カテゴリーの自動分類に失敗しました。'
+      toast.error(errorMessage)
+    } finally {
+      setIsPredictingCategory(false)
+    }
+  }
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -116,6 +150,19 @@ export function ExpenseForm({ expense, onSubmit, reactNode }: ExpenseFormProps) 
             />
           </div>
 
+          {/* 説明入力フィールド */}
+          <div className="space-y-2">
+            <Label htmlFor="description">説明</Label>
+            <Input
+              id="description"
+              type="text"
+              required
+              value={formData.description}
+              onChange={(e) => updateExpenseFormData("description", e.target.value)}
+              placeholder="ランチ代"
+            />
+          </div>
+
           {/* カテゴリー選択フィールド */}
           <div className="space-y-2">
             <Label htmlFor="category">カテゴリー</Label>
@@ -141,34 +188,28 @@ export function ExpenseForm({ expense, onSubmit, reactNode }: ExpenseFormProps) 
               {/* AI自動分類ボタン */}
               <Button
                 type="button"
-                onClick={() => {
-                  // TODO: 将来実装予定 - AI自動分類機能
-                  // 説明フィールドの内容を分析してカテゴリーを自動選択
-                }}
+                onClick={handlePredictCategory}
+                disabled={isPredictingCategory || !formData.description || formData.description.trim().length === 0}
                 className={cn(
                   "gap-2 shadow-lg rounded-xl flex-shrink-0",
                   "bg-gradient-to-r from-orange-400 to-rose-500 hover:from-orange-500 hover:to-rose-600",
-                  "transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
+                  "transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5",
+                  "disabled:opacity-50 disabled:cursor-not-allowed"
                 )}
-                title="AI自動分類（将来実装予定）"
+                title={formData.description && formData.description.trim().length > 0 
+                  ? "説明文からカテゴリーを自動分類" 
+                  : "説明を入力してから実行してください"}
               >
-                <Sparkles className="h-4 w-4" />
-                <span className="hidden sm:inline">AI自動分類</span>
+                {isPredictingCategory ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                <span className="hidden sm:inline">
+                  {isPredictingCategory ? "分類中..." : "AI自動分類"}
+                </span>
               </Button>
             </div>
-          </div>
-
-          {/* 説明入力フィールド */}
-          <div className="space-y-2">
-            <Label htmlFor="description">説明</Label>
-            <Input
-              id="description"
-              type="text"
-              required
-              value={formData.description}
-              onChange={(e) => updateExpenseFormData("description", e.target.value)}
-              placeholder="ランチ代"
-            />
           </div>
 
           {/* 日付入力フィールド */}
