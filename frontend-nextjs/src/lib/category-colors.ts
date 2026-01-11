@@ -4,20 +4,26 @@
  * 
  * カラーパレット:
  * - 食費: オレンジ（#FF6B35）
- * - 住居費: オレンジ系（#FF8C42）- 画像に合わせて追加
  * - 交通費: 青（#4A90E2）
+ * - 住居費: オレンジ系（#FF8C42）
  * - 光熱費: 緑（#2ECC71）
+ * - 通信費: スカイブルー（#3B82F6）
+ * - 娯楽費: 紫（#9B59B6）
  * - 医療費: 赤（#E74C3C）
- * - 娯楽: 紫（#9B59B6）
+ * - 衣服費: ピンク（#EC4899）
+ * - 日用品: エメラルドグリーン（#10B981）
  * - その他: 黄色（#F39C12）
  */
 export const CATEGORY_COLORS: Record<string, string> = {
   食費: "#FF6B35", // Orange
-  住居費: "#FF8C42", // Dark Orange - 住居費専用の色
   交通費: "#4A90E2", // Blue
-  娯楽: "#9B59B6", // Purple
+  住居費: "#FF8C42", // Dark Orange
   光熱費: "#2ECC71", // Green
+  通信費: "#3B82F6", // Sky Blue
+  娯楽費: "#9B59B6", // Purple
   医療費: "#E74C3C", // Red
+  衣服費: "#EC4899", // Pink
+  日用品: "#10B981", // Emerald Green
   その他: "#F39C12", // Yellow
 }
 
@@ -72,25 +78,37 @@ export const CATEGORY_GRADIENTS: Record<string, { gradient: string; shadow: stri
     gradient: "from-orange-400 to-rose-500", 
     shadow: "shadow-orange-500/30" 
   },
-  住居費: { 
-    gradient: "from-blue-400 to-indigo-500", 
-    shadow: "shadow-blue-500/30" 
-  },
   交通費: { 
     gradient: "from-cyan-400 to-blue-500", 
     shadow: "shadow-cyan-500/30" 
   },
-  娯楽: { 
-    gradient: "from-purple-400 to-pink-500", 
-    shadow: "shadow-purple-500/30" 
+  住居費: { 
+    gradient: "from-blue-400 to-indigo-500", 
+    shadow: "shadow-blue-500/30" 
   },
   光熱費: { 
     gradient: "from-emerald-400 to-green-500", 
     shadow: "shadow-emerald-500/30" 
   },
+  通信費: { 
+    gradient: "from-sky-400 to-blue-500", 
+    shadow: "shadow-sky-500/30" 
+  },
+  娯楽費: { 
+    gradient: "from-purple-400 to-pink-500", 
+    shadow: "shadow-purple-500/30" 
+  },
   医療費: { 
     gradient: "from-red-400 to-rose-500", 
     shadow: "shadow-red-500/30" 
+  },
+  衣服費: { 
+    gradient: "from-pink-400 to-rose-500", 
+    shadow: "shadow-pink-500/30" 
+  },
+  日用品: { 
+    gradient: "from-emerald-400 to-teal-500", 
+    shadow: "shadow-emerald-500/30" 
   },
   その他: { 
     gradient: "from-amber-400 to-orange-500", 
