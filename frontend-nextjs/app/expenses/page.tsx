@@ -15,14 +15,10 @@ import { ExpenseSummarySection } from "@/components/dashboard/ExpenseSummarySect
 import { getUserDisplayName } from "@/lib/user-utils"
 import { useExpensesPageLogic } from "@/hooks/use-expenses-page-logic"
 import { useExpenseSummary } from "@/hooks/use-expense-summary"
-import { Button } from "@/components/ui/button"
 import {
   Sparkles,
   List,
-  Filter,
-  Download,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
 import { useMemo } from "react"
 
 export default function ExpensesPage() {
@@ -71,44 +67,6 @@ export default function ExpensesPage() {
                   全ての支出履歴の確認・編集・分析
                 </p>
               </div>
-            </div>
-
-            {/* アクションボタン群 */}
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "gap-2 shadow-sm hover:shadow-md transition-all",
-                  "border-border/50 rounded-xl"
-                )}
-              >
-                <Filter className="h-4 w-4" />
-                <span className="hidden sm:inline">フィルター</span>
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "gap-2 shadow-sm hover:shadow-md transition-all",
-                  "border-border/50 rounded-xl"
-                )}
-              >
-                <Download className="h-4 w-4" />
-                <span className="hidden sm:inline">エクスポート</span>
-              </Button>
-
-              <Button
-                className={cn(
-                  "gap-2 shadow-lg rounded-xl",
-                  "bg-gradient-to-r from-orange-400 to-rose-500 hover:from-orange-500 hover:to-rose-600",
-                  "transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
-                )}
-              >
-                <Sparkles className="h-4 w-4" />
-                AI自動分類
-              </Button>
             </div>
           </div>
         </div>

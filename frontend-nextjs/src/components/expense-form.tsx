@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { Plus } from "lucide-react"
+import { Plus, Sparkles } from "lucide-react"
+import { cn } from "@/lib/utils"
 import type { ExpenseFormData } from "@/lib/types"
 import { EXPENSE_CATEGORIES } from "@/lib/constants"
 import { getInitialFormData, expenseToFormData } from "@/lib/form-data-utils"
@@ -118,22 +119,43 @@ export function ExpenseForm({ expense, onSubmit, reactNode }: ExpenseFormProps) 
           {/* カテゴリー選択フィールド */}
           <div className="space-y-2">
             <Label htmlFor="category">カテゴリー</Label>
-            <Select
-              value={formData.category}
-              onValueChange={(value) => updateExpenseFormData("category", value)}
-              required
-            >
-              <SelectTrigger id="category">
-                <SelectValue placeholder="カテゴリーを選択" />
-              </SelectTrigger>
-              <SelectContent>
-                {EXPENSE_CATEGORIES.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              <div className="flex-1">
+                <Select
+                  value={formData.category}
+                  onValueChange={(value) => updateExpenseFormData("category", value)}
+                  required
+                >
+                  <SelectTrigger id="category">
+                    <SelectValue placeholder="カテゴリーを選択" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EXPENSE_CATEGORIES.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {category}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* AI自動分類ボタン */}
+              <Button
+                type="button"
+                onClick={() => {
+                  // TODO: 将来実装予定 - AI自動分類機能
+                  // 説明フィールドの内容を分析してカテゴリーを自動選択
+                }}
+                className={cn(
+                  "gap-2 shadow-lg rounded-xl flex-shrink-0",
+                  "bg-gradient-to-r from-orange-400 to-rose-500 hover:from-orange-500 hover:to-rose-600",
+                  "transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
+                )}
+                title="AI自動分類（将来実装予定）"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span className="hidden sm:inline">AI自動分類</span>
+              </Button>
+            </div>
           </div>
 
           {/* 説明入力フィールド */}

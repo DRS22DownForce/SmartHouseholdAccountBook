@@ -15,6 +15,7 @@ import { Upload, FileText, AlertCircle, CheckCircle2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import type { ExpenseFormData } from "@/lib/types"
 import { parseCSV } from "@/lib/csv-parser"
+import { cn } from "@/lib/utils"
 
 interface CsvUploadDialogProps {
   onUpload: (expenses: ExpenseFormData[]) => void
@@ -93,7 +94,17 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 group-hover:bg-amber-500/20 flex-shrink-0 transition-colors">
             <Upload className="h-5 w-5" />
           </div>
-          <span className="text-sm font-medium">CSVインポート</span>
+          <div className="flex items-center gap-2 flex-1">
+            <span className="text-sm font-medium">CSVインポート</span>
+            {/* 開発中バッジ */}
+            <span className={cn(
+              "px-1.5 py-0.5 text-[10px] font-bold rounded-md",
+              "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+              "border border-amber-300 dark:border-amber-700"
+            )}>
+              開発中
+            </span>
+          </div>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">

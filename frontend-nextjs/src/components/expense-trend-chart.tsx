@@ -284,9 +284,7 @@ export function ExpenseTrendChart({ refreshTrigger }: ExpenseTrendChartProps) {
                       "relative w-full h-32 md:h-40 rounded-xl overflow-hidden",
                       "bg-muted/20",
                       "flex items-end justify-center",
-                      "transition-all duration-300",
-                      // 今月は特別なスタイル（リング付き）
-                      isThisMonth && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                      "transition-all duration-300"
                     )}>
                       {/* 支出バー */}
                       <div
