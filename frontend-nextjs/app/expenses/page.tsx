@@ -12,7 +12,6 @@ import { ExpenseList } from "@/components/expense-list"
 import { ExpenseTrendChart } from "@/components/expense-trend-chart"
 import { MonthlySummarySection } from "@/components/dashboard/MonthlySummarySection"
 import { ExpenseSummarySection } from "@/components/dashboard/ExpenseSummarySection"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { getUserDisplayName } from "@/lib/user-utils"
 import { useExpensesPageLogic } from "@/hooks/use-expenses-page-logic"
 import { useExpenseSummary } from "@/hooks/use-expense-summary"
@@ -31,8 +30,6 @@ export default function ExpensesPage() {
   const username = useMemo(() => getUserDisplayName(user), [user])
 
   const {
-    expenseItems,
-    isLoaded,
     refreshTrigger,
     handleAddExpense,
     handleAddExpenses,
@@ -43,10 +40,6 @@ export default function ExpensesPage() {
   // 今月の支出サマリーを取得（前月比含む）
   // refreshTriggerを渡すことで、支出追加・更新・削除時に自動的にデータが更新されます
   const summaryData = useExpenseSummary(refreshTrigger)
-
-  if (!isLoaded) {
-    return <LoadingSpinner />
-  }
 
   return (
     <AppLayout

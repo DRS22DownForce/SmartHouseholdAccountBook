@@ -23,7 +23,6 @@
 
 import { useMemo } from "react"
 import { useAuthenticator } from "@aws-amplify/ui-react"
-import { useExpenses } from "@/hooks/use-expenses"
 import { AppLayout } from "@/components/layout/AppLayout"
 import { BalanceSummarySection } from "@/components/dashboard/BalanceSummarySection"
 import { BudgetStatusSection } from "@/components/dashboard/BudgetStatusSection"
@@ -32,7 +31,6 @@ import { RecentTransactionsSection } from "@/components/dashboard/RecentTransact
 import { AlertsSection } from "@/components/dashboard/AlertsSection"
 import { AiInsightsSection } from "@/components/dashboard/AiInsightsSection"
 import { WeeklyCalendarSection } from "@/components/dashboard/WeeklyCalendarSection"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
 import { getUserDisplayName } from "@/lib/user-utils"
 import { useHomePageLogic } from "@/hooks/use-home-page-logic"
 import { Home, Sparkles } from "lucide-react"
@@ -40,18 +38,13 @@ import { Home, Sparkles } from "lucide-react"
 export default function HomePage() {
   // AWS Cognitoの認証状態を取得
   const { user, signOut } = useAuthenticator((context) => [context.user])
-  // 支出データの読み込み状態を確認
-  const { isLoaded } = useExpenses()
   // ユーザー名を取得（メモ化して最適化）
   const username = useMemo(() => getUserDisplayName(user), [user])
 
   // ホームページのロジック（支出追加処理、リフレッシュトリガー管理）をカスタムフックから取得
   const { refreshTrigger, handleAddExpense, handleAddExpenses } = useHomePageLogic()
 
-  // データ読み込み中はローディングスピナーを表示
-  if (!isLoaded) {
-    return <LoadingSpinner />
-  }
+  // 各コンポーネントが自分でローディング状態を管理するため、ここでのisLoadedチェックは不要
 
   return (
     <AppLayout
