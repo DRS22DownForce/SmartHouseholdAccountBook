@@ -35,4 +35,26 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(e.getMessage(), OffsetDateTime.now()));
     }
 
+    /**
+     * OpenAI APIの利用枠（クォータ）超過エラーを処理
+     * 429 Too Many Requestsを返す
+     */
+    @ExceptionHandler(QuotaExceededException.class)
+    public ResponseEntity<ErrorResponse> handleQuotaExceededException(QuotaExceededException e) {
+        logger.warn("OpenAI APIの利用枠を超過しました: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(new ErrorResponse(e.getMessage(), OffsetDateTime.now()));
+    }
+
+    /**
+     * AIサービスとの通信エラーを処理
+     * 500 Internal Server Errorを返す
+     */
+    @ExceptionHandler(AiServiceException.class)
+    public ResponseEntity<ErrorResponse> handleAiServiceException(AiServiceException e) {
+        logger.error("AIサービスとの通信でエラーが発生しました: {}", e.getMessage(), e);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ErrorResponse(e.getMessage(), OffsetDateTime.now()));
+    }
+
 }

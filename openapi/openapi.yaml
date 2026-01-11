@@ -18,5 +18,7 @@ paths:
     $ref: './paths/expenses.yaml#/~1api~1expenses~1summary~1range'
   /api/expenses/months:
     $ref: './paths/expenses.yaml#/~1api~1expenses~1months'
-  /api/chat:
-    $ref: './paths/chat.yaml#/~1api~1chat'  
+  /api/ai/chat:
+    $ref: './paths/chat.yaml#/~1api~1ai~1chat'
+  /api/ai/category:
+    $ref: './paths/ai-category.yaml#/~1api~1ai~1category'  

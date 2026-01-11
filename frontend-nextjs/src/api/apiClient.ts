@@ -3,7 +3,7 @@
  */
 
 import { Configuration } from './generated/configuration';
-import { ExpensesApi, ChatApi } from './generated/api';
+import { ExpensesApi, ChatApi, AiApi } from './generated/api';
 
 /**
  * 環境変数からベースURLを取得
@@ -26,6 +26,15 @@ export function getExpenseApiClient(): ExpensesApi {
  */
 export function getChatApiClient(): ChatApi {
     return new ChatApi(new Configuration({
+        basePath: getBasePath()
+    }));
+}
+
+/**
+ * AI APIクライアントのインスタンスを作成
+ */
+export function getAiApiClient(): AiApi {
+    return new AiApi(new Configuration({
         basePath: getBasePath()
     }));
 }
