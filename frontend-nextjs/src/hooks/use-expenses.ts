@@ -12,6 +12,11 @@ import {
 import type { Expense, ExpenseFormData } from "@/lib/types"
 import { showApiErrorMessage } from "@/lib/api-error-handler"
 
+/**
+ * 支出データを管理するカスタムフック
+ * 
+ * 支出データの取得とCRUD操作を提供します。
+ */
 export function useExpenses() {
   const [expenseItems, setExpenses] = useState<Expense[]>([])
   const [isLoaded, setIsLoaded] = useState(false)
@@ -27,6 +32,7 @@ export function useExpenses() {
     }
   }, [])
 
+  // 初回マウント時にデータを取得
   useEffect(() => {
     fetchExpensesList()
   }, [fetchExpensesList])
