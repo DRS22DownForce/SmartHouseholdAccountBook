@@ -16,6 +16,7 @@ interface HeaderProps {
   onLogout: () => void
   onAddExpense: (data: ExpenseFormData) => void
   onAddExpenses: (expenses: ExpenseFormData[]) => void
+  onCsvUploadComplete?: () => void
 }
 
 const navigationItems = [
@@ -36,6 +37,7 @@ export const Header = React.memo(function Header({
   onLogout,
   onAddExpense,
   onAddExpenses,
+  onCsvUploadComplete,
 }: HeaderProps) {
   const pathname = usePathname()
 
@@ -93,7 +95,7 @@ export const Header = React.memo(function Header({
                 <BotMessageSquare className="h-4 w-4 md:h-5 md:w-5 group-hover:scale-110 transition-transform" />
               </div>
             </Link>
-            <CsvUploadDialog onUpload={onAddExpenses} />
+            <CsvUploadDialog onUpload={onCsvUploadComplete} />
             <ExpenseForm {...addExpenseFormProps} />
             <UserMenu username={username} onLogout={onLogout} />
           </div>

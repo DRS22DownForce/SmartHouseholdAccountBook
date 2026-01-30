@@ -50,10 +50,22 @@ export function useHomePageLogic() {
         setRefreshTrigger((prev) => prev + 1)
     }, [addExpenseItems])
 
+    /**
+     * CSVアップロード後のデータ再取得ハンドラー関数
+     * 
+     * CSVアップロードが完了した後、月別サマリーと支出の推移を再取得するために
+     * リフレッシュトリガーを更新します。
+     */
+    const handleCsvUploadComplete = useCallback(() => {
+        // 月別サマリーと支出の推移を再取得するためにトリガーを更新
+        setRefreshTrigger((prev) => prev + 1)
+    }, [])
+
     return {
         refreshTrigger,
         handleAddExpense,
         handleAddExpenses,
+        handleCsvUploadComplete,
     }
 }
 

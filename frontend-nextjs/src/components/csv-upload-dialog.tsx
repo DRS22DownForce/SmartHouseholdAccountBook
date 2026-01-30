@@ -11,19 +11,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import { Upload, FileText, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Upload, FileText, AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import type { ExpenseFormData } from "@/lib/types"
-import { parseCSV } from "@/lib/csv-parser"
+import { uploadCsvFile, type CsvUploadResponse } from "@/api/expenseApi"
 import { cn } from "@/lib/utils"
 
 interface CsvUploadDialogProps {
-  onUpload: (expenses: ExpenseFormData[]) => void
+  onUpload?: () => void
 }
 
 export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
   const [isDragging, setIsDragging] = useState(false)
-  const [status, setStatus] = useState<{ type: "success" | "error"; message: string } | null>(null)
+  const [status, setStatus] = useState<{ type: "success" | "error"; message: string; details?: CsvUploadResponse } | null>(null)
+  const [isUploading, setIsUploading] = useState(false)
   const [open, setOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -33,31 +33,48 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
       return
     }
 
-    try {
-      const text = await file.text()
-      const expenses = parseCSV(text)
+    setIsUploading(true)
+    setStatus(null)
 
-      if (expenses.length === 0) {
-        setStatus({ type: "error", message: "有効なデータが見つかりませんでした" })
-        return
+    try {
+      // バックエンドにCSVファイルを直接アップロード
+      const result = await uploadCsvFile(file)
+
+      // 成功メッセージを作成
+      let message = `${result.successCount}件の支出データをインポートしました`
+      if (result.errorCount > 0) {
+        message += `（${result.errorCount}件のエラーがあります）`
       }
 
-      onUpload(expenses)
-      setStatus({ type: "success", message: `${expenses.length}件の支出データをインポートしました` })
+      setStatus({
+        type: result.errorCount > 0 ? "error" : "success",
+        message,
+        details: result,
+      })
+
+      // コールバックを呼び出し（データを再取得するため）
+      if (onUpload) {
+        onUpload()
+      }
 
       if (fileInputRef.current) {
         fileInputRef.current.value = ""
       }
 
-      setTimeout(() => {
-        setOpen(false)
-        setStatus(null)
-      }, 2000)
+      // エラーがない場合は自動的に閉じる
+      if (result.errorCount === 0) {
+        setTimeout(() => {
+          setOpen(false)
+          setStatus(null)
+        }, 2000)
+      }
     } catch (error) {
       setStatus({
         type: "error",
-        message: error instanceof Error ? error.message : "CSVの解析に失敗しました",
+        message: error instanceof Error ? error.message : "CSVのアップロードに失敗しました",
       })
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -132,21 +149,44 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
             <input ref={fileInputRef} type="file" accept=".csv" onChange={handleFileSelect} className="hidden" />
           </div>
 
+          {isUploading && (
+            <Alert>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <AlertDescription>CSVファイルをアップロード中...</AlertDescription>
+            </Alert>
+          )}
+
           {status && (
             <Alert variant={status.type === "error" ? "destructive" : "default"}>
               {status.type === "success" ? <CheckCircle2 className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
-              <AlertDescription>{status.message}</AlertDescription>
+              <AlertDescription>
+                <div className="space-y-2">
+                  <p>{status.message}</p>
+                  {status.details && status.details.errors.length > 0 && (
+                    <div className="mt-2 text-xs">
+                      <p className="font-medium mb-1">エラー詳細:</p>
+                      <ul className="list-disc list-inside space-y-1 max-h-32 overflow-y-auto">
+                        {status.details.errors.map((error, index) => (
+                          <li key={index}>
+                            行{error.lineNumber}: {error.message}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </AlertDescription>
             </Alert>
           )}
 
           <div className="text-xs text-muted-foreground space-y-1">
-            <p className="font-medium">CSVフォーマット例:</p>
-            <code className="block bg-muted p-2 rounded text-xs">
-              日付,金額,カテゴリ,説明
+            <p className="font-medium">CSVフォーマット:</p>
+            <p>クレジットカードの利用明細CSVファイルをアップロードできます。</p>
+            <p className="mt-2">対応フォーマット:</p>
+            <code className="block bg-muted p-2 rounded text-xs mt-1">
+              ご利用日,ご利用店名,ご利用金額,...
               <br />
-              2024-01-15,3500,食費,スーパーマーケット
-              <br />
-              2024-01-16,1200,交通費,電車代
+              2025/11/01,やよい軒平塚店,1220,...
             </code>
           </div>
         </div>

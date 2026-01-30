@@ -31,6 +31,7 @@ export default function ExpensesPage() {
     handleAddExpenses,
     handleUpdateExpense,
     handleDeleteExpense,
+    handleCsvUploadComplete,
   } = useExpensesPageLogic()
 
   // 今月の支出サマリーを取得（前月比含む）
@@ -43,6 +44,7 @@ export default function ExpensesPage() {
       onLogout={signOut}
       onAddExpense={handleAddExpense}
       onAddExpenses={handleAddExpenses}
+      onCsvUploadComplete={handleCsvUploadComplete}
     >
       <div className="space-y-6 md:space-y-8">
         {/* ==================== */}

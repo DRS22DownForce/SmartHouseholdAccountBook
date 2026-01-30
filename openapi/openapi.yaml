@@ -21,4 +21,6 @@ paths:
   /api/ai/chat:
     $ref: './paths/chat.yaml#/~1api~1ai~1chat'
   /api/ai/category:
-    $ref: './paths/ai-category.yaml#/~1api~1ai~1category'  
+    $ref: './paths/ai-category.yaml#/~1api~1ai~1category'
+  /api/expenses/upload-csv:
+    $ref: './paths/expenses.yaml#/~1api~1expenses~1upload-csv'

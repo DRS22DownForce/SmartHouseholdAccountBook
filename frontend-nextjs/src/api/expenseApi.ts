@@ -108,3 +108,51 @@ export async function fetchMonthlySummaryRange(
     const response = await api.apiExpensesSummaryRangeGet(startMonth, endMonth, options);
     return response.data.map(toMonthlySummary);
 }
+
+/**
+ * CSVアップロード結果の型定義
+ */
+export interface CsvUploadResponse {
+    successCount: number;
+    errorCount: number;
+    errors: Array<{
+        lineNumber: number;
+        lineContent: string;
+        message: string;
+    }>;
+}
+
+/**
+ * CSVファイルをアップロードして一括インポート
+ */
+export async function uploadCsvFile(file: File): Promise<CsvUploadResponse> {
+    const basePath = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+    const url = `${basePath}/api/expenses/upload-csv`;
+
+    // FormDataを作成
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // 認証ヘッダーを取得
+    const authHeader = await withAuthHeader();
+    const headers: HeadersInit = {};
+    
+    // 認証ヘッダーを設定（withAuthHeaderが返すheadersから取得）
+    if (authHeader.headers && authHeader.headers.Authorization) {
+        headers['Authorization'] = authHeader.headers.Authorization;
+    }
+
+    // fetch APIでアップロード
+    const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'CSVアップロードに失敗しました' }));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    return await response.json();
+}

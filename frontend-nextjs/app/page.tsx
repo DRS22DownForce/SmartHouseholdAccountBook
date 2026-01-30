@@ -42,7 +42,7 @@ export default function HomePage() {
   const username = useMemo(() => getUserDisplayName(user), [user])
 
   // ホームページのロジック（支出追加処理、リフレッシュトリガー管理）をカスタムフックから取得
-  const { refreshTrigger, handleAddExpense, handleAddExpenses } = useHomePageLogic()
+  const { refreshTrigger, handleAddExpense, handleAddExpenses, handleCsvUploadComplete } = useHomePageLogic()
 
   // 各コンポーネントが自分でローディング状態を管理するため、ここでのisLoadedチェックは不要
 
@@ -52,6 +52,7 @@ export default function HomePage() {
       onLogout={signOut}
       onAddExpense={handleAddExpense}
       onAddExpenses={handleAddExpenses}
+      onCsvUploadComplete={handleCsvUploadComplete}
     >
       {/* メインコンテンツ - 全体の間隔を統一 */}
       <div className="space-y-6 md:space-y-8">

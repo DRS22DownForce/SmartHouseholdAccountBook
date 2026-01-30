@@ -3,7 +3,10 @@ package com.example.backend.controller;
 import com.example.backend.application.mapper.ExpenseMapper;
 import com.example.backend.application.service.ExpenseApplicationService;
 import com.example.backend.domain.valueobject.MonthlySummary;
+import com.example.backend.exception.CsvUploadException;
 import com.example.backend.generated.api.ExpensesApi;
+import com.example.backend.generated.model.CsvUploadResponseDto;
+import com.example.backend.generated.model.CsvUploadResponseDtoErrorsInner;
 import com.example.backend.generated.model.ExpenseDto;
 import com.example.backend.generated.model.ExpenseRequestDto;
 import com.example.backend.generated.model.MonthlySummaryDto;
@@ -13,7 +16,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -130,5 +135,66 @@ public class ExpenseController implements ExpensesApi {
         // 2. レスポンスを返す
         return ResponseEntity.ok(months);
     }
+
+    /**
+     * CSVファイルアップロードエンドポイント
+     * 
+     * @param file アップロードされたCSVファイル
+     * @return CSVアップロード結果（成功件数、エラー件数、エラー詳細）
+     * @throws CsvUploadException ファイルの読み込みエラーや処理中のエラーが発生した場合
+     */
+    @Override
+    public ResponseEntity<CsvUploadResponseDto> apiExpensesUploadCsvPost(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            CsvUploadResponseDtoErrorsInner error = new CsvUploadResponseDtoErrorsInner(0, "ファイルが空です");
+            error.setLineContent("");
+            CsvUploadResponseDto response = new CsvUploadResponseDto(0, 0, List.of(error));
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".csv")) {
+            CsvUploadResponseDtoErrorsInner error = new CsvUploadResponseDtoErrorsInner(0, "CSVファイルを選択してください");
+            error.setLineContent(originalFilename != null ? originalFilename : "");
+            CsvUploadResponseDto response = new CsvUploadResponseDto(0, 0, List.of(error));
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        try {
+            ExpenseApplicationService.CsvUploadResult result = 
+                expenseApplicationService.uploadCsvAndAddExpenses(file);
+
+            List<CsvUploadResponseDtoErrorsInner> errorDtos = result.errors().stream()
+                .map(error -> {
+                    CsvUploadResponseDtoErrorsInner errorDto = new CsvUploadResponseDtoErrorsInner(
+                        error.lineNumber(),
+                        error.message()
+                    );
+                    errorDto.setLineContent(error.lineContent());
+                    return errorDto;
+                })
+                .collect(Collectors.toList());
+
+            CsvUploadResponseDto response = new CsvUploadResponseDto(
+                result.successCount(),
+                result.errorCount(),
+                errorDtos
+            );
+            return ResponseEntity.ok(response);
+        } catch (IOException e) {
+            throw new CsvUploadException(
+                "ファイルの読み込みに失敗しました: " + e.getMessage(),
+                e,
+                HttpStatus.BAD_REQUEST
+            );
+        } catch (Exception e) {
+            throw new CsvUploadException(
+                "CSVの処理中にエラーが発生しました: " + e.getMessage(),
+                e,
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
+        }
+    }
+
 
 }

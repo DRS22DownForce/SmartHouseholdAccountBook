@@ -83,12 +83,23 @@ export function useExpensesPageLogic() {
         setRefreshTrigger((prev) => prev + 1)
     }, [deleteExpenseItem])
 
+    /**
+     * CSVアップロード後のデータ再取得ハンドラー関数
+     * 
+     * CSVアップロードが完了した後、他のコンポーネントを再取得するために
+     * リフレッシュトリガーを更新します。
+     */
+    const handleCsvUploadComplete = useCallback(() => {
+        setRefreshTrigger((prev) => prev + 1)
+    }, [])
+
     return {
         refreshTrigger,
         handleAddExpense,
         handleAddExpenses,
         handleUpdateExpense,
         handleDeleteExpense,
+        handleCsvUploadComplete,
     }
 }
 
