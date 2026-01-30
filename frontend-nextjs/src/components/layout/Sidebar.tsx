@@ -53,6 +53,7 @@ interface SidebarProps {
   onLogout: () => void
   onAddExpense?: (data: ExpenseFormData) => void
   onAddExpenses?: (expenses: ExpenseFormData[]) => void
+  onCsvUploadComplete?: () => void
   onCollapsedChange?: (collapsed: boolean) => void
 }
 
@@ -95,7 +96,7 @@ const mainNavigationItems = [
   },
 ] as const
 
-export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCollapsedChange }: SidebarProps) {
+export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCsvUploadComplete, onCollapsedChange }: SidebarProps) {
   const pathname = usePathname()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -301,7 +302,7 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCol
             </div>
             {onAddExpenses && (
               <div className="w-full">
-                <CsvUploadDialog onUpload={onAddExpenses} />
+                <CsvUploadDialog onUpload={onCsvUploadComplete} />
               </div>
             )}
           </div>

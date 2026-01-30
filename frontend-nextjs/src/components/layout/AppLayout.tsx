@@ -23,6 +23,7 @@ interface AppLayoutProps {
   onLogout: () => void
   onAddExpense?: (data: ExpenseFormData) => void
   onAddExpenses?: (expenses: ExpenseFormData[]) => void
+  onCsvUploadComplete?: () => void
 }
 
 export function AppLayout({
@@ -31,6 +32,7 @@ export function AppLayout({
   onLogout,
   onAddExpense,
   onAddExpenses,
+  onCsvUploadComplete,
 }: AppLayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(false)
 
@@ -42,6 +44,7 @@ export function AppLayout({
         onLogout={onLogout}
         onAddExpense={onAddExpense}
         onAddExpenses={onAddExpenses}
+        onCsvUploadComplete={onCsvUploadComplete}
         onCollapsedChange={setIsCollapsed}
       />
 

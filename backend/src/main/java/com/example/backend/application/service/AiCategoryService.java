@@ -3,13 +3,19 @@ package com.example.backend.application.service;
 import com.example.backend.domain.valueobject.Category;
 import com.example.backend.exception.QuotaExceededException;
 import com.example.backend.exception.AiServiceException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.HttpClientErrorException;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -22,10 +28,13 @@ import java.util.Objects;
  */
 @Service
 public class AiCategoryService {
+    private static final Logger logger = LoggerFactory.getLogger(AiCategoryService.class);
 
     private final RestClient restClient;
     private final String openAiApiKey;
     private final String openAiApiUrl;
+    private final ObjectMapper objectMapper;
+    private static final int BATCH_SIZE = 30; // 1リクエストあたりの最大件数（トークン制限を考慮）
 
     /**
      * コンストラクタ
@@ -39,6 +48,7 @@ public class AiCategoryService {
         this.restClient = RestClient.builder().build();
         this.openAiApiKey = openAiApiKey;
         this.openAiApiUrl = openAiApiUrl;
+        this.objectMapper = new ObjectMapper();
     }
 
     /**
@@ -101,25 +111,192 @@ public class AiCategoryService {
                 }
             }
         } catch (HttpClientErrorException.TooManyRequests e) {
-            // OpenAI APIの利用枠（クォータ）を超過した場合
+            logger.warn("OpenAI APIの利用枠（クォータ）を超過しました: 説明文={}", description, e);
             throw new QuotaExceededException(e);
         } catch (Exception e) {
-            // AIサービスとの通信でエラーが発生した場合
+            logger.error("AIサービスとの通信でエラーが発生しました: 説明文={}", description, e);
             throw new AiServiceException("AIサービスとの通信でエラーが発生しました。", e);
         }
 
         // AI応答が取得できなかった場合
         if (predictedCategory == null || predictedCategory.isEmpty()) {
+            logger.error("AIからの応答を取得できませんでした: 説明文={}", description);
             throw new AiServiceException("AIからの応答を取得できませんでした。");
         }
 
         // レスポンス検証: AIが返したカテゴリーが有効なカテゴリーリストに含まれることを確認
         if (!validCategories.contains(predictedCategory)) {
-            // 無効なカテゴリーが返された場合、デフォルトとして「その他」を返す
+            logger.warn("AIが無効なカテゴリーを返しました: 説明文={}, 返されたカテゴリー={}, デフォルト「その他」を使用", 
+                description, predictedCategory);
             return "その他";
         }
 
         return predictedCategory;
+    }
+
+    /**
+     * 複数の支出説明文からカテゴリーを一括で推論する（バッチ処理）
+     * 
+     * 複数の説明文を1つのOpenAI APIリクエストにまとめて送信し、
+     * JSON形式でレスポンスを受け取ります。これにより、APIリクエスト数を大幅に削減できます。
+     * 
+     * 大量のデータ（BATCH_SIZEを超える場合）は自動的にチャンクに分割して処理します。
+     * 
+     * @param descriptions 支出の説明文のリスト
+     * @return 説明文とカテゴリーのマッピング（説明文 → カテゴリー名）
+     *         分類に失敗した説明文は「その他」が設定されます
+     */
+    public Map<String, String> predictCategoriesBatch(List<String> descriptions) {
+        if (descriptions == null || descriptions.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        // 空の説明文をフィルタリング
+        List<String> validDescriptions = descriptions.stream()
+            .filter(desc -> desc != null && !desc.trim().isEmpty())
+            .distinct() // 重複を除去
+            .toList();
+
+        if (validDescriptions.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        Map<String, String> resultMap = new LinkedHashMap<>();
+        
+        // チャンクに分割して処理
+        for (int i = 0; i < validDescriptions.size(); i += BATCH_SIZE) {
+            int end = Math.min(i + BATCH_SIZE, validDescriptions.size());
+            List<String> chunk = validDescriptions.subList(i, end);
+            
+            try {
+                Map<String, String> chunkResult = predictCategoriesBatchChunk(chunk);
+                resultMap.putAll(chunkResult);
+            } catch (Exception e) {
+                // チャンク処理でエラーが発生した場合、警告ログを出力
+                // チャンクサイズとエラーメッセージを記録します
+                logger.warn("AIカテゴリ分類のチャンク処理でエラーが発生しました: チャンクサイズ={}, エラー={}", 
+                    chunk.size(), e.getMessage(), e);
+                // そのチャンクのすべての説明文に「その他」を設定
+                for (String description : chunk) {
+                    resultMap.put(description, "その他");
+                }
+            }
+        }
+
+        return resultMap;
+    }
+
+    /**
+     * 1チャンク分の説明文からカテゴリーを推論する
+     * 
+     * @param descriptions 説明文のリスト（BATCH_SIZE以下）
+     * @return 説明文とカテゴリーのマッピング
+     */
+    private Map<String, String> predictCategoriesBatchChunk(List<String> descriptions) {
+        // 有効なカテゴリーリストを取得
+        List<String> validCategories = Category.getValidCategories();
+        String categoriesList = String.join("、", validCategories);
+
+        // 説明文を番号付きリストとして構築
+        StringBuilder descriptionsList = new StringBuilder();
+        for (int i = 0; i < descriptions.size(); i++) {
+            descriptionsList.append(String.format("%d. %s\n", i + 1, descriptions.get(i)));
+        }
+
+        // システムプロンプトを構築
+        String systemPrompt = String.format(
+            "あなたは家計簿アプリのカテゴリー分類AIです。\n" +
+            "以下の支出の説明文のリストから、それぞれの説明文に最も適切なカテゴリーを1つずつ選んでください。\n\n" +
+            "有効なカテゴリーは以下の通りです:\n%s\n\n" +
+            "結果をJSON形式で返してください。形式は以下の通りです:\n" +
+            "{\n" +
+            "  \"1\": \"カテゴリー名\",\n" +
+            "  \"2\": \"カテゴリー名\",\n" +
+            "  ...\n" +
+            "}\n\n" +
+            "各説明文の番号をキーとして、対応するカテゴリー名を値として返してください。\n" +
+            "カテゴリー名のみを返してください。説明やその他のテキストは含めないでください。\n" +
+            "例: {\"1\": \"食費\", \"2\": \"交通費\"}",
+            categoriesList
+        );
+
+        // ユーザープロンプトを構築
+        String userPrompt = "以下の支出の説明文を分類してください:\n\n" + descriptionsList.toString();
+
+        // OpenAI APIリクエストボディを作成
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("model", "gpt-4o-mini");
+        requestBody.put("messages", List.of(
+                Map.of("role", "system", "content", systemPrompt),
+                Map.of("role", "user", "content", userPrompt)));
+        requestBody.put("response_format", Map.of("type", "json_object")); // JSON形式で返すよう指示
+
+        try {
+            // OpenAI APIを呼び出し
+            OpenAiChatResponse response = restClient.post()
+                    .uri(Objects.requireNonNull(openAiApiUrl))
+                    .header("Authorization", "Bearer " + openAiApiKey)
+                    .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                    .body(requestBody)
+                    .retrieve()
+                    .body(OpenAiChatResponse.class);
+
+            // レスポンスからJSONを抽出
+            if (response != null && response.choices() != null && !response.choices().isEmpty()) {
+                OpenAiChatMessage message = response.choices().get(0).message();
+                if (message != null && message.content() != null) {
+                    String jsonContent = message.content().trim();
+                    
+                    // JSONをパース
+                    Map<String, String> categoryMap = objectMapper.readValue(
+                        jsonContent,
+                        new TypeReference<Map<String, String>>() {}
+                    );
+
+                    // 説明文とカテゴリーのマッピングを作成
+                    Map<String, String> resultMap = new LinkedHashMap<>();
+                    for (int i = 0; i < descriptions.size(); i++) {
+                        String description = descriptions.get(i);
+                        String key = String.valueOf(i + 1);
+                        String category = categoryMap.get(key);
+                        
+                        // カテゴリーが取得できた場合、有効性を検証
+                        if (category != null && !category.trim().isEmpty()) {
+                            category = category.trim();
+                            if (!validCategories.contains(category)) {
+                                category = "その他";
+                            }
+                        } else {
+                            category = "その他";
+                        }
+                        
+                        resultMap.put(description, category);
+                    }
+                    
+                    return resultMap;
+                }
+            }
+        } catch (HttpClientErrorException.TooManyRequests e) {
+            // レート制限エラーの場合、警告ログを出力
+            // チャンクサイズを記録して、どのくらいのデータ量で問題が発生したかを把握できます
+            logger.warn("OpenAI APIの利用枠（クォータ）を超過しました: チャンクサイズ={}", descriptions.size(), e);
+            throw new QuotaExceededException(e);
+        } catch (Exception e) {
+            // JSONパースエラーなど、その他のエラーの場合、エラーログを出力
+            // チャンクサイズとエラーメッセージを記録します
+            logger.error("AIサービスとの通信でエラーが発生しました: チャンクサイズ={}, エラー={}", 
+                descriptions.size(), e.getMessage(), e);
+            throw new AiServiceException("AIサービスとの通信でエラーが発生しました: " + e.getMessage(), e);
+        }
+
+        // AI応答が取得できなかった場合、警告ログを出力
+        // すべて「その他」を設定して処理を続行します
+        logger.warn("AIからの応答を取得できませんでした: チャンクサイズ={}, すべて「その他」を設定", descriptions.size());
+        Map<String, String> defaultResult = new LinkedHashMap<>();
+        for (String description : descriptions) {
+            defaultResult.put(description, "その他");
+        }
+        return defaultResult;
     }
 
     // OpenAI APIのレスポンスをパースするためのレコードクラス
