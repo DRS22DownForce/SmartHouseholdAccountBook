@@ -1,6 +1,7 @@
 package com.example.backend.controller;
 
 import com.example.backend.application.mapper.ExpenseMapper;
+import com.example.backend.application.service.CsvExpenseService;
 import com.example.backend.application.service.CsvParserService;
 import com.example.backend.application.service.ExpenseApplicationService;
 import com.example.backend.domain.valueobject.MonthlySummary;
@@ -31,18 +32,22 @@ import java.util.stream.Collectors;
 @RestController
 public class ExpenseController implements ExpensesApi {
     private final ExpenseApplicationService expenseApplicationService;
+    private final CsvExpenseService csvExpenseService;
     private final ExpenseMapper expenseMapper;
 
     /**
      * コンストラクタ
      * 
      * @param expenseApplicationService 支出アプリケーションサービス
+     * @param csvExpenseService         CSV支出処理サービス
      * @param expenseMapper             支出マッパー
      */
     public ExpenseController(
             ExpenseApplicationService expenseApplicationService,
+            CsvExpenseService csvExpenseService,
             ExpenseMapper expenseMapper) {
         this.expenseApplicationService = expenseApplicationService;
+        this.csvExpenseService = csvExpenseService;
         this.expenseMapper = expenseMapper;
     }
 
@@ -181,8 +186,7 @@ public class ExpenseController implements ExpensesApi {
         CsvParserService.CsvFormat format = CsvParserService.CsvFormat.valueOf(csvFormat);
 
         // CSV処理を実行（部分成功をサポート）
-        ExpenseApplicationService.CsvUploadResult result = expenseApplicationService.uploadCsvAndAddExpenses(file,
-                format);
+        CsvExpenseService.CsvUploadResult result = csvExpenseService.uploadCsvAndAddExpenses(file, format);
 
         // MapperでDTOに変換
         CsvUploadResponseDto response = expenseMapper.toDto(result);
