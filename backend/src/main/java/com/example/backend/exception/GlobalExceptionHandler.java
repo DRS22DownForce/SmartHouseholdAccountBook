@@ -5,10 +5,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
 import com.example.backend.generated.model.ErrorResponse;
-import com.example.backend.generated.model.CsvUploadResponseDto;
-import com.example.backend.generated.model.CsvUploadResponseDtoErrorsInner;
 import java.time.OffsetDateTime;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,25 +61,26 @@ public class GlobalExceptionHandler {
     /**
      * CSVアップロード処理で発生したエラーを処理
      * 
-     * CSVアップロード専用のレスポンス形式（CsvUploadResponseDto）で返します。
-     * 例外に含まれるHTTPステータスコードに応じて、適切なステータスコードを返します。
+     * バリデーションエラー（BAD_REQUEST）の場合はErrorResponseを返します。
+     * 処理中のエラー（INTERNAL_SERVER_ERROR）の場合もErrorResponseを返します。
+     * 
+     * 部分成功の場合は、ExpenseControllerでCsvUploadResponseDtoを返すため、
+     * このハンドラーは処理全体が失敗した場合のみ処理します。
      * 
      * @param e CSVアップロード例外
-     * @return CSVアップロードエラーレスポンス
+     * @return エラーレスポンス
      */
     @ExceptionHandler(CsvUploadException.class)
-    public ResponseEntity<CsvUploadResponseDto> handleCsvUploadException(CsvUploadException e) {
+    public ResponseEntity<ErrorResponse> handleCsvUploadException(CsvUploadException e) {
         if (e.getHttpStatus() == HttpStatus.BAD_REQUEST) {
             logger.warn("CSVファイルの読み込みに失敗しました: {}", e.getMessage());
         } else {
             logger.error("CSVの処理中にエラーが発生しました: {}", e.getMessage(), e);
         }
 
-        CsvUploadResponseDtoErrorsInner error = new CsvUploadResponseDtoErrorsInner(0, e.getMessage());
-        error.setLineContent("");
-        CsvUploadResponseDto response = new CsvUploadResponseDto(0, 0, List.of(error));
-
-        return ResponseEntity.status(e.getHttpStatus()).body(response);
+        // OpenAPI定義に合わせてErrorResponseを返す
+        return ResponseEntity.status(e.getHttpStatus())
+                .body(new ErrorResponse(e.getMessage(), OffsetDateTime.now()));
     }
 
 }

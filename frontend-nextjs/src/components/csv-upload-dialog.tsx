@@ -32,7 +32,7 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string; details?: CsvUploadResponse } | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [open, setOpen] = useState(false)
-  const [csvFormat, setCsvFormat] = useState<"OLD_FORMAT" | "NEW_FORMAT" | "">("")
+  const [csvFormat, setCsvFormat] = useState<"MITSUISUMITOMO_OLD_FORMAT" | "MITSUISUMITOMO_NEW_FORMAT" | "">("")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFile = async (file: File) => {
@@ -42,7 +42,7 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
     }
 
     // CSV形式が選択されていない場合はエラー
-    if (!csvFormat || (csvFormat !== "OLD_FORMAT" && csvFormat !== "NEW_FORMAT")) {
+    if (!csvFormat || (csvFormat !== "MITSUISUMITOMO_OLD_FORMAT" && csvFormat !== "MITSUISUMITOMO_NEW_FORMAT")) {
       setStatus({ type: "error", message: "CSV形式を選択してください" })
       return
     }
@@ -146,13 +146,13 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
           {/* CSV形式選択 */}
           <div className="space-y-2">
             <label className="text-sm font-medium">CSV形式を選択</label>
-            <Select value={csvFormat} onValueChange={(value) => setCsvFormat(value as "OLD_FORMAT" | "NEW_FORMAT")}>
+            <Select value={csvFormat} onValueChange={(value) => setCsvFormat(value as "MITSUISUMITOMO_OLD_FORMAT" | "MITSUISUMITOMO_NEW_FORMAT")}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="CSV形式を選択してください" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="OLD_FORMAT">三井住友カード（2025/12以前）</SelectItem>
-                <SelectItem value="NEW_FORMAT">三井住友カード（2026/1以降）</SelectItem>
+                <SelectItem value="MITSUISUMITOMO_OLD_FORMAT">三井住友カード（2025/12以前）</SelectItem>
+                <SelectItem value="MITSUISUMITOMO_NEW_FORMAT">三井住友カード（2026/1以降）</SelectItem>
               </SelectContent>
             </Select>
           </div>

@@ -124,7 +124,7 @@ CsvUploadResponseDto:
             lineContent:
               type: string
               description: エラーが発生した行の内容
-              example: '2025/11/01,やよい軒平塚店,invalid,１,１,1220,'
+              example: '2025/11/01,xxx店,invalid,1,1,1220,'
             message:
               type: string
               description: エラーメッセージ

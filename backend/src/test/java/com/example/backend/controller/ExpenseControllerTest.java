@@ -59,18 +59,24 @@ class ExpenseControllerTest {
         // テストデータの準備
         when(mockFile.isEmpty()).thenReturn(false);
         when(mockFile.getOriginalFilename()).thenReturn("test.csv");
-        
+
         // アプリケーションサービスのモック設定
-        ExpenseApplicationService.CsvUploadResult result = 
-            new ExpenseApplicationService.CsvUploadResult(2, 0, new ArrayList<>());
+        ExpenseApplicationService.CsvUploadResult result = new ExpenseApplicationService.CsvUploadResult(2, 0,
+                new ArrayList<>());
         when(expenseApplicationService.uploadCsvAndAddExpenses(
-            any(MultipartFile.class), 
-            eq(CsvParserService.CsvFormat.OLD_FORMAT)
-        )).thenReturn(result);
+                any(MultipartFile.class),
+                eq(CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT))).thenReturn(result);
+
+        // Mapperのモック設定
+        CsvUploadResponseDto expectedDto = new CsvUploadResponseDto();
+        expectedDto.setSuccessCount(2);
+        expectedDto.setErrorCount(0);
+        expectedDto.setErrors(new ArrayList<>());
+        when(expenseMapper.toDto(result)).thenReturn(expectedDto);
 
         // テスト実行
-        ResponseEntity<CsvUploadResponseDto> response = 
-            expenseController.apiExpensesUploadCsvPost(mockFile, "OLD_FORMAT");
+        ResponseEntity<CsvUploadResponseDto> response = expenseController.apiExpensesUploadCsvPost(mockFile,
+                "MITSUISUMITOMO_OLD_FORMAT");
 
         // 検証
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -78,44 +84,48 @@ class ExpenseControllerTest {
         assertEquals(2, response.getBody().getSuccessCount());
         assertEquals(0, response.getBody().getErrorCount());
         assertTrue(response.getBody().getErrors().isEmpty());
-        
+
         // アプリケーションサービスが正しく呼ばれたことを確認
         verify(expenseApplicationService, times(1)).uploadCsvAndAddExpenses(
-            eq(mockFile), 
-            eq(CsvParserService.CsvFormat.OLD_FORMAT)
-        );
+                eq(mockFile),
+                eq(CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT));
     }
 
     @Test
-    @DisplayName("NEW_FORMAT形式のCSVファイルが正常にアップロードできる")
-    void apiExpensesUploadCsvPost_NEW_FORMATで正常にアップロードできる() throws IOException {
+    @DisplayName("MITSUISUMITOMO_NEW_FORMAT形式のCSVファイルが正常にアップロードできる")
+    void apiExpensesUploadCsvPost_MITSUISUMITOMO_NEW_FORMATで正常にアップロードできる() throws IOException {
         // テストデータの準備
         when(mockFile.isEmpty()).thenReturn(false);
         when(mockFile.getOriginalFilename()).thenReturn("test.csv");
-        
+
         // アプリケーションサービスのモック設定
-        ExpenseApplicationService.CsvUploadResult result = 
-            new ExpenseApplicationService.CsvUploadResult(3, 0, new ArrayList<>());
+        ExpenseApplicationService.CsvUploadResult result = new ExpenseApplicationService.CsvUploadResult(3, 0,
+                new ArrayList<>());
         when(expenseApplicationService.uploadCsvAndAddExpenses(
-            any(MultipartFile.class), 
-            eq(CsvParserService.CsvFormat.NEW_FORMAT)
-        )).thenReturn(result);
+                any(MultipartFile.class),
+                eq(CsvParserService.CsvFormat.MITSUISUMITOMO_NEW_FORMAT))).thenReturn(result);
+
+        // Mapperのモック設定
+        CsvUploadResponseDto expectedDto = new CsvUploadResponseDto();
+        expectedDto.setSuccessCount(3);
+        expectedDto.setErrorCount(0);
+        expectedDto.setErrors(new ArrayList<>());
+        when(expenseMapper.toDto(result)).thenReturn(expectedDto);
 
         // テスト実行
-        ResponseEntity<CsvUploadResponseDto> response = 
-            expenseController.apiExpensesUploadCsvPost(mockFile, "NEW_FORMAT");
+        ResponseEntity<CsvUploadResponseDto> response = expenseController.apiExpensesUploadCsvPost(mockFile,
+                "MITSUISUMITOMO_NEW_FORMAT");
 
         // 検証
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals(3, response.getBody().getSuccessCount());
         assertEquals(0, response.getBody().getErrorCount());
-        
+
         // アプリケーションサービスが正しく呼ばれたことを確認
         verify(expenseApplicationService, times(1)).uploadCsvAndAddExpenses(
-            eq(mockFile), 
-            eq(CsvParserService.CsvFormat.NEW_FORMAT)
-        );
+                eq(mockFile),
+                eq(CsvParserService.CsvFormat.MITSUISUMITOMO_NEW_FORMAT));
     }
 
     @Test
@@ -124,18 +134,12 @@ class ExpenseControllerTest {
         // テストデータの準備
         when(mockFile.isEmpty()).thenReturn(true);
 
-        // テスト実行
-        ResponseEntity<CsvUploadResponseDto> response = 
-            expenseController.apiExpensesUploadCsvPost(mockFile, "OLD_FORMAT");
+        // テスト実行と検証
+        // IllegalArgumentExceptionがスローされることを確認
+        assertThrows(IllegalArgumentException.class, () -> {
+            expenseController.apiExpensesUploadCsvPost(mockFile, "MITSUISUMITOMO_OLD_FORMAT");
+        });
 
-        // 検証
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(0, response.getBody().getSuccessCount());
-        assertEquals(0, response.getBody().getErrorCount());
-        assertEquals(1, response.getBody().getErrors().size());
-        assertEquals("ファイルが空です", response.getBody().getErrors().get(0).getMessage());
-        
         // アプリケーションサービスは呼ばれないことを確認
         verify(expenseApplicationService, never()).uploadCsvAndAddExpenses(any(), any());
     }
@@ -143,18 +147,12 @@ class ExpenseControllerTest {
     @Test
     @DisplayName("CSVファイルがnullの場合は400エラーを返す")
     void apiExpensesUploadCsvPost_ファイルがnullの場合は400エラー() throws IOException {
-        // テスト実行
-        ResponseEntity<CsvUploadResponseDto> response = 
-            expenseController.apiExpensesUploadCsvPost(null, "OLD_FORMAT");
+        // テスト実行と検証
+        // IllegalArgumentExceptionがスローされることを確認
+        assertThrows(IllegalArgumentException.class, () -> {
+            expenseController.apiExpensesUploadCsvPost(null, "MITSUISUMITOMO_OLD_FORMAT");
+        });
 
-        // 検証
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(0, response.getBody().getSuccessCount());
-        assertEquals(0, response.getBody().getErrorCount());
-        assertEquals(1, response.getBody().getErrors().size());
-        assertEquals("ファイルが空です", response.getBody().getErrors().get(0).getMessage());
-        
         // アプリケーションサービスは呼ばれないことを確認
         verify(expenseApplicationService, never()).uploadCsvAndAddExpenses(any(), any());
     }
@@ -166,18 +164,13 @@ class ExpenseControllerTest {
         when(mockFile.isEmpty()).thenReturn(false);
         when(mockFile.getOriginalFilename()).thenReturn("test.txt");
 
-        // テスト実行
-        ResponseEntity<CsvUploadResponseDto> response = 
-            expenseController.apiExpensesUploadCsvPost(mockFile, "OLD_FORMAT");
+        // テスト実行と検証
+        // IllegalArgumentExceptionがスローされることを確認
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            expenseController.apiExpensesUploadCsvPost(mockFile, "MITSUISUMITOMO_OLD_FORMAT");
+        });
+        assertEquals("CSVファイルを選択してください", exception.getMessage());
 
-        // 検証
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(0, response.getBody().getSuccessCount());
-        assertEquals(0, response.getBody().getErrorCount());
-        assertEquals(1, response.getBody().getErrors().size());
-        assertEquals("CSVファイルを選択してください", response.getBody().getErrors().get(0).getMessage());
-        
         // アプリケーションサービスは呼ばれないことを確認
         verify(expenseApplicationService, never()).uploadCsvAndAddExpenses(any(), any());
     }
@@ -189,18 +182,13 @@ class ExpenseControllerTest {
         when(mockFile.isEmpty()).thenReturn(false);
         when(mockFile.getOriginalFilename()).thenReturn(null);
 
-        // テスト実行
-        ResponseEntity<CsvUploadResponseDto> response = 
-            expenseController.apiExpensesUploadCsvPost(mockFile, "OLD_FORMAT");
+        // テスト実行と検証
+        // IllegalArgumentExceptionがスローされることを確認
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
+            expenseController.apiExpensesUploadCsvPost(mockFile, "MITSUISUMITOMO_OLD_FORMAT");
+        });
+        assertEquals("CSVファイルを選択してください", exception.getMessage());
 
-        // 検証
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(0, response.getBody().getSuccessCount());
-        assertEquals(0, response.getBody().getErrorCount());
-        assertEquals(1, response.getBody().getErrors().size());
-        assertEquals("CSVファイルを選択してください", response.getBody().getErrors().get(0).getMessage());
-        
         // アプリケーションサービスは呼ばれないことを確認
         verify(expenseApplicationService, never()).uploadCsvAndAddExpenses(any(), any());
     }
@@ -212,18 +200,13 @@ class ExpenseControllerTest {
         when(mockFile.isEmpty()).thenReturn(false);
         when(mockFile.getOriginalFilename()).thenReturn("test.csv");
 
-        // テスト実行
-        ResponseEntity<CsvUploadResponseDto> response = 
+        // テスト実行と検証
+        // IllegalArgumentExceptionがスローされることを確認
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             expenseController.apiExpensesUploadCsvPost(mockFile, null);
+        });
+        assertEquals("CSV形式を指定してください", exception.getMessage());
 
-        // 検証
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(0, response.getBody().getSuccessCount());
-        assertEquals(0, response.getBody().getErrorCount());
-        assertEquals(1, response.getBody().getErrors().size());
-        assertEquals("CSV形式を指定してください", response.getBody().getErrors().get(0).getMessage());
-        
         // アプリケーションサービスは呼ばれないことを確認
         verify(expenseApplicationService, never()).uploadCsvAndAddExpenses(any(), any());
     }
@@ -235,18 +218,13 @@ class ExpenseControllerTest {
         when(mockFile.isEmpty()).thenReturn(false);
         when(mockFile.getOriginalFilename()).thenReturn("test.csv");
 
-        // テスト実行
-        ResponseEntity<CsvUploadResponseDto> response = 
+        // テスト実行と検証
+        // IllegalArgumentExceptionがスローされることを確認
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             expenseController.apiExpensesUploadCsvPost(mockFile, "");
+        });
+        assertEquals("CSV形式を指定してください", exception.getMessage());
 
-        // 検証
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(0, response.getBody().getSuccessCount());
-        assertEquals(0, response.getBody().getErrorCount());
-        assertEquals(1, response.getBody().getErrors().size());
-        assertEquals("CSV形式を指定してください", response.getBody().getErrors().get(0).getMessage());
-        
         // アプリケーションサービスは呼ばれないことを確認
         verify(expenseApplicationService, never()).uploadCsvAndAddExpenses(any(), any());
     }
@@ -258,18 +236,13 @@ class ExpenseControllerTest {
         when(mockFile.isEmpty()).thenReturn(false);
         when(mockFile.getOriginalFilename()).thenReturn("test.csv");
 
-        // テスト実行
-        ResponseEntity<CsvUploadResponseDto> response = 
+        // テスト実行と検証
+        // IllegalArgumentExceptionがスローされることを確認
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
             expenseController.apiExpensesUploadCsvPost(mockFile, "INVALID_FORMAT");
+        });
+        assertTrue(exception.getMessage().contains("無効なCSV形式です"));
 
-        // 検証
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(0, response.getBody().getSuccessCount());
-        assertEquals(0, response.getBody().getErrorCount());
-        assertEquals(1, response.getBody().getErrors().size());
-        assertTrue(response.getBody().getErrors().get(0).getMessage().contains("無効なCSV形式です"));
-        
         // アプリケーションサービスは呼ばれないことを確認
         verify(expenseApplicationService, never()).uploadCsvAndAddExpenses(any(), any());
     }
@@ -280,21 +253,31 @@ class ExpenseControllerTest {
         // テストデータの準備
         when(mockFile.isEmpty()).thenReturn(false);
         when(mockFile.getOriginalFilename()).thenReturn("test.csv");
-        
+
         // エラーを含む解析結果を準備
         List<CsvParserService.CsvParseError> errors = new ArrayList<>();
         errors.add(new CsvParserService.CsvParseError(2, "2024/1/1,テスト店,1000", "日付の形式が不正です"));
-        
-        ExpenseApplicationService.CsvUploadResult result = 
-            new ExpenseApplicationService.CsvUploadResult(1, 1, errors);
+
+        ExpenseApplicationService.CsvUploadResult result = new ExpenseApplicationService.CsvUploadResult(1, 1, errors);
         when(expenseApplicationService.uploadCsvAndAddExpenses(
-            any(MultipartFile.class), 
-            eq(CsvParserService.CsvFormat.OLD_FORMAT)
-        )).thenReturn(result);
+                any(MultipartFile.class),
+                eq(CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT))).thenReturn(result);
+
+        // Mapperのモック設定
+        CsvUploadResponseDto expectedDto = new CsvUploadResponseDto();
+        expectedDto.setSuccessCount(1);
+        expectedDto.setErrorCount(1);
+        List<com.example.backend.generated.model.CsvUploadResponseDtoErrorsInner> errorDtos = new ArrayList<>();
+        com.example.backend.generated.model.CsvUploadResponseDtoErrorsInner errorDto = new com.example.backend.generated.model.CsvUploadResponseDtoErrorsInner(
+                2, "日付の形式が不正です");
+        errorDto.setLineContent("2024/1/1,テスト店,1000");
+        errorDtos.add(errorDto);
+        expectedDto.setErrors(errorDtos);
+        when(expenseMapper.toDto(result)).thenReturn(expectedDto);
 
         // テスト実行
-        ResponseEntity<CsvUploadResponseDto> response = 
-            expenseController.apiExpensesUploadCsvPost(mockFile, "OLD_FORMAT");
+        ResponseEntity<CsvUploadResponseDto> response = expenseController.apiExpensesUploadCsvPost(mockFile,
+                "MITSUISUMITOMO_OLD_FORMAT");
 
         // 検証
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -313,16 +296,19 @@ class ExpenseControllerTest {
         // テストデータの準備
         when(mockFile.isEmpty()).thenReturn(false);
         when(mockFile.getOriginalFilename()).thenReturn("test.csv");
-        
-        // IOExceptionをスローするように設定
+
+        // CsvUploadExceptionをスローするように設定（Service層でIOExceptionがCsvUploadExceptionに変換される）
+        com.example.backend.exception.CsvUploadException csvException = new com.example.backend.exception.CsvUploadException(
+                "ファイルの読み込みに失敗しました: ファイルの読み込みに失敗しました",
+                new IOException("ファイルの読み込みに失敗しました"),
+                org.springframework.http.HttpStatus.BAD_REQUEST);
         when(expenseApplicationService.uploadCsvAndAddExpenses(
-            any(MultipartFile.class), 
-            any(CsvParserService.CsvFormat.class)
-        )).thenThrow(new IOException("ファイルの読み込みに失敗しました"));
+                any(MultipartFile.class),
+                any(CsvParserService.CsvFormat.class))).thenThrow(csvException);
 
         // テスト実行と検証
         assertThrows(com.example.backend.exception.CsvUploadException.class, () -> {
-            expenseController.apiExpensesUploadCsvPost(mockFile, "OLD_FORMAT");
+            expenseController.apiExpensesUploadCsvPost(mockFile, "MITSUISUMITOMO_OLD_FORMAT");
         });
     }
 
@@ -332,16 +318,19 @@ class ExpenseControllerTest {
         // テストデータの準備
         when(mockFile.isEmpty()).thenReturn(false);
         when(mockFile.getOriginalFilename()).thenReturn("test.csv");
-        
-        // RuntimeExceptionをスローするように設定
+
+        // CsvUploadExceptionをスローするように設定（Service層でRuntimeExceptionがCsvUploadExceptionに変換される）
+        com.example.backend.exception.CsvUploadException csvException = new com.example.backend.exception.CsvUploadException(
+                "CSVの処理中にエラーが発生しました: 予期しないエラー",
+                new RuntimeException("予期しないエラー"),
+                org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
         when(expenseApplicationService.uploadCsvAndAddExpenses(
-            any(MultipartFile.class), 
-            any(CsvParserService.CsvFormat.class)
-        )).thenThrow(new RuntimeException("予期しないエラー"));
+                any(MultipartFile.class),
+                any(CsvParserService.CsvFormat.class))).thenThrow(csvException);
 
         // テスト実行と検証
         assertThrows(com.example.backend.exception.CsvUploadException.class, () -> {
-            expenseController.apiExpensesUploadCsvPost(mockFile, "OLD_FORMAT");
+            expenseController.apiExpensesUploadCsvPost(mockFile, "MITSUISUMITOMO_OLD_FORMAT");
         });
     }
 }

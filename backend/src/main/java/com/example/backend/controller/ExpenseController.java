@@ -4,10 +4,8 @@ import com.example.backend.application.mapper.ExpenseMapper;
 import com.example.backend.application.service.CsvParserService;
 import com.example.backend.application.service.ExpenseApplicationService;
 import com.example.backend.domain.valueobject.MonthlySummary;
-import com.example.backend.exception.CsvUploadException;
 import com.example.backend.generated.api.ExpensesApi;
 import com.example.backend.generated.model.CsvUploadResponseDto;
-import com.example.backend.generated.model.CsvUploadResponseDtoErrorsInner;
 import com.example.backend.generated.model.ExpenseDto;
 import com.example.backend.generated.model.ExpenseRequestDto;
 import com.example.backend.generated.model.MonthlySummaryDto;
@@ -21,7 +19,6 @@ import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -142,92 +139,55 @@ public class ExpenseController implements ExpensesApi {
     /**
      * CSVファイルアップロードエンドポイント
      * 
-     * 三井住友カードのCSVフォーマットに対応しています。
-     * プライバシー保護のため、csvFormatはリクエストボディ（FormData）で送信されます。
+     * このメソッドはコントローラー層として、HTTPリクエストの受け取りとレスポンスの返却に専念します。
+     * 例外処理はService層で行われるため、ここでは例外をキャッチする必要はありません。
      * 
-     * @param file アップロードされたCSVファイル
-     * @param csvFormat CSV形式（OLD_FORMAT: 三井住友カード 2025/12以前、NEW_FORMAT: 三井住友カード 2026/1以降）
+     * バリデーションエラー（処理開始前）はIllegalArgumentExceptionをスローし、
+     * GlobalExceptionHandlerでErrorResponseを返します。
+     * 部分成功の場合はCsvUploadResponseDtoを返します。
+     * 処理全体が失敗した場合はService層でCsvUploadExceptionがスローされ、
+     * GlobalExceptionHandlerでErrorResponseを返します。
+     * 
+     * @param file      アップロードされたCSVファイル
+     * @param csvFormat CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード
+     *                  2025/12以前、MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 2026/1以降）
      * @return CSVアップロード結果（成功件数、エラー件数、エラー詳細）
-     * @throws CsvUploadException ファイルの読み込みエラーや処理中のエラーが発生した場合
+     * @throws IllegalArgumentException バリデーションエラー（ファイルが空、形式が不正など）
      */
     @Override
     public ResponseEntity<CsvUploadResponseDto> apiExpensesUploadCsvPost(
-            @RequestPart(value = "file", required = true) MultipartFile file,
-            @RequestParam(value = "csvFormat", required = true) String csvFormat) {
+            @RequestPart("file") MultipartFile file,
+            @RequestParam("csvFormat") String csvFormat) {
         if (file == null || file.isEmpty()) {
-            CsvUploadResponseDtoErrorsInner error = new CsvUploadResponseDtoErrorsInner(0, "ファイルが空です");
-            error.setLineContent("");
-            CsvUploadResponseDto response = new CsvUploadResponseDto(0, 0, List.of(error));
-            return ResponseEntity.badRequest().body(response);
+            throw new IllegalArgumentException("ファイルが空です");
         }
 
         String originalFilename = file.getOriginalFilename();
         if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".csv")) {
-            CsvUploadResponseDtoErrorsInner error = new CsvUploadResponseDtoErrorsInner(0, "CSVファイルを選択してください");
-            error.setLineContent(originalFilename != null ? originalFilename : "");
-            CsvUploadResponseDto response = new CsvUploadResponseDto(0, 0, List.of(error));
-            return ResponseEntity.badRequest().body(response);
+            throw new IllegalArgumentException("CSVファイルを選択してください");
         }
 
         // CSV形式のバリデーション
         if (csvFormat == null || csvFormat.isEmpty()) {
-            CsvUploadResponseDtoErrorsInner error = new CsvUploadResponseDtoErrorsInner(0, "CSV形式を指定してください");
-            error.setLineContent("");
-            CsvUploadResponseDto response = new CsvUploadResponseDto(0, 0, List.of(error));
-            return ResponseEntity.badRequest().body(response);
+            throw new IllegalArgumentException("CSV形式を指定してください");
         }
 
-        if (!csvFormat.equals("OLD_FORMAT") && !csvFormat.equals("NEW_FORMAT")) {
-            CsvUploadResponseDtoErrorsInner error = new CsvUploadResponseDtoErrorsInner(0, 
-                "無効なCSV形式です。OLD_FORMAT（三井住友カード 2025/12以前）またはNEW_FORMAT（三井住友カード 2026/1以降）を指定してください");
-            error.setLineContent(csvFormat);
-            CsvUploadResponseDto response = new CsvUploadResponseDto(0, 0, List.of(error));
-            return ResponseEntity.badRequest().body(response);
+        if (!csvFormat.equals("MITSUISUMITOMO_OLD_FORMAT") && !csvFormat.equals("MITSUISUMITOMO_NEW_FORMAT")) {
+            throw new IllegalArgumentException(
+                    "無効なCSV形式です。MITSUISUMITOMO_OLD_FORMAT（三井住友カード 2025/12以前）またはMITSUISUMITOMO_NEW_FORMAT（三井住友カード 2026/1以降）を指定してください");
         }
 
-        try {
-            // CsvFormat列挙型に変換
-            CsvParserService.CsvFormat format;
-            if (csvFormat.equals("OLD_FORMAT")) {
-                format = CsvParserService.CsvFormat.OLD_FORMAT;
-            } else {
-                format = CsvParserService.CsvFormat.NEW_FORMAT;
-            }
+        // CsvFormat列挙型に変換
+        CsvParserService.CsvFormat format = CsvParserService.CsvFormat.valueOf(csvFormat);
 
-            ExpenseApplicationService.CsvUploadResult result = 
-                expenseApplicationService.uploadCsvAndAddExpenses(file, format);
+        // CSV処理を実行（部分成功をサポート）
+        ExpenseApplicationService.CsvUploadResult result = expenseApplicationService.uploadCsvAndAddExpenses(file,
+                format);
 
-            List<CsvUploadResponseDtoErrorsInner> errorDtos = result.errors().stream()
-                .map(error -> {
-                    CsvUploadResponseDtoErrorsInner errorDto = new CsvUploadResponseDtoErrorsInner(
-                        error.lineNumber(),
-                        error.message()
-                    );
-                    errorDto.setLineContent(error.lineContent());
-                    return errorDto;
-                })
-                .collect(Collectors.toList());
+        // MapperでDTOに変換
+        CsvUploadResponseDto response = expenseMapper.toDto(result);
 
-            CsvUploadResponseDto response = new CsvUploadResponseDto(
-                result.successCount(),
-                result.errorCount(),
-                errorDtos
-            );
-            return ResponseEntity.ok(response);
-        } catch (IOException e) {
-            throw new CsvUploadException(
-                "ファイルの読み込みに失敗しました: " + e.getMessage(),
-                e,
-                HttpStatus.BAD_REQUEST
-            );
-        } catch (Exception e) {
-            throw new CsvUploadException(
-                "CSVの処理中にエラーが発生しました: " + e.getMessage(),
-                e,
-                HttpStatus.INTERNAL_SERVER_ERROR
-            );
-        }
+        return ResponseEntity.ok(response);
     }
-
 
 }

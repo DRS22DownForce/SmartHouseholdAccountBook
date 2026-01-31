@@ -40,7 +40,7 @@ class CsvParserServiceTest {
         
         // テスト実行
         CsvParserService.CsvParseResult result = 
-            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.OLD_FORMAT);
+            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
         
         // 検証
         assertNotNull(result);
@@ -75,7 +75,7 @@ class CsvParserServiceTest {
         
         // テスト実行
         CsvParserService.CsvParseResult result = 
-            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.NEW_FORMAT);
+            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.MITSUISUMITOMO_NEW_FORMAT);
         
         // 検証
         assertNotNull(result);
@@ -109,7 +109,7 @@ class CsvParserServiceTest {
         
         // テスト実行
         CsvParserService.CsvParseResult result = 
-            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.OLD_FORMAT);
+            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
         
         // 検証
         assertNotNull(result);
@@ -137,7 +137,7 @@ class CsvParserServiceTest {
         
         // テスト実行
         CsvParserService.CsvParseResult result = 
-            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.OLD_FORMAT);
+            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
         
         // 検証
         assertNotNull(result);
@@ -167,7 +167,7 @@ class CsvParserServiceTest {
         
         // テスト実行
         CsvParserService.CsvParseResult result = 
-            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.OLD_FORMAT);
+            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
         
         // 検証
         assertNotNull(result);
@@ -192,7 +192,7 @@ class CsvParserServiceTest {
         
         // テスト実行
         CsvParserService.CsvParseResult result = 
-            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.OLD_FORMAT);
+            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
         
         // 検証
         assertNotNull(result);
@@ -215,7 +215,7 @@ class CsvParserServiceTest {
         
         // テスト実行
         CsvParserService.CsvParseResult result = 
-            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.OLD_FORMAT);
+            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
         
         // 検証
         assertNotNull(result);
@@ -237,7 +237,7 @@ class CsvParserServiceTest {
         
         // テスト実行
         CsvParserService.CsvParseResult result = 
-            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.OLD_FORMAT);
+            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
         
         // 検証
         assertNotNull(result);
@@ -264,7 +264,7 @@ class CsvParserServiceTest {
         
         // テスト実行
         CsvParserService.CsvParseResult result = 
-            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.OLD_FORMAT);
+            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
         
         // 検証
         assertNotNull(result);
@@ -291,7 +291,7 @@ class CsvParserServiceTest {
         
         // テスト実行
         CsvParserService.CsvParseResult result = 
-            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.OLD_FORMAT);
+            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
         
         // 検証
         assertNotNull(result);
@@ -317,7 +317,7 @@ class CsvParserServiceTest {
         
         // テスト実行
         CsvParserService.CsvParseResult result = 
-            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.OLD_FORMAT);
+            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
         
         // 検証
         assertNotNull(result);
@@ -339,7 +339,7 @@ class CsvParserServiceTest {
         
         // テスト実行
         CsvParserService.CsvParseResult result = 
-            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.NEW_FORMAT);
+            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.MITSUISUMITOMO_NEW_FORMAT);
         
         // 検証
         assertNotNull(result);
@@ -362,7 +362,7 @@ class CsvParserServiceTest {
         
         // テスト実行
         CsvParserService.CsvParseResult result = 
-            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.OLD_FORMAT);
+            csvParserService.parseCsv(inputStream, CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
         
         // 検証
         assertNotNull(result);

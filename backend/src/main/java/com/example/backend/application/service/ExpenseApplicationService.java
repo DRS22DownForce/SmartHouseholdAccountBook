@@ -17,9 +17,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import com.example.backend.exception.CsvUploadException;
 import com.example.backend.exception.ExpenseNotFoundException;
 
 import java.io.IOException;
+import org.springframework.http.HttpStatus;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -283,55 +285,80 @@ public class ExpenseApplicationService {
      * 
      * 三井住友カードのCSVフォーマットに対応しています。
      * 
+     * このメソッドはService層で例外処理を行い、適切なCsvUploadExceptionをスローします。
+     * これにより、コントローラー層は例外処理に煩わされることなく、ビジネスロジックに集中できます。
+     * 
      * @param file CSVファイル
-     * @param csvFormat CSV形式（OLD_FORMAT: 三井住友カード 2025/12以前、NEW_FORMAT: 三井住友カード 2026/1以降）
+     * @param csvFormat CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード 2025/12以前、MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 2026/1以降）
      * @return CSVアップロード結果（成功件数、エラー件数、エラー詳細）
-     * @throws IOException ファイルの読み込みに失敗した場合
+     * @throws CsvUploadException ファイルの読み込みに失敗した場合、または処理中にエラーが発生した場合
      */
-    public CsvUploadResult uploadCsvAndAddExpenses(MultipartFile file, CsvParserService.CsvFormat csvFormat) throws IOException {
+    public CsvUploadResult uploadCsvAndAddExpenses(MultipartFile file, CsvParserService.CsvFormat csvFormat) {
         Objects.requireNonNull(file, "ファイルはnullであってはなりません");
         Objects.requireNonNull(csvFormat, "CSV形式はnullであってはなりません");
         
-        // CSVファイルを解析（指定された形式を使用）
-        CsvParserService.CsvParseResult parseResult = csvParserService.parseCsv(file.getInputStream(), csvFormat);
-        
-        // CSV解析でエラーが発生した場合、警告ログを出力
-        // エラー件数を記録して、CSVファイルに問題があることを把握できます
-        if (!parseResult.errors().isEmpty()) {
-            logger.warn("CSV解析で{}件のエラーが発生しました", parseResult.errors().size());
-        }
-        
-        if (parseResult.validExpenses().isEmpty()) {
-            // 有効なデータがない場合、警告ログを出力
-            logger.warn("CSV解析結果: 有効なデータが0件でした。エラー件数: {}", parseResult.errors().size());
+        try {
+            // CSVファイルを解析（指定された形式を使用）
+            // file.getInputStream()でIOExceptionが発生する可能性があります
+            CsvParserService.CsvParseResult parseResult = csvParserService.parseCsv(file.getInputStream(), csvFormat);
+            
+            // CSV解析でエラーが発生した場合、警告ログを出力
+            // エラー件数を記録して、CSVファイルに問題があることを把握できます
+            if (!parseResult.errors().isEmpty()) {
+                logger.warn("CSV解析で{}件のエラーが発生しました", parseResult.errors().size());
+            }
+            
+            if (parseResult.validExpenses().isEmpty()) {
+                // 有効なデータがない場合、警告ログを出力
+                logger.warn("CSV解析結果: 有効なデータが0件でした。エラー件数: {}", parseResult.errors().size());
+                return new CsvUploadResult(
+                    0,
+                    parseResult.errors().size(),
+                    parseResult.errors()
+                );
+            }
+            
+            // ユーザー情報を取得
+            User user = Objects.requireNonNull(
+                userApplicationService.getUser(),
+                "ユーザー情報の取得に失敗しました"
+            );
+            
+            // AIカテゴリ分類を適用してエンティティを作成
+            List<Expense> expenses = applyAiCategoryClassificationAndCreateEntities(
+                parseResult.validExpenses(),
+                user
+            );
+            
+            // 一括保存
+            List<Expense> savedExpenses = expenseRepository.saveAll(expenses);
+            
+            // 結果を返す
             return new CsvUploadResult(
-                0,
+                savedExpenses.size(),
                 parseResult.errors().size(),
                 parseResult.errors()
             );
+            
+        } catch (IOException e) {
+            // ファイル読み込みエラー（file.getInputStream()で発生する可能性がある）
+            // ユーザーが送信したファイルに問題があるため、BAD_REQUESTを返します
+            logger.error("CSVファイルの読み込みに失敗しました", e);
+            throw new CsvUploadException(
+                "ファイルの読み込みに失敗しました: " + e.getMessage(),
+                e,
+                HttpStatus.BAD_REQUEST
+            );
+        } catch (Exception e) {
+            // 予期しないエラー（データベース接続エラー、AIサービスエラーなど）
+            // システム側の問題の可能性が高いため、INTERNAL_SERVER_ERRORを返します
+            logger.error("CSVの処理中に予期しないエラーが発生しました", e);
+            throw new CsvUploadException(
+                "CSVの処理中にエラーが発生しました: " + e.getMessage(),
+                e,
+                HttpStatus.INTERNAL_SERVER_ERROR
+            );
         }
-        
-        // ユーザー情報を取得
-        User user = Objects.requireNonNull(
-            userApplicationService.getUser(),
-            "ユーザー情報の取得に失敗しました"
-        );
-        
-        // AIカテゴリ分類を適用してエンティティを作成
-        List<Expense> expenses = applyAiCategoryClassificationAndCreateEntities(
-            parseResult.validExpenses(),
-            user
-        );
-        
-        // 一括保存
-        List<Expense> savedExpenses = expenseRepository.saveAll(expenses);
-        
-        // 結果を返す
-        return new CsvUploadResult(
-            savedExpenses.size(),
-            parseResult.errors().size(),
-            parseResult.errors()
-        );
     }
 
     /**
