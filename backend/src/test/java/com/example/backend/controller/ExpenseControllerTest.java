@@ -1,6 +1,7 @@
 package com.example.backend.controller;
 
 import com.example.backend.application.mapper.ExpenseMapper;
+import com.example.backend.application.service.CsvExpenseService;
 import com.example.backend.application.service.CsvParserService;
 import com.example.backend.application.service.ExpenseApplicationService;
 import com.example.backend.generated.model.CsvUploadResponseDto;
@@ -38,6 +39,9 @@ class ExpenseControllerTest {
     private ExpenseApplicationService expenseApplicationService;
 
     @Mock
+    private CsvExpenseService csvExpenseService;
+
+    @Mock
     private ExpenseMapper expenseMapper;
 
     @InjectMocks
@@ -60,10 +64,10 @@ class ExpenseControllerTest {
         when(mockFile.isEmpty()).thenReturn(false);
         when(mockFile.getOriginalFilename()).thenReturn("test.csv");
 
-        // アプリケーションサービスのモック設定
-        ExpenseApplicationService.CsvUploadResult result = new ExpenseApplicationService.CsvUploadResult(2, 0,
+        // CSV支出処理サービスのモック設定
+        CsvExpenseService.CsvUploadResult result = new CsvExpenseService.CsvUploadResult(2, 0,
                 new ArrayList<>());
-        when(expenseApplicationService.uploadCsvAndAddExpenses(
+        when(csvExpenseService.uploadCsvAndAddExpenses(
                 any(MultipartFile.class),
                 eq(CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT))).thenReturn(result);
 
@@ -85,8 +89,8 @@ class ExpenseControllerTest {
         assertEquals(0, response.getBody().getErrorCount());
         assertTrue(response.getBody().getErrors().isEmpty());
 
-        // アプリケーションサービスが正しく呼ばれたことを確認
-        verify(expenseApplicationService, times(1)).uploadCsvAndAddExpenses(
+        // CSV支出処理サービスが正しく呼ばれたことを確認
+        verify(csvExpenseService, times(1)).uploadCsvAndAddExpenses(
                 eq(mockFile),
                 eq(CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT));
     }
@@ -98,10 +102,10 @@ class ExpenseControllerTest {
         when(mockFile.isEmpty()).thenReturn(false);
         when(mockFile.getOriginalFilename()).thenReturn("test.csv");
 
-        // アプリケーションサービスのモック設定
-        ExpenseApplicationService.CsvUploadResult result = new ExpenseApplicationService.CsvUploadResult(3, 0,
+        // CSV支出処理サービスのモック設定
+        CsvExpenseService.CsvUploadResult result = new CsvExpenseService.CsvUploadResult(3, 0,
                 new ArrayList<>());
-        when(expenseApplicationService.uploadCsvAndAddExpenses(
+        when(csvExpenseService.uploadCsvAndAddExpenses(
                 any(MultipartFile.class),
                 eq(CsvParserService.CsvFormat.MITSUISUMITOMO_NEW_FORMAT))).thenReturn(result);
 
@@ -122,8 +126,8 @@ class ExpenseControllerTest {
         assertEquals(3, response.getBody().getSuccessCount());
         assertEquals(0, response.getBody().getErrorCount());
 
-        // アプリケーションサービスが正しく呼ばれたことを確認
-        verify(expenseApplicationService, times(1)).uploadCsvAndAddExpenses(
+        // CSV支出処理サービスが正しく呼ばれたことを確認
+        verify(csvExpenseService, times(1)).uploadCsvAndAddExpenses(
                 eq(mockFile),
                 eq(CsvParserService.CsvFormat.MITSUISUMITOMO_NEW_FORMAT));
     }
@@ -140,8 +144,8 @@ class ExpenseControllerTest {
             expenseController.apiExpensesUploadCsvPost(mockFile, "MITSUISUMITOMO_OLD_FORMAT");
         });
 
-        // アプリケーションサービスは呼ばれないことを確認
-        verify(expenseApplicationService, never()).uploadCsvAndAddExpenses(any(), any());
+        // CSV支出処理サービスは呼ばれないことを確認
+        verify(csvExpenseService, never()).uploadCsvAndAddExpenses(any(), any());
     }
 
     @Test
@@ -153,8 +157,8 @@ class ExpenseControllerTest {
             expenseController.apiExpensesUploadCsvPost(null, "MITSUISUMITOMO_OLD_FORMAT");
         });
 
-        // アプリケーションサービスは呼ばれないことを確認
-        verify(expenseApplicationService, never()).uploadCsvAndAddExpenses(any(), any());
+        // CSV支出処理サービスは呼ばれないことを確認
+        verify(csvExpenseService, never()).uploadCsvAndAddExpenses(any(), any());
     }
 
     @Test
@@ -171,8 +175,8 @@ class ExpenseControllerTest {
         });
         assertEquals("CSVファイルを選択してください", exception.getMessage());
 
-        // アプリケーションサービスは呼ばれないことを確認
-        verify(expenseApplicationService, never()).uploadCsvAndAddExpenses(any(), any());
+        // CSV支出処理サービスは呼ばれないことを確認
+        verify(csvExpenseService, never()).uploadCsvAndAddExpenses(any(), any());
     }
 
     @Test
@@ -189,8 +193,8 @@ class ExpenseControllerTest {
         });
         assertEquals("CSVファイルを選択してください", exception.getMessage());
 
-        // アプリケーションサービスは呼ばれないことを確認
-        verify(expenseApplicationService, never()).uploadCsvAndAddExpenses(any(), any());
+        // CSV支出処理サービスは呼ばれないことを確認
+        verify(csvExpenseService, never()).uploadCsvAndAddExpenses(any(), any());
     }
 
     @Test
@@ -207,8 +211,8 @@ class ExpenseControllerTest {
         });
         assertEquals("CSV形式を指定してください", exception.getMessage());
 
-        // アプリケーションサービスは呼ばれないことを確認
-        verify(expenseApplicationService, never()).uploadCsvAndAddExpenses(any(), any());
+        // CSV支出処理サービスは呼ばれないことを確認
+        verify(csvExpenseService, never()).uploadCsvAndAddExpenses(any(), any());
     }
 
     @Test
@@ -225,8 +229,8 @@ class ExpenseControllerTest {
         });
         assertEquals("CSV形式を指定してください", exception.getMessage());
 
-        // アプリケーションサービスは呼ばれないことを確認
-        verify(expenseApplicationService, never()).uploadCsvAndAddExpenses(any(), any());
+        // CSV支出処理サービスは呼ばれないことを確認
+        verify(csvExpenseService, never()).uploadCsvAndAddExpenses(any(), any());
     }
 
     @Test
@@ -243,8 +247,8 @@ class ExpenseControllerTest {
         });
         assertTrue(exception.getMessage().contains("無効なCSV形式です"));
 
-        // アプリケーションサービスは呼ばれないことを確認
-        verify(expenseApplicationService, never()).uploadCsvAndAddExpenses(any(), any());
+        // CSV支出処理サービスは呼ばれないことを確認
+        verify(csvExpenseService, never()).uploadCsvAndAddExpenses(any(), any());
     }
 
     @Test
@@ -258,8 +262,8 @@ class ExpenseControllerTest {
         List<CsvParserService.CsvParseError> errors = new ArrayList<>();
         errors.add(new CsvParserService.CsvParseError(2, "2024/1/1,テスト店,1000", "日付の形式が不正です"));
 
-        ExpenseApplicationService.CsvUploadResult result = new ExpenseApplicationService.CsvUploadResult(1, 1, errors);
-        when(expenseApplicationService.uploadCsvAndAddExpenses(
+        CsvExpenseService.CsvUploadResult result = new CsvExpenseService.CsvUploadResult(1, 1, errors);
+        when(csvExpenseService.uploadCsvAndAddExpenses(
                 any(MultipartFile.class),
                 eq(CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT))).thenReturn(result);
 
@@ -302,7 +306,7 @@ class ExpenseControllerTest {
                 "ファイルの読み込みに失敗しました: ファイルの読み込みに失敗しました",
                 new IOException("ファイルの読み込みに失敗しました"),
                 org.springframework.http.HttpStatus.BAD_REQUEST);
-        when(expenseApplicationService.uploadCsvAndAddExpenses(
+        when(csvExpenseService.uploadCsvAndAddExpenses(
                 any(MultipartFile.class),
                 any(CsvParserService.CsvFormat.class))).thenThrow(csvException);
 
@@ -324,7 +328,7 @@ class ExpenseControllerTest {
                 "CSVの処理中にエラーが発生しました: 予期しないエラー",
                 new RuntimeException("予期しないエラー"),
                 org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
-        when(expenseApplicationService.uploadCsvAndAddExpenses(
+        when(csvExpenseService.uploadCsvAndAddExpenses(
                 any(MultipartFile.class),
                 any(CsvParserService.CsvFormat.class))).thenThrow(csvException);
 

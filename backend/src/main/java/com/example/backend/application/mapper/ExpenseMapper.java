@@ -7,8 +7,8 @@ import com.example.backend.domain.valueobject.ExpenseDate;
 import com.example.backend.domain.valueobject.MonthlySummary;
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.User;
+import com.example.backend.application.service.CsvExpenseService;
 import com.example.backend.application.service.CsvParserService;
-import com.example.backend.application.service.ExpenseApplicationService;
 import com.example.backend.generated.model.CsvUploadResponseDto;
 import com.example.backend.generated.model.CsvUploadResponseDtoErrorsInner;
 import com.example.backend.generated.model.ExpenseDto;
@@ -189,7 +189,7 @@ public class ExpenseMapper {
      * @param result CSVアップロード結果（成功件数、エラー件数、エラー詳細を含む）
      * @return CSVアップロード結果DTO（resultがnullの場合はnull）
      */
-    public CsvUploadResponseDto toDto(ExpenseApplicationService.CsvUploadResult result) {
+    public CsvUploadResponseDto toDto(CsvExpenseService.CsvUploadResult result) {
         if (result == null) {
             return null;
         }
