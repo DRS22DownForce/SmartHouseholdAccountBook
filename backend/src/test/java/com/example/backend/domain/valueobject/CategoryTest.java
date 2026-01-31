@@ -151,8 +151,13 @@ class CategoryTest {
         assertTrue(validCategories.contains("娯楽費"));
         assertTrue(validCategories.contains("日用品"));
         assertTrue(validCategories.contains("その他"));
-        // リストのサイズが7であることを確認
-        assertEquals(7, validCategories.size());
+        assertTrue(validCategories.contains("通信費"));
+        assertTrue(validCategories.contains("医療費"));
+        assertTrue(validCategories.contains("衣服費"));
+        assertTrue(validCategories.contains("投資"));
+        assertTrue(validCategories.contains("教育費"));
+        // リストのサイズが12であることを確認
+        assertEquals(12, validCategories.size());
     }
 
     @Test

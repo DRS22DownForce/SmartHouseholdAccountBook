@@ -9,6 +9,8 @@ import {
     Wifi,
     ShoppingCart,
     Shirt,
+    TrendingUp,
+    GraduationCap,
     LucideIcon
 } from "lucide-react"
 
@@ -27,6 +29,8 @@ export const CATEGORY_ICONS: Record<string, LucideIcon> = {
     医療費: HeartPulse,
     衣服費: Shirt,
     日用品: ShoppingCart,
+    投資: TrendingUp,
+    教育費: GraduationCap,
     その他: MoreHorizontal,
 }
 

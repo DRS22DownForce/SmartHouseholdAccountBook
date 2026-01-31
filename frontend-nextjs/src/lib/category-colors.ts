@@ -12,6 +12,8 @@
  * - 医療費: 赤（#E74C3C）
  * - 衣服費: ピンク（#EC4899）
  * - 日用品: エメラルドグリーン（#10B981）
+ * - 投資: ゴールド（#F59E0B）
+ * - 教育費: ネイビー（#1E40AF）
  * - その他: 黄色（#F39C12）
  */
 export const CATEGORY_COLORS: Record<string, string> = {
@@ -24,6 +26,8 @@ export const CATEGORY_COLORS: Record<string, string> = {
   医療費: "#E74C3C", // Red
   衣服費: "#EC4899", // Pink
   日用品: "#10B981", // Emerald Green
+  投資: "#F59E0B", // Gold
+  教育費: "#1E40AF", // Navy Blue
   その他: "#F39C12", // Yellow
 }
 
@@ -109,6 +113,14 @@ export const CATEGORY_GRADIENTS: Record<string, { gradient: string; shadow: stri
   日用品: { 
     gradient: "from-emerald-400 to-teal-500", 
     shadow: "shadow-emerald-500/30" 
+  },
+  投資: { 
+    gradient: "from-amber-400 to-yellow-500", 
+    shadow: "shadow-amber-500/30" 
+  },
+  教育費: { 
+    gradient: "from-blue-500 to-indigo-600", 
+    shadow: "shadow-blue-500/30" 
   },
   その他: { 
     gradient: "from-amber-400 to-orange-500", 

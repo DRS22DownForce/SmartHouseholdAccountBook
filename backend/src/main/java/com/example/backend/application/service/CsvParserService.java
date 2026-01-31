@@ -20,20 +20,22 @@ import java.util.List;
  * CSV解析サービス
  * 
  * このサービスはCSVファイルの内容を解析し、生のデータ（CsvParsedExpense）のリストに変換します。
- * クレジットカードの利用明細CSVフォーマットに対応しています。
+ * 三井住友カードの利用明細CSVフォーマットに対応しています。
  * 
  * 対応するCSVフォーマット（2つの形式に対応）:
  * 
- * 【旧形式（12月以前）】
+ * 【三井住友カード 旧形式（2025/12以前）】
  * - ヘッダー行: ご利用日,ご利用店名 ※,ご利用金額,支払区分,今回回数,お支払い金額　現地通貨額,略称,換算レート,換算日
  * - 金額は3列目（インデックス2）
  * 
- * 【新形式（1月以降）】
+ * 【三井住友カード 新形式（2026/1以降）】
  * - ヘッダー行: ご利用日,ご利用店名 ※,カード,支払区分,分割回数,支払予定月,ご利用金額　現地通貨額　略称,換算レート,換算日
  * - 金額は7列目（インデックス6）以降
  * 
  * 【共通】
  * - カード情報行（スキップ）
+ * 
+ * 将来的に他のカード会社を追加する際は、このサービスの拡張を検討してください。
  */
 @Service
 public class CsvParserService {
@@ -47,18 +49,19 @@ public class CsvParserService {
     /**
      * CSV形式の列挙型
      * 
-     * クレジットカード明細のCSVフォーマットが変更されたため、2つの形式に対応します。
+     * 三井住友カードのクレジットカード明細のCSVフォーマットが変更されたため、2つの形式に対応します。
+     * 将来的に他のカード会社を追加する際は、この列挙型を拡張するか、カード会社と形式を組み合わせた新しい列挙型を検討します。
      */
-    private enum CsvFormat {
+    public enum CsvFormat {
         /**
-         * 旧形式（12月以前）
+         * 三井住友カード 旧形式（2025/12以前）
          * 列構成: ご利用日, ご利用店名, ご利用金額, 支払区分, 今回回数, ...
          * 金額は3列目（インデックス2）
          */
         OLD_FORMAT,
         
         /**
-         * 新形式（1月以降）
+         * 三井住友カード 新形式（2026/1以降）
          * 列構成: ご利用日, ご利用店名, カード, 支払区分, 分割回数, 支払予定月, ご利用金額, ...
          * 金額は7列目（インデックス6）以降
          */
@@ -74,9 +77,10 @@ public class CsvParserService {
      * より多くのデータが成功し、文字化けが少ない方の結果を返します。
      * 
      * @param inputStream CSVファイルの入力ストリーム
+     * @param csvFormat CSV形式（OLD_FORMAT: 三井住友カード 2025/12以前、NEW_FORMAT: 三井住友カード 2026/1以降）
      * @return 解析結果（成功したデータとエラー情報を含む）
      */
-    public CsvParseResult parseCsv(InputStream inputStream) {
+    public CsvParseResult parseCsv(InputStream inputStream, CsvFormat csvFormat) {
         // ストリームを読み込んでバイト配列に変換（複数のエンコーディングを試すため）
         byte[] bytes;
         try {
@@ -96,13 +100,13 @@ public class CsvParserService {
         CsvParseResult shiftJisResult = null;
         try {
             Charset shiftJis = Charset.forName("Shift_JIS");
-            shiftJisResult = parseCsvWithEncoding(new ByteArrayInputStream(bytes), shiftJis);
+            shiftJisResult = parseCsvWithEncoding(new ByteArrayInputStream(bytes), shiftJis, csvFormat);
         } catch (Exception e) {
             // Shift-JISがサポートされていない場合は無視
         }
 
         // UTF-8で試す
-        CsvParseResult utf8Result = parseCsvWithEncoding(new ByteArrayInputStream(bytes), StandardCharsets.UTF_8);
+        CsvParseResult utf8Result = parseCsvWithEncoding(new ByteArrayInputStream(bytes), StandardCharsets.UTF_8, csvFormat);
 
         // どちらの結果が良いか判定
         // 1. 成功したデータが多い方を選ぶ
@@ -181,45 +185,14 @@ public class CsvParserService {
     }
 
     /**
-     * CSV形式を検出
-     * 
-     * 最初のデータ行を解析して、3列目が有効な金額（100円以上）かどうかで判定します。
-     * - 旧形式: 3列目が金額（例: 590）
-     * - 新形式: 3列目が「ご本人」などの文字列、金額は6列目以降（例: 3502）
-     * 
-     * @param columns CSV行を分割した配列
-     * @return 検出されたCSV形式
-     */
-    private CsvFormat detectCsvFormat(String[] columns) {
-        // 最低限の列数チェック
-        if (columns.length < 3) {
-            // 列数が少ない場合は旧形式と仮定（後でエラーになる可能性がある）
-            return CsvFormat.OLD_FORMAT;
-        }
-        
-        // 3列目（インデックス2）を確認
-        String thirdColumn = columns[2].trim();
-        
-        // 3列目が有効な金額（100円以上）かどうかを判定
-        Integer amount = tryParseAmount(thirdColumn, 2);
-        if (amount != null && amount >= 100) {
-            // 3列目が有効な金額の場合、旧形式
-            return CsvFormat.OLD_FORMAT;
-        }
-        
-        // 3列目が金額でない場合、新形式
-        // 新形式では3列目は「ご本人」などの文字列
-        return CsvFormat.NEW_FORMAT;
-    }
-
-    /**
      * 指定されたエンコーディングでCSVファイルを解析
      * 
      * @param inputStream CSVファイルの入力ストリーム
      * @param charset 文字エンコーディング
+     * @param csvFormat CSV形式（OLD_FORMAT: 三井住友カード 2025/12以前、NEW_FORMAT: 三井住友カード 2026/1以降）
      * @return 解析結果（成功したデータとエラー情報を含む）
      */
-    private CsvParseResult parseCsvWithEncoding(InputStream inputStream, Charset charset) {
+    private CsvParseResult parseCsvWithEncoding(InputStream inputStream, Charset charset, CsvFormat csvFormat) {
         List<CsvParsedExpense> validExpenses = new ArrayList<>();
         List<CsvParseError> errors = new ArrayList<>();
 
@@ -229,7 +202,6 @@ public class CsvParserService {
             String line;
             int lineNumber = 0;
             boolean isFirstLine = true;
-            CsvFormat detectedFormat = null; // 検出されたCSV形式
 
             while ((line = reader.readLine()) != null) {
                 lineNumber++;
@@ -251,16 +223,15 @@ public class CsvParserService {
                     continue;
                 }
 
-                // 最初のデータ行でCSV形式を検出
-                if (detectedFormat == null) {
-                    String[] columns = line.split(",", -1);
-                    detectedFormat = detectCsvFormat(columns);
-                    logger.debug("CSV形式を検出しました: {}", detectedFormat);
+                // 合計行や空の日付の行をスキップ（日付が空の行は合計行の可能性が高い）
+                String[] columns = line.split(",", -1);
+                if (columns.length > 0 && columns[0].trim().isEmpty()) {
+                    continue;
                 }
 
-                // CSV行を解析
+                // CSV行を解析（指定された形式を使用）
                 try {
-                    CsvParsedExpense expense = parseCsvLine(line, lineNumber, detectedFormat);
+                    CsvParsedExpense expense = parseCsvLine(line, lineNumber, csvFormat);
                     if (expense != null) {
                         validExpenses.add(expense);
                     }
@@ -334,10 +305,37 @@ public class CsvParserService {
         Integer amount = null;
         
         if (format == CsvFormat.OLD_FORMAT) {
-            // 旧形式: 金額は3列目（インデックス2）
+            // 旧形式: 金額は通常3列目（インデックス2）にあるが、
+            // 店名にカンマが含まれている場合など、列の位置がずれる可能性がある
+            // そのため、2列目以降を順に確認して、最初に見つかった有効な金額を使用
+            
+            // まず、通常の位置（3列目、インデックス2）を確認
             if (columns.length > 2) {
                 String amountStr = columns[2].trim();
                 amount = tryParseAmount(amountStr, 2);
+            }
+            
+            // 3列目で金額が見つからない場合、他の列も順に確認（フォールバック）
+            // 店名にカンマが含まれている場合など、列の位置がずれる可能性があるため
+            if (amount == null) {
+                // 2列目以降を順に確認（店名の列はスキップするため、2列目から開始）
+                // tryParseAmountメソッドが適切に判定するため、ここでは全ての列を確認
+                for (int i = 2; i < columns.length; i++) {
+                    String candidateStr = columns[i].trim();
+                    if (!candidateStr.isEmpty()) {
+                        Integer candidateAmount = tryParseAmount(candidateStr, i);
+                        if (candidateAmount != null && candidateAmount > 0) {
+                            amount = candidateAmount;
+                            break; // 最初に見つかった有効な金額を使用
+                        }
+                    }
+                }
+            }
+            
+            // デバッグログ: 金額が見つからない場合の詳細情報
+            if (amount == null) {
+                logger.warn("旧形式の金額解析失敗: 行番号={}, 列数={}, 列内容={}", 
+                    lineNumber, columns.length, java.util.Arrays.toString(columns));
             }
         } else {
             // 新形式: 金額は7列目（インデックス6）以降
@@ -371,14 +369,17 @@ public class CsvParserService {
      * 金額文字列を数値に変換を試みる
      * 
      * カンマや通貨記号を除去して数値に変換します。
+     * 全角数字も半角数字に変換して処理します。
      * 変換に失敗した場合はnullを返します。
-     * 小さな数値（100未満）は無視します（「1回払い」の「1」などを除外するため）。
      * 小数点を含む金額（例：162.822）は除外します（外貨建ての金額や換算レートの可能性があるため）。
      * 日付形式（'26/02など）は除外します。
      * 
+     * 注意: 以前は100未満の金額を無視していましたが、実際には2円などの小額取引も存在するため、
+     * 1円以上の金額を有効な金額として扱います。
+     * 
      * @param amountStr 金額文字列
      * @param columnIndex 列のインデックス（デバッグ用、現在は使用していない）
-     * @return 変換された金額（変換に失敗した場合、または100未満の場合はnull）
+     * @return 変換された金額（変換に失敗した場合はnull）
      */
     private Integer tryParseAmount(String amountStr, int columnIndex) {
         if (amountStr == null || amountStr.isEmpty()) {
@@ -393,13 +394,18 @@ public class CsvParserService {
         
         // 小数点を含む文字列は除外する（外貨建ての金額や換算レートの可能性がある）
         // 例：「162.822」「20.00」など
+        // ただし、小数点の前後が数字のみで、かつ整数部分が有効な金額の可能性がある場合は考慮する
+        // しかし、外貨建ての金額や換算レートの可能性が高いため、小数点を含む場合は除外
         if (amountStr.contains(".")) {
             return null;
         }
         
         try {
+            // 全角数字を半角数字に変換
+            String normalizedAmount = normalizeFullWidthNumbers(amountStr);
+            
             // カンマや通貨記号を除去して数値に変換
-            String cleanedAmount = amountStr.replaceAll("[^0-9-]", "");
+            String cleanedAmount = normalizedAmount.replaceAll("[^0-9-]", "");
             if (cleanedAmount.isEmpty()) {
                 return null;
             }
@@ -413,13 +419,9 @@ public class CsvParserService {
                 return null;
             }
             
-            // 小さな数値（100未満）は無視する
-            // 「1回払い」の「1」などを除外するため
-            // 実際の支出金額は通常100円以上であることを前提とする
-            if (parsedAmount < 100) {
-                return null;
-            }
-            
+            // 1円以上の金額を有効な金額として扱う
+            // 以前は100未満を無視していましたが、実際には2円などの小額取引も存在するため、
+            // 1円以上の金額を有効な金額として扱います
             return parsedAmount;
         } catch (NumberFormatException e) {
             return null;
@@ -427,11 +429,38 @@ public class CsvParserService {
     }
 
     /**
+     * 全角数字を半角数字に変換
+     * 
+     * 三井住友カードのCSVでは、金額が全角数字で記載される場合があります。
+     * 全角数字（０-９）を半角数字（0-9）に変換します。
+     * 
+     * @param str 変換する文字列
+     * @return 全角数字を半角数字に変換した文字列
+     */
+    private String normalizeFullWidthNumbers(String str) {
+        if (str == null || str.isEmpty()) {
+            return str;
+        }
+        
+        // 全角数字を半角数字に変換
+        return str.replace('０', '0')
+                  .replace('１', '1')
+                  .replace('２', '2')
+                  .replace('３', '3')
+                  .replace('４', '4')
+                  .replace('５', '5')
+                  .replace('６', '6')
+                  .replace('７', '7')
+                  .replace('８', '8')
+                  .replace('９', '9');
+    }
+
+    /**
      * カード情報行かどうかを判定
      * 
      * カード情報行の特徴:
      * - 2列目にカード番号のような形式（数字とハイフン、アスタリスクを含む）がある
-     * - 例: 大山　吉雄　様,4980-00**-****-****,三井住友ゴールドＶＩＳＡ（ＮＬ）
+     * - 1列目が日付形式でない（名前などが含まれる）
      * 
      * @param line CSV行
      * @return カード情報行の場合true
@@ -442,9 +471,18 @@ public class CsvParserService {
             return false;
         }
 
-        String secondColumn = columns[1].trim();
-        // カード番号のような形式（数字、ハイフン、アスタリスクを含む）を検出
-        return secondColumn.matches(".*\\d{4}-\\d{2}\\*\\*-\\*\\*\\*-\\*\\*\\*.*");
+        // 1列目が日付形式でない場合（カード情報行の可能性が高い）
+        String firstColumn = columns[0].trim();
+        if (!firstColumn.isEmpty() && !firstColumn.matches("\\d{4}/\\d{1,2}/\\d{1,2}")) {
+            // 2列目にカード番号のような形式（数字、ハイフン、アスタリスクを含む）を検出
+            String secondColumn = columns[1].trim();
+            // より柔軟なパターン: 数字4桁-数字2桁**-****-**** または 数字4桁-数字2桁**-****-**** の形式
+            if (secondColumn.matches(".*\\d{4}-\\d{2}\\*{2}-\\*{4}-\\*{4}.*")) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

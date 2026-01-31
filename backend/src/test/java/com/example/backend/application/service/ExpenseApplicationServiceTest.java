@@ -1,6 +1,8 @@
 package com.example.backend.application.service;
 
 import com.example.backend.application.mapper.ExpenseMapper;
+import com.example.backend.application.service.AiCategoryService;
+import com.example.backend.application.service.CsvParserService;
 import com.example.backend.domain.repository.ExpenseRepository;
 import com.example.backend.domain.valueobject.Category;
 import com.example.backend.domain.valueobject.ExpenseAmount;
@@ -15,13 +17,20 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import com.example.backend.exception.ExpenseNotFoundException;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 /**
  * ExpenseApplicationServiceのテストクラス
@@ -39,6 +48,12 @@ class ExpenseApplicationServiceTest {
 
     @Mock
     private UserApplicationService userApplicationService;
+
+    @Mock
+    private CsvParserService csvParserService;
+
+    @Mock
+    private AiCategoryService aiCategoryService;
 
     @InjectMocks
     private ExpenseApplicationService expenseApplicationService;
@@ -285,6 +300,213 @@ class ExpenseApplicationServiceTest {
         assertNotNull(result);
         assertEquals(3, result.size()); // 同じ月の重複が除去されるため、3つになる
         assertEquals("2024-03", result.get(0));
+    }
+
+    @Test
+    void uploadCsvAndAddExpenses_正常にCSVをアップロードできる() throws IOException {
+        // テストデータの準備
+        User user = new User("cognitoSub", "test@example.com");
+        MultipartFile mockFile = mock(MultipartFile.class);
+        when(mockFile.getInputStream()).thenReturn(new ByteArrayInputStream("test".getBytes()));
+        
+        // CSV解析結果を準備
+        List<CsvParserService.CsvParsedExpense> parsedExpenses = new ArrayList<>();
+        parsedExpenses.add(new CsvParserService.CsvParsedExpense(
+            "テスト店1", 
+            LocalDate.of(2024, 1, 1), 
+            1000, 
+            "その他"
+        ));
+        parsedExpenses.add(new CsvParserService.CsvParsedExpense(
+            "テスト店2", 
+            LocalDate.of(2024, 1, 2), 
+            2000, 
+            "その他"
+        ));
+        
+        CsvParserService.CsvParseResult parseResult = new CsvParserService.CsvParseResult(
+            parsedExpenses, 
+            new ArrayList<>()
+        );
+        
+        // AIカテゴリ分類の結果を準備
+        Map<String, String> categoryMap = new LinkedHashMap<>();
+        categoryMap.put("テスト店1", "食費");
+        categoryMap.put("テスト店2", "交通費");
+        
+        // 保存されたエンティティを準備
+        ExpenseAmount amount1 = new ExpenseAmount(1000);
+        ExpenseDate date1 = new ExpenseDate(LocalDate.of(2024, 1, 1));
+        Category category1 = new Category("食費");
+        Expense expense1 = new Expense("テスト店1", amount1, date1, category1, user);
+        
+        ExpenseAmount amount2 = new ExpenseAmount(2000);
+        ExpenseDate date2 = new ExpenseDate(LocalDate.of(2024, 1, 2));
+        Category category2 = new Category("交通費");
+        Expense expense2 = new Expense("テスト店2", amount2, date2, category2, user);
+        
+        // モックの設定
+        when(userApplicationService.getUser()).thenReturn(user);
+        when(csvParserService.parseCsv(any(), eq(CsvParserService.CsvFormat.OLD_FORMAT)))
+            .thenReturn(parseResult);
+        when(aiCategoryService.predictCategoriesBatch(anyList())).thenReturn(categoryMap);
+        when(expenseRepository.saveAll(anyList())).thenReturn(Arrays.asList(expense1, expense2));
+        
+        // テスト実行
+        ExpenseApplicationService.CsvUploadResult result = 
+            expenseApplicationService.uploadCsvAndAddExpenses(mockFile, CsvParserService.CsvFormat.OLD_FORMAT);
+        
+        // 検証
+        assertNotNull(result);
+        assertEquals(2, result.successCount());
+        assertEquals(0, result.errorCount());
+        assertTrue(result.errors().isEmpty());
+        
+        // 各サービスが正しく呼ばれたことを確認
+        verify(csvParserService, times(1)).parseCsv(any(), eq(CsvParserService.CsvFormat.OLD_FORMAT));
+        verify(aiCategoryService, times(1)).predictCategoriesBatch(anyList());
+        verify(expenseRepository, times(1)).saveAll(anyList());
+    }
+
+    @Test
+    void uploadCsvAndAddExpenses_CSV解析でエラーが発生した場合() throws IOException {
+        // テストデータの準備
+        User user = new User("cognitoSub", "test@example.com");
+        MultipartFile mockFile = mock(MultipartFile.class);
+        when(mockFile.getInputStream()).thenReturn(new ByteArrayInputStream("test".getBytes()));
+        
+        // エラーを含む解析結果を準備
+        List<CsvParserService.CsvParseError> errors = new ArrayList<>();
+        errors.add(new CsvParserService.CsvParseError(2, "2024/1/1,テスト店,1000", "日付の形式が不正です"));
+        
+        CsvParserService.CsvParseResult parseResult = new CsvParserService.CsvParseResult(
+            new ArrayList<>(), 
+            errors
+        );
+        
+        // モックの設定
+        // lenientを使用して、getUser()が呼ばれない場合でもエラーにならないようにする
+        lenient().when(userApplicationService.getUser()).thenReturn(user);
+        when(csvParserService.parseCsv(any(), eq(CsvParserService.CsvFormat.OLD_FORMAT)))
+            .thenReturn(parseResult);
+        
+        // テスト実行
+        ExpenseApplicationService.CsvUploadResult result = 
+            expenseApplicationService.uploadCsvAndAddExpenses(mockFile, CsvParserService.CsvFormat.OLD_FORMAT);
+        
+        // 検証
+        assertNotNull(result);
+        assertEquals(0, result.successCount());
+        assertEquals(1, result.errorCount());
+        assertEquals(1, result.errors().size());
+        assertEquals(2, result.errors().get(0).lineNumber());
+        assertEquals("日付の形式が不正です", result.errors().get(0).message());
+        
+        // リポジトリは呼ばれないことを確認（有効なデータがないため）
+        verify(expenseRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    void uploadCsvAndAddExpenses_有効なデータがない場合は0件を返す() throws IOException {
+        // テストデータの準備
+        User user = new User("cognitoSub", "test@example.com");
+        MultipartFile mockFile = mock(MultipartFile.class);
+        when(mockFile.getInputStream()).thenReturn(new ByteArrayInputStream("test".getBytes()));
+        
+        // 有効なデータがない解析結果を準備
+        CsvParserService.CsvParseResult parseResult = new CsvParserService.CsvParseResult(
+            new ArrayList<>(), 
+            new ArrayList<>()
+        );
+        
+        // モックの設定
+        // lenientを使用して、getUser()が呼ばれない場合でもエラーにならないようにする
+        lenient().when(userApplicationService.getUser()).thenReturn(user);
+        when(csvParserService.parseCsv(any(), eq(CsvParserService.CsvFormat.OLD_FORMAT)))
+            .thenReturn(parseResult);
+        
+        // テスト実行
+        ExpenseApplicationService.CsvUploadResult result = 
+            expenseApplicationService.uploadCsvAndAddExpenses(mockFile, CsvParserService.CsvFormat.OLD_FORMAT);
+        
+        // 検証
+        assertNotNull(result);
+        assertEquals(0, result.successCount());
+        assertEquals(0, result.errorCount());
+        assertTrue(result.errors().isEmpty());
+        
+        // リポジトリは呼ばれないことを確認
+        verify(expenseRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    void uploadCsvAndAddExpenses_ファイルがnullの場合は例外() {
+        // テスト実行と検証
+        assertThrows(NullPointerException.class, () -> {
+            expenseApplicationService.uploadCsvAndAddExpenses(null, CsvParserService.CsvFormat.OLD_FORMAT);
+        });
+    }
+
+    @Test
+    void uploadCsvAndAddExpenses_CSV形式がnullの場合は例外() throws IOException {
+        // テストデータの準備
+        MultipartFile mockFile = mock(MultipartFile.class);
+        // lenientを使用して、getInputStream()が呼ばれない場合でもエラーにならないようにする
+        lenient().when(mockFile.getInputStream()).thenReturn(new ByteArrayInputStream("test".getBytes()));
+        
+        // テスト実行と検証
+        assertThrows(NullPointerException.class, () -> {
+            expenseApplicationService.uploadCsvAndAddExpenses(mockFile, null);
+        });
+    }
+
+    @Test
+    void uploadCsvAndAddExpenses_AIカテゴリ分類が失敗した場合はフォールバック処理() throws IOException {
+        // テストデータの準備
+        User user = new User("cognitoSub", "test@example.com");
+        MultipartFile mockFile = mock(MultipartFile.class);
+        when(mockFile.getInputStream()).thenReturn(new ByteArrayInputStream("test".getBytes()));
+        
+        // CSV解析結果を準備
+        List<CsvParserService.CsvParsedExpense> parsedExpenses = new ArrayList<>();
+        parsedExpenses.add(new CsvParserService.CsvParsedExpense(
+            "テスト店1", 
+            LocalDate.of(2024, 1, 1), 
+            1000, 
+            "その他"
+        ));
+        
+        CsvParserService.CsvParseResult parseResult = new CsvParserService.CsvParseResult(
+            parsedExpenses, 
+            new ArrayList<>()
+        );
+        
+        // 保存されたエンティティを準備（フォールバックで「その他」が設定される）
+        ExpenseAmount amount1 = new ExpenseAmount(1000);
+        ExpenseDate date1 = new ExpenseDate(LocalDate.of(2024, 1, 1));
+        Category category1 = new Category("その他");
+        Expense expense1 = new Expense("テスト店1", amount1, date1, category1, user);
+        
+        // モックの設定
+        when(userApplicationService.getUser()).thenReturn(user);
+        when(csvParserService.parseCsv(any(), eq(CsvParserService.CsvFormat.OLD_FORMAT)))
+            .thenReturn(parseResult);
+        // AIカテゴリ分類が例外をスローするように設定
+        when(aiCategoryService.predictCategoriesBatch(anyList()))
+            .thenThrow(new RuntimeException("AIサービスエラー"));
+        when(expenseRepository.saveAll(anyList())).thenReturn(Arrays.asList(expense1));
+        
+        // テスト実行
+        ExpenseApplicationService.CsvUploadResult result = 
+            expenseApplicationService.uploadCsvAndAddExpenses(mockFile, CsvParserService.CsvFormat.OLD_FORMAT);
+        
+        // 検証
+        assertNotNull(result);
+        assertEquals(1, result.successCount());
+        assertEquals(0, result.errorCount());
+        
+        // リポジトリが呼ばれたことを確認（フォールバック処理で「その他」が設定される）
+        verify(expenseRepository, times(1)).saveAll(anyList());
     }
 }
 
