@@ -16,14 +16,9 @@ import React, { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import {
-  Home,
   List,
-  ArrowDownCircle,
   Wallet,
-  Target,
-  MessageCircle,
   BotMessageSquare,
-  FileUp,
   User,
   Settings,
   LogOut,
@@ -60,39 +55,11 @@ interface SidebarProps {
 // メインナビゲーションアイテムの定義（グラデーションスタイル）
 const mainNavigationItems = [
   { 
-    href: "/", 
-    label: "ホーム", 
-    icon: Home, 
-    gradient: "from-blue-400 to-cyan-500",
-    shadowColor: "shadow-blue-500/25"
-  },
-  { 
     href: "/expenses", 
     label: "支出", 
     icon: List, 
     gradient: "from-orange-400 to-rose-500",
     shadowColor: "shadow-orange-500/25"
-  },
-  { 
-    href: "/income", 
-    label: "収入", 
-    icon: ArrowDownCircle, 
-    gradient: "from-emerald-400 to-green-500",
-    shadowColor: "shadow-emerald-500/25"
-  },
-  { 
-    href: "/budget", 
-    label: "予算", 
-    icon: Wallet, 
-    gradient: "from-indigo-400 to-purple-500",
-    shadowColor: "shadow-indigo-500/25"
-  },
-  { 
-    href: "/goals", 
-    label: "目標", 
-    icon: Target, 
-    gradient: "from-amber-400 to-orange-500",
-    shadowColor: "shadow-amber-500/25"
   },
 ] as const
 
@@ -118,9 +85,6 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCsv
    * ナビゲーションアイテムがアクティブかどうかを判定
    */
   const isActive = (href: string) => {
-    if (href === "/") {
-      return pathname === "/"
-    }
     return pathname.startsWith(href)
   }
 
@@ -135,7 +99,7 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCsv
         isCollapsed ? "px-2 py-4 justify-center" : "px-4 py-4 justify-between"
       )}>
         <Link
-          href="/"
+          href="/expenses"
           className={cn(
             "flex items-center hover:opacity-80 transition-opacity",
             isCollapsed ? "justify-center" : "gap-2.5 flex-1"
@@ -187,8 +151,6 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCsv
       <nav className="flex-1 px-2 py-4 space-y-1">
         {mainNavigationItems.map(({ href, label, icon: Icon, gradient, shadowColor }) => {
           const active = isActive(href)
-          // 支出ページ以外は開発中マークを表示
-          const isInDevelopment = href !== "/expenses"
           return (
             <Link
               key={href}
@@ -203,7 +165,7 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCsv
               )}
               title={isCollapsed ? label : undefined}
             >
-              {/* グラデーションアイコン（ホームページと同じスタイル） */}
+              {/* グラデーションアイコン */}
               <div className={cn(
                 "flex h-9 w-9 items-center justify-center rounded-xl text-white shadow-lg transition-all duration-300 flex-shrink-0",
                 "bg-gradient-to-br",
@@ -221,16 +183,6 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCsv
                   )}>
                     {label}
                   </span>
-                  {/* 開発中バッジ */}
-                  {isInDevelopment && (
-                    <span className={cn(
-                      "px-1.5 py-0.5 text-[10px] font-bold rounded-md",
-                      "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-                      "border border-amber-300 dark:border-amber-700"
-                    )}>
-                      開発中
-                    </span>
-                  )}
                 </div>
               )}
               {/* アクティブインジケーター */}

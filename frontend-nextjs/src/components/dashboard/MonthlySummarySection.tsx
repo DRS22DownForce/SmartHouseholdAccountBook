@@ -22,12 +22,8 @@ import {
   Wallet, 
   Sparkles,
   PieChart as PieChartIcon,
-  ArrowUpRight,
-  Lightbulb,
-  Zap,
   Target
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 interface SummarySectionProps {
@@ -269,12 +265,9 @@ export function MonthlySummarySection({
             </div>
           </div>
 
-          {/* 中・右カラム */}
+          {/* 右カラム: モダンなインタラクティブドーナツチャート */}
           <div className="md:col-span-1 lg:col-span-2 p-0">
-            <div className="grid grid-cols-1 lg:grid-cols-2 h-full divide-y lg:divide-y-0 lg:divide-x divide-border/40">
-
-              {/* 中央: モダンなインタラクティブドーナツチャート */}
-              <div className="p-6 flex flex-col items-center justify-center relative min-h-[400px]">
+            <div className="p-6 flex flex-col items-center justify-center relative min-h-[400px]">
                 {chartData.length > 0 ? (
                   <div className="relative w-full flex flex-col items-center gap-6">
                     {/* 円グラフ本体 */}
@@ -385,9 +378,9 @@ export function MonthlySummarySection({
                       </div>
                     </div>
 
-                    {/* 凡例 - 横スクロール可能なピル型ボタン */}
-                    <div className="w-full overflow-x-auto scrollbar-hide">
-                      <div className="flex items-center justify-center gap-2 px-2 min-w-max">
+                    {/* 凡例 - 複数行に折り返すピル型ボタン */}
+                    <div className="w-full">
+                      <div className="flex items-center justify-center gap-2 px-2 flex-wrap">
                         {chartData.map((entry, index) => {
                           const isActive = activeIndex === index
                           const percentage = totalAmount > 0 
@@ -398,9 +391,10 @@ export function MonthlySummarySection({
                               key={`legend-${index}`}
                               className={cn(
                                 "flex items-center gap-2 px-3 py-1.5 rounded-full",
-                                "text-xs font-bold whitespace-nowrap",
+                                "text-xs font-bold",
                                 "border transition-all duration-200",
                                 "focus:outline-none focus:ring-2 focus:ring-primary/20",
+                                "flex-shrink-0",
                                 isActive 
                                   ? "bg-foreground/5 border-border shadow-md scale-105" 
                                   : "bg-transparent border-transparent hover:bg-muted/50 hover:border-border/50"
@@ -457,104 +451,6 @@ export function MonthlySummarySection({
                     </div>
                   </div>
                 )}
-              </div>
-
-              {/* 右: AI分析レポート */}
-              <div className="p-6 flex flex-col justify-center bg-gradient-to-br from-purple-500/5 via-transparent to-transparent">
-                <div className="space-y-4">
-                  {/* ヘッダー */}
-                  <div className="flex items-center gap-2">
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-purple-500/20 rounded-xl blur-md animate-pulse" />
-                      <div className="relative w-9 h-9 rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-white shadow-lg">
-                        <Sparkles className="w-4 h-4" />
-                      </div>
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-foreground">AI家計診断</h3>
-                        {/* 開発中バッジ */}
-                        <span className={cn(
-                          "px-1.5 py-0.5 text-[10px] font-bold rounded-md",
-                          "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-                          "border border-amber-300 dark:border-amber-700"
-                        )}>
-                          開発中
-                        </span>
-                      </div>
-                      <p className="text-[10px] text-muted-foreground">AIによる自動分析</p>
-                    </div>
-                  </div>
-
-                  {/* 分析カード */}
-                  <div className="space-y-3">
-                    {/* 傾向分析 */}
-                    <div className={cn(
-                      "p-4 rounded-xl",
-                      "bg-card/80 backdrop-blur-sm",
-                      "border border-border/50",
-                      "shadow-sm hover:shadow-md transition-all duration-300",
-                      "group"
-                    )}>
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-500 flex-shrink-0 group-hover:scale-110 transition-transform">
-                          <TrendingUp className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-foreground mb-1">今月の傾向</p>
-                          <p className="text-xs text-muted-foreground leading-relaxed">
-                            食費が先月と比較して
-                            <span className="font-bold text-rose-500 mx-1">約15%増加</span>
-                            しています。一方で、光熱費は
-                            <span className="font-bold text-emerald-500 mx-1">5%減少</span>
-                            しました。
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* アドバイス */}
-                    <div className={cn(
-                      "p-4 rounded-xl",
-                      "bg-card/80 backdrop-blur-sm",
-                      "border border-border/50",
-                      "shadow-sm hover:shadow-md transition-all duration-300",
-                      "group"
-                    )}>
-                      <div className="flex items-start gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center text-amber-500 flex-shrink-0 group-hover:scale-110 transition-transform animate-float">
-                          <Lightbulb className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-foreground mb-1">アドバイス</p>
-                          <p className="text-xs text-muted-foreground leading-relaxed">
-                            来週は自炊の頻度を週2回増やすことで、目標予算内に収めることが可能です。
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* アクションボタン */}
-                  <Button className={cn(
-                    "w-full gap-2 rounded-xl shadow-lg",
-                    "bg-gradient-to-r from-purple-500 to-pink-500",
-                    "hover:from-purple-600 hover:to-pink-600",
-                    "text-white font-bold",
-                    "transition-all duration-300 hover:shadow-xl hover:-translate-y-0.5"
-                  )}>
-                    <Sparkles className="w-4 h-4" />
-                    詳細な分析レポートを見る
-                    <ArrowUpRight className="w-4 h-4" />
-                  </Button>
-
-                  <p className="text-[10px] text-center text-muted-foreground/60 flex items-center justify-center gap-1">
-                    <Zap className="w-3 h-3" />
-                    AIによる自動生成された分析のサンプルです
-                  </p>
-                </div>
-              </div>
-
             </div>
           </div>
         </div>
