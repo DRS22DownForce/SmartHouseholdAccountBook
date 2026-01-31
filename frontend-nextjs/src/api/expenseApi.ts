@@ -129,9 +129,9 @@ export interface CsvUploadResponse {
  * プライバシー保護のため、csvFormatはリクエストボディ（FormData）で送信されます。
  * 
  * @param file CSVファイル
- * @param csvFormat CSV形式（OLD_FORMAT: 三井住友カード 2025/12以前、NEW_FORMAT: 三井住友カード 2026/1以降）
+ * @param csvFormat CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード 2025/12以前、MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 2026/1以降）
  */
-export async function uploadCsvFile(file: File, csvFormat: "OLD_FORMAT" | "NEW_FORMAT"): Promise<CsvUploadResponse> {
+export async function uploadCsvFile(file: File, csvFormat: "MITSUISUMITOMO_OLD_FORMAT" | "MITSUISUMITOMO_NEW_FORMAT"): Promise<CsvUploadResponse> {
     const api = getExpenseApiClient();
     const options = await withAuthHeader();
     

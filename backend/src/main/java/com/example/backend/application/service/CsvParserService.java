@@ -58,14 +58,14 @@ public class CsvParserService {
          * 列構成: ご利用日, ご利用店名, ご利用金額, 支払区分, 今回回数, ...
          * 金額は3列目（インデックス2）
          */
-        OLD_FORMAT,
+        MITSUISUMITOMO_OLD_FORMAT,
         
         /**
          * 三井住友カード 新形式（2026/1以降）
          * 列構成: ご利用日, ご利用店名, カード, 支払区分, 分割回数, 支払予定月, ご利用金額, ...
          * 金額は7列目（インデックス6）以降
          */
-        NEW_FORMAT
+        MITSUISUMITOMO_NEW_FORMAT
     }
 
     /**
@@ -77,7 +77,7 @@ public class CsvParserService {
      * より多くのデータが成功し、文字化けが少ない方の結果を返します。
      * 
      * @param inputStream CSVファイルの入力ストリーム
-     * @param csvFormat CSV形式（OLD_FORMAT: 三井住友カード 2025/12以前、NEW_FORMAT: 三井住友カード 2026/1以降）
+     * @param csvFormat CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード 2025/12以前、MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 2026/1以降）
      * @return 解析結果（成功したデータとエラー情報を含む）
      */
     public CsvParseResult parseCsv(InputStream inputStream, CsvFormat csvFormat) {
@@ -189,7 +189,7 @@ public class CsvParserService {
      * 
      * @param inputStream CSVファイルの入力ストリーム
      * @param charset 文字エンコーディング
-     * @param csvFormat CSV形式（OLD_FORMAT: 三井住友カード 2025/12以前、NEW_FORMAT: 三井住友カード 2026/1以降）
+     * @param csvFormat CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード 2025/12以前、MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 2026/1以降）
      * @return 解析結果（成功したデータとエラー情報を含む）
      */
     private CsvParseResult parseCsvWithEncoding(InputStream inputStream, Charset charset, CsvFormat csvFormat) {
@@ -304,7 +304,7 @@ public class CsvParserService {
         // 金額を取得（形式に応じて適切な列から取得）
         Integer amount = null;
         
-        if (format == CsvFormat.OLD_FORMAT) {
+        if (format == CsvFormat.MITSUISUMITOMO_OLD_FORMAT) {
             // 旧形式: 金額は通常3列目（インデックス2）にあるが、
             // 店名にカンマが含まれている場合など、列の位置がずれる可能性がある
             // そのため、2列目以降を順に確認して、最初に見つかった有効な金額を使用

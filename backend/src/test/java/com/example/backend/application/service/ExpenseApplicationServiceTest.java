@@ -347,14 +347,14 @@ class ExpenseApplicationServiceTest {
         
         // モックの設定
         when(userApplicationService.getUser()).thenReturn(user);
-        when(csvParserService.parseCsv(any(), eq(CsvParserService.CsvFormat.OLD_FORMAT)))
+        when(csvParserService.parseCsv(any(), eq(CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT)))
             .thenReturn(parseResult);
         when(aiCategoryService.predictCategoriesBatch(anyList())).thenReturn(categoryMap);
         when(expenseRepository.saveAll(anyList())).thenReturn(Arrays.asList(expense1, expense2));
         
         // テスト実行
         ExpenseApplicationService.CsvUploadResult result = 
-            expenseApplicationService.uploadCsvAndAddExpenses(mockFile, CsvParserService.CsvFormat.OLD_FORMAT);
+            expenseApplicationService.uploadCsvAndAddExpenses(mockFile, CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
         
         // 検証
         assertNotNull(result);
@@ -363,7 +363,7 @@ class ExpenseApplicationServiceTest {
         assertTrue(result.errors().isEmpty());
         
         // 各サービスが正しく呼ばれたことを確認
-        verify(csvParserService, times(1)).parseCsv(any(), eq(CsvParserService.CsvFormat.OLD_FORMAT));
+        verify(csvParserService, times(1)).parseCsv(any(), eq(CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT));
         verify(aiCategoryService, times(1)).predictCategoriesBatch(anyList());
         verify(expenseRepository, times(1)).saveAll(anyList());
     }
@@ -387,12 +387,12 @@ class ExpenseApplicationServiceTest {
         // モックの設定
         // lenientを使用して、getUser()が呼ばれない場合でもエラーにならないようにする
         lenient().when(userApplicationService.getUser()).thenReturn(user);
-        when(csvParserService.parseCsv(any(), eq(CsvParserService.CsvFormat.OLD_FORMAT)))
+        when(csvParserService.parseCsv(any(), eq(CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT)))
             .thenReturn(parseResult);
         
         // テスト実行
         ExpenseApplicationService.CsvUploadResult result = 
-            expenseApplicationService.uploadCsvAndAddExpenses(mockFile, CsvParserService.CsvFormat.OLD_FORMAT);
+            expenseApplicationService.uploadCsvAndAddExpenses(mockFile, CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
         
         // 検証
         assertNotNull(result);
@@ -422,12 +422,12 @@ class ExpenseApplicationServiceTest {
         // モックの設定
         // lenientを使用して、getUser()が呼ばれない場合でもエラーにならないようにする
         lenient().when(userApplicationService.getUser()).thenReturn(user);
-        when(csvParserService.parseCsv(any(), eq(CsvParserService.CsvFormat.OLD_FORMAT)))
+        when(csvParserService.parseCsv(any(), eq(CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT)))
             .thenReturn(parseResult);
         
         // テスト実行
         ExpenseApplicationService.CsvUploadResult result = 
-            expenseApplicationService.uploadCsvAndAddExpenses(mockFile, CsvParserService.CsvFormat.OLD_FORMAT);
+            expenseApplicationService.uploadCsvAndAddExpenses(mockFile, CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
         
         // 検証
         assertNotNull(result);
@@ -443,7 +443,7 @@ class ExpenseApplicationServiceTest {
     void uploadCsvAndAddExpenses_ファイルがnullの場合は例外() {
         // テスト実行と検証
         assertThrows(NullPointerException.class, () -> {
-            expenseApplicationService.uploadCsvAndAddExpenses(null, CsvParserService.CsvFormat.OLD_FORMAT);
+            expenseApplicationService.uploadCsvAndAddExpenses(null, CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
         });
     }
 
@@ -489,7 +489,7 @@ class ExpenseApplicationServiceTest {
         
         // モックの設定
         when(userApplicationService.getUser()).thenReturn(user);
-        when(csvParserService.parseCsv(any(), eq(CsvParserService.CsvFormat.OLD_FORMAT)))
+        when(csvParserService.parseCsv(any(), eq(CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT)))
             .thenReturn(parseResult);
         // AIカテゴリ分類が例外をスローするように設定
         when(aiCategoryService.predictCategoriesBatch(anyList()))
@@ -498,7 +498,7 @@ class ExpenseApplicationServiceTest {
         
         // テスト実行
         ExpenseApplicationService.CsvUploadResult result = 
-            expenseApplicationService.uploadCsvAndAddExpenses(mockFile, CsvParserService.CsvFormat.OLD_FORMAT);
+            expenseApplicationService.uploadCsvAndAddExpenses(mockFile, CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
         
         // 検証
         assertNotNull(result);
