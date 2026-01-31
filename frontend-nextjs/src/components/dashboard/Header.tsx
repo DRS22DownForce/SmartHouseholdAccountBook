@@ -2,7 +2,7 @@
 
 import React from "react"
 import { usePathname } from "next/navigation"
-import { BotMessageSquare, Wallet, Home, List } from "lucide-react"
+import { BotMessageSquare, Wallet, List } from "lucide-react"
 import Link from "next/link"
 import { ExpenseForm } from "@/components/expense-form"
 import type { ExpenseFormProps } from "@/components/expense-form"
@@ -20,7 +20,6 @@ interface HeaderProps {
 }
 
 const navigationItems = [
-  { href: "/", label: "ホーム", icon: Home },
   { href: "/expenses", label: "支出一覧", icon: List },
 ] as const
 
@@ -53,7 +52,7 @@ export const Header = React.memo(function Header({
       <div className="container mx-auto px-4 py-2.5 md:py-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 md:gap-3 flex-shrink-0">
-            <Link href="/" className="flex items-center gap-2 md:gap-2.5 hover:opacity-80 transition-opacity">
+            <Link href="/expenses" className="flex items-center gap-2 md:gap-2.5 hover:opacity-80 transition-opacity">
               <div className="flex h-8 w-8 md:h-10 md:w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary via-primary/90 to-primary/80 shadow-lg shadow-primary/20 ring-1 ring-primary/10 flex-shrink-0 transition-transform hover:scale-105">
                 <Wallet className="h-4 w-4 md:h-5 md:w-5 text-primary-foreground" />
               </div>

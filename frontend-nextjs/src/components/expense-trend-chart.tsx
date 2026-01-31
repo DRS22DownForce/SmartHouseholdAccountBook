@@ -8,21 +8,15 @@
  * 
  * 【初心者向け解説】
  * - CSSベースのシンプルな棒グラフで実装
- * - 支出額に応じてバーの色が変わる（緑→黄→赤）
- * - ホバー時にオーバーレイでツールチップを表示
+ * - バーの高さで支出額を視覚的に表現
+ * - 各月のカードに合計金額とカテゴリー別詳細を常時表示
  * - Rechartsを使わないことで軽量かつ高速に動作
- * 
- * 【色の意味】
- * - 緑: 支出が少ない（良い状態）
- * - 黄: 支出が中程度（注意）
- * - 赤: 支出が多い（要注意）
  */
 
 import { useMemo, useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { formatCurrency } from "@/lib/formatters"
-import { getCategoryColor } from "@/lib/category-colors"
 import { MONTH_RANGES } from "@/lib/constants"
 import { useMonthlySummaryRange } from "@/hooks/use-monthly-summary-range"
 import { useRefreshTrigger } from "@/hooks/use-refresh-trigger"
@@ -51,8 +45,6 @@ interface MonthlyExpenseData {
 export function ExpenseTrendChart({ refreshTrigger }: ExpenseTrendChartProps) {
   // 表示する月数の状態管理（デフォルト: 6ヶ月）
   const [monthRange, setMonthRange] = useState("6")
-  // ホバー中の月のインデックス（ツールチップ表示用）
-  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
 
   // 表示月数を数値に変換
   const monthsToShow = Number.parseInt(monthRange)
@@ -108,22 +100,12 @@ export function ExpenseTrendChart({ refreshTrigger }: ExpenseTrendChartProps) {
   }, [chartData])
 
   /**
-   * 支出額に応じた色を計算
-   * 週間カレンダーと同じ色使いで統一
+   * バーの色を統一（グラデーション）
    * 
-   * @param amount 支出額
-   * @param maxAmount 最大支出額（比率計算用）
    * @returns CSSクラス名
    */
-  const getIntensityColor = (amount: number, maxAmount: number): string => {
-    if (maxAmount === 0) return "bg-emerald-300"
-    const ratio = amount / maxAmount
-    // 支出が多いほど赤く、少ないほど緑に
-    if (ratio > 0.8) return "bg-rose-500"      // 高額（危険）
-    if (ratio > 0.6) return "bg-rose-400"      // やや高額
-    if (ratio > 0.4) return "bg-amber-400"     // 中程度（注意）
-    if (ratio > 0.2) return "bg-emerald-400"   // 低め（良好）
-    return "bg-emerald-300"                    // 低額（とても良好）
+  const getBarColor = (): string => {
+    return "bg-gradient-to-t from-blue-500 to-blue-400"
   }
 
   /**
@@ -158,6 +140,34 @@ export function ExpenseTrendChart({ refreshTrigger }: ExpenseTrendChartProps) {
     const now = new Date()
     const currentYearMonth = `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, "0")}`
     return monthString === currentYearMonth
+  }
+
+  /**
+   * 縦軸の目盛り値を計算
+   * 最大値に基づいて適切な間隔で目盛りを生成
+   * 
+   * @param maxValue 最大値
+   * @param tickCount 目盛りの数（デフォルト: 5）
+   * @returns 目盛り値の配列
+   */
+  const calculateYAxisTicks = (maxValue: number, tickCount: number = 5): number[] => {
+    if (maxValue === 0) return [0]
+    
+    // 最大値を丸める（例: 123456 → 150000）
+    const magnitude = Math.pow(10, Math.floor(Math.log10(maxValue)))
+    const normalized = maxValue / magnitude
+    let roundedMax = Math.ceil(normalized) * magnitude
+    
+    // 目盛りの間隔を計算
+    const step = roundedMax / (tickCount - 1)
+    
+    // 目盛り値を生成
+    const ticks: number[] = []
+    for (let i = 0; i < tickCount; i++) {
+      ticks.push(Math.round(step * i))
+    }
+    
+    return ticks
   }
 
   return (
@@ -253,14 +263,53 @@ export function ExpenseTrendChart({ refreshTrigger }: ExpenseTrendChartProps) {
               </div>
             </div>
           ) : chartData.length > 0 ? (
-            // バーチャートグリッド（週間カレンダーと同じスタイル）
-            <div 
-              className="grid gap-2 md:gap-4"
-              style={{
-                // 月数に応じてグリッドの列数を動的に変更
-                gridTemplateColumns: `repeat(${chartData.length}, minmax(0, 1fr))`
-              }}
-            >
+            // バーチャート（縦軸目盛り付き）
+            <div className="flex gap-3">
+              {/* 縦軸目盛り */}
+              <div className="relative h-32 md:h-40 w-20 flex-shrink-0">
+                {calculateYAxisTicks(stats.max).reverse().map((tick, index) => {
+                  // 目盛りの位置を実際の値に基づいて計算（0円は底、最大値は頂上）
+                  const ticks = calculateYAxisTicks(stats.max)
+                  const maxTick = Math.max(...ticks)
+                  const position = maxTick > 0 ? (tick / maxTick) * 100 : 0
+                  return (
+                    <div 
+                      key={index} 
+                      className="absolute flex items-center left-0 right-0"
+                      style={{ bottom: `${position}%`, transform: 'translateY(50%)' }}
+                    >
+                      <span className="text-[10px] text-muted-foreground tabular-nums w-full text-right pr-1">
+                        {formatCurrency(tick)}
+                      </span>
+                    </div>
+                  )
+                })}
+              </div>
+              
+              {/* バーチャートグリッド */}
+              <div 
+                className="flex-1 grid gap-2 md:gap-4 relative"
+                style={{
+                  // 月数に応じてグリッドの列数を動的に変更
+                  gridTemplateColumns: `repeat(${chartData.length}, minmax(0, 1fr))`
+                }}
+              >
+                {/* 目盛り線をバーグラフエリアに延長 */}
+                <div className="absolute left-0 right-0 pointer-events-none h-32 md:h-40">
+                  {calculateYAxisTicks(stats.max).map((tick, index) => {
+                    // 目盛り線の位置を実際の値に基づいて計算
+                    const ticks = calculateYAxisTicks(stats.max)
+                    const maxTick = Math.max(...ticks)
+                    const position = maxTick > 0 ? (tick / maxTick) * 100 : 0
+                    return (
+                      <div
+                        key={index}
+                        className="absolute left-0 right-0 h-px bg-border/20"
+                        style={{ bottom: `${position}%` }}
+                      />
+                    )
+                  })}
+                </div>
               {chartData.map((data, index) => {
                 const total = (data.total as number) || 0
                 const isThisMonth = isCurrentMonth(data.month)
@@ -274,76 +323,33 @@ export function ExpenseTrendChart({ refreshTrigger }: ExpenseTrendChartProps) {
                       "animate-fade-in",
                       `stagger-${Math.min(index + 1, 5)}`
                     )}
-                    onMouseEnter={() => setHoveredIndex(index)}
-                    onMouseLeave={() => setHoveredIndex(null)}
                   >
                     {/* ==================== */}
                     {/* バーコンテナ */}
                     {/* ==================== */}
                     <div className={cn(
-                      "relative w-full h-32 md:h-40 rounded-xl overflow-hidden",
+                      "relative w-full h-32 md:h-40 rounded-xl overflow-visible",
                       "bg-muted/20",
                       "flex items-end justify-center",
                       "transition-all duration-300"
                     )}>
+                      {/* 金額表示（棒グラフの上） */}
+                      {total > 0 && (
+                        <div className="absolute -top-6 left-0 right-0 flex items-center justify-center">
+                          <span className="text-xs font-bold text-foreground tabular-nums">
+                            {formatCurrency(total)}
+                          </span>
+                        </div>
+                      )}
+                      
                       {/* 支出バー */}
                       <div
                         className={cn(
                           "w-full rounded-t-lg transition-all duration-500 ease-out",
-                          getIntensityColor(total, stats.max),
-                          "group-hover:opacity-90"
+                          getBarColor()
                         )}
                         style={{ height: `${getBarHeight(total, stats.max)}%` }}
                       />
-                      
-                      {/* ホバー時のツールチップオーバーレイ */}
-                      <div className={cn(
-                        "absolute inset-0 flex items-center justify-center",
-                        "bg-background/95 backdrop-blur-sm",
-                        "opacity-0 group-hover:opacity-100",
-                        "transition-opacity duration-200",
-                        "rounded-xl overflow-hidden"
-                      )}>
-                        <div className="w-full h-full p-3 overflow-y-auto scrollbar-thin">
-                          {/* 合計金額ヘッダー */}
-                          <div className="text-center mb-2 pb-2 border-b border-border/40">
-                            <p className="text-sm font-black text-foreground">
-                              {formatCurrency(total)}
-                            </p>
-                          </div>
-                          
-                          {/* カテゴリー別詳細リスト */}
-                          <div className="space-y-1">
-                            {categories
-                              .filter(cat => (data[cat] as number) > 0)
-                              .sort((a, b) => (data[b] as number) - (data[a] as number))
-                              .map((cat, catIndex) => {
-                                const amount = data[cat] as number
-                                const percentage = total > 0 ? ((amount / total) * 100).toFixed(0) : "0"
-                                return (
-                                  <div 
-                                    key={catIndex}
-                                    className="flex items-center gap-1.5 text-[10px]"
-                                  >
-                                    {/* カテゴリー色のドット */}
-                                    <div 
-                                      className="w-2 h-2 rounded-full flex-shrink-0"
-                                      style={{ backgroundColor: getCategoryColor(cat) }}
-                                    />
-                                    {/* カテゴリー名（省略可能） */}
-                                    <span className="text-muted-foreground truncate flex-1 min-w-0">
-                                      {cat}
-                                    </span>
-                                    {/* 金額と割合 */}
-                                    <span className="font-bold text-foreground tabular-nums flex-shrink-0">
-                                      {percentage}%
-                                    </span>
-                                  </div>
-                                )
-                              })}
-                          </div>
-                        </div>
-                      </div>
                     </div>
 
                     {/* ==================== */}
@@ -361,6 +367,7 @@ export function ExpenseTrendChart({ refreshTrigger }: ExpenseTrendChartProps) {
                   </div>
                 )
               })}
+              </div>
             </div>
           ) : (
             // データなし表示
@@ -379,23 +386,6 @@ export function ExpenseTrendChart({ refreshTrigger }: ExpenseTrendChartProps) {
             </div>
           )}
 
-          {/* ==================== */}
-          {/* 凡例（週間カレンダーと同じ） */}
-          {/* ==================== */}
-          <div className="flex items-center justify-center gap-4 mt-6 pt-4 border-t border-border/40">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-emerald-400" />
-              <span className="text-xs text-muted-foreground">低</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-amber-400" />
-              <span className="text-xs text-muted-foreground">中</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded-full bg-rose-500" />
-              <span className="text-xs text-muted-foreground">高</span>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

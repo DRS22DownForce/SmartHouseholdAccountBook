@@ -123,26 +123,21 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button variant="ghost" className="w-full justify-start gap-3 px-3 py-2.5 h-auto hover:bg-muted/50 text-muted-foreground hover:text-foreground group">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 group-hover:bg-amber-500/20 flex-shrink-0 transition-colors">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500 text-white shadow-lg flex-shrink-0 transition-colors">
             <Upload className="h-5 w-5" />
           </div>
-          <div className="flex items-center gap-2 flex-1">
-            <span className="text-sm font-medium">CSVインポート</span>
-            {/* 開発中バッジ */}
-            <span className={cn(
-              "px-1.5 py-0.5 text-[10px] font-bold rounded-md",
-              "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-              "border border-amber-300 dark:border-amber-700"
-            )}>
-              開発中
-            </span>
-          </div>
+          <span className="text-sm font-medium">CSVインポート</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className={cn(
+        "sm:max-w-[500px]",
+        "border-border/40 shadow-rich"
+      )}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500 text-white shadow-lg">
+              <FileText className="h-4 w-4" />
+            </div>
             CSVインポート
           </DialogTitle>
           <DialogDescription>クレジットカードの使用履歴をCSVファイルでアップロード</DialogDescription>
@@ -166,10 +161,16 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-              }`}
+            className={cn(
+              "border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300",
+              isDragging 
+                ? "border-blue-500 bg-blue-500/10 shadow-lg" 
+                : "border-border/60 hover:border-blue-500/50 hover:bg-blue-500/5"
+            )}
           >
-            <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <div className="flex h-16 w-16 mx-auto mb-4 items-center justify-center rounded-xl bg-blue-500/10">
+              <Upload className="h-8 w-8 text-blue-500" />
+            </div>
             <p className="text-sm text-foreground mb-2">ファイルをドラッグ&ドロップ</p>
             <p className="text-xs text-muted-foreground mb-4">または</p>
             <Button variant="outline" onClick={() => fileInputRef.current?.click()} className="mx-auto">
@@ -208,16 +209,6 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
             </Alert>
           )}
 
-          <div className="text-xs text-muted-foreground space-y-1">
-            <p className="font-medium">CSVフォーマット:</p>
-            <p>三井住友カードの利用明細CSVファイルをアップロードできます。</p>
-            <p className="mt-2">対応フォーマット:</p>
-            <code className="block bg-muted p-2 rounded text-xs mt-1">
-              ご利用日,ご利用店名,ご利用金額,...
-              <br />
-              2025/11/01,やよい軒平塚店,1220,...
-            </code>
-          </div>
         </div>
       </DialogContent>
     </Dialog>
