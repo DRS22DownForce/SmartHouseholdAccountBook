@@ -13,6 +13,13 @@ import {
 } from "@/components/ui/dialog"
 import { Upload, FileText, AlertCircle, CheckCircle2, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { uploadCsvFile, type CsvUploadResponse } from "@/api/expenseApi"
 import { cn } from "@/lib/utils"
 
@@ -25,6 +32,7 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string; details?: CsvUploadResponse } | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [open, setOpen] = useState(false)
+  const [csvFormat, setCsvFormat] = useState<"OLD_FORMAT" | "NEW_FORMAT" | "">("")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFile = async (file: File) => {
@@ -33,12 +41,18 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
       return
     }
 
+    // CSV形式が選択されていない場合はエラー
+    if (!csvFormat || (csvFormat !== "OLD_FORMAT" && csvFormat !== "NEW_FORMAT")) {
+      setStatus({ type: "error", message: "CSV形式を選択してください" })
+      return
+    }
+
     setIsUploading(true)
     setStatus(null)
 
     try {
       // バックエンドにCSVファイルを直接アップロード
-      const result = await uploadCsvFile(file)
+      const result = await uploadCsvFile(file, csvFormat)
 
       // 成功メッセージを作成
       let message = `${result.successCount}件の支出データをインポートしました`
@@ -66,6 +80,7 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
         setTimeout(() => {
           setOpen(false)
           setStatus(null)
+          setCsvFormat("") // 形式をリセット
         }, 2000)
       }
     } catch (error) {
@@ -133,6 +148,20 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
           <DialogDescription>クレジットカードの使用履歴をCSVファイルでアップロード</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
+          {/* CSV形式選択 */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium">CSV形式を選択</label>
+            <Select value={csvFormat} onValueChange={(value) => setCsvFormat(value as "OLD_FORMAT" | "NEW_FORMAT")}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="CSV形式を選択してください" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="OLD_FORMAT">三井住友カード（2025/12以前）</SelectItem>
+                <SelectItem value="NEW_FORMAT">三井住友カード（2026/1以降）</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
           <div
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -181,7 +210,7 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
 
           <div className="text-xs text-muted-foreground space-y-1">
             <p className="font-medium">CSVフォーマット:</p>
-            <p>クレジットカードの利用明細CSVファイルをアップロードできます。</p>
+            <p>三井住友カードの利用明細CSVファイルをアップロードできます。</p>
             <p className="mt-2">対応フォーマット:</p>
             <code className="block bg-muted p-2 rounded text-xs mt-1">
               ご利用日,ご利用店名,ご利用金額,...

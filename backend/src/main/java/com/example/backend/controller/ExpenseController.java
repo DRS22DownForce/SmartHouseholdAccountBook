@@ -1,6 +1,7 @@
 package com.example.backend.controller;
 
 import com.example.backend.application.mapper.ExpenseMapper;
+import com.example.backend.application.service.CsvParserService;
 import com.example.backend.application.service.ExpenseApplicationService;
 import com.example.backend.domain.valueobject.MonthlySummary;
 import com.example.backend.exception.CsvUploadException;
@@ -15,6 +16,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -139,12 +142,18 @@ public class ExpenseController implements ExpensesApi {
     /**
      * CSVファイルアップロードエンドポイント
      * 
+     * 三井住友カードのCSVフォーマットに対応しています。
+     * プライバシー保護のため、csvFormatはリクエストボディ（FormData）で送信されます。
+     * 
      * @param file アップロードされたCSVファイル
+     * @param csvFormat CSV形式（OLD_FORMAT: 三井住友カード 2025/12以前、NEW_FORMAT: 三井住友カード 2026/1以降）
      * @return CSVアップロード結果（成功件数、エラー件数、エラー詳細）
      * @throws CsvUploadException ファイルの読み込みエラーや処理中のエラーが発生した場合
      */
     @Override
-    public ResponseEntity<CsvUploadResponseDto> apiExpensesUploadCsvPost(MultipartFile file) {
+    public ResponseEntity<CsvUploadResponseDto> apiExpensesUploadCsvPost(
+            @RequestPart(value = "file", required = true) MultipartFile file,
+            @RequestParam(value = "csvFormat", required = true) String csvFormat) {
         if (file == null || file.isEmpty()) {
             CsvUploadResponseDtoErrorsInner error = new CsvUploadResponseDtoErrorsInner(0, "ファイルが空です");
             error.setLineContent("");
@@ -160,9 +169,33 @@ public class ExpenseController implements ExpensesApi {
             return ResponseEntity.badRequest().body(response);
         }
 
+        // CSV形式のバリデーション
+        if (csvFormat == null || csvFormat.isEmpty()) {
+            CsvUploadResponseDtoErrorsInner error = new CsvUploadResponseDtoErrorsInner(0, "CSV形式を指定してください");
+            error.setLineContent("");
+            CsvUploadResponseDto response = new CsvUploadResponseDto(0, 0, List.of(error));
+            return ResponseEntity.badRequest().body(response);
+        }
+
+        if (!csvFormat.equals("OLD_FORMAT") && !csvFormat.equals("NEW_FORMAT")) {
+            CsvUploadResponseDtoErrorsInner error = new CsvUploadResponseDtoErrorsInner(0, 
+                "無効なCSV形式です。OLD_FORMAT（三井住友カード 2025/12以前）またはNEW_FORMAT（三井住友カード 2026/1以降）を指定してください");
+            error.setLineContent(csvFormat);
+            CsvUploadResponseDto response = new CsvUploadResponseDto(0, 0, List.of(error));
+            return ResponseEntity.badRequest().body(response);
+        }
+
         try {
+            // CsvFormat列挙型に変換
+            CsvParserService.CsvFormat format;
+            if (csvFormat.equals("OLD_FORMAT")) {
+                format = CsvParserService.CsvFormat.OLD_FORMAT;
+            } else {
+                format = CsvParserService.CsvFormat.NEW_FORMAT;
+            }
+
             ExpenseApplicationService.CsvUploadResult result = 
-                expenseApplicationService.uploadCsvAndAddExpenses(file);
+                expenseApplicationService.uploadCsvAndAddExpenses(file, format);
 
             List<CsvUploadResponseDtoErrorsInner> errorDtos = result.errors().stream()
                 .map(error -> {

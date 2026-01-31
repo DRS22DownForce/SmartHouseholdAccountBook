@@ -11,6 +11,7 @@ import {
 } from './expenseMappers';
 import type { MonthlySummary } from './expenseMappers';
 import type { Expense, ExpenseFormData } from '@/lib/types';
+import type { ApiExpensesUploadCsvPostCsvFormatEnum } from './generated/api';
 
 
 /**
@@ -124,35 +125,19 @@ export interface CsvUploadResponse {
 
 /**
  * CSVファイルをアップロードして一括インポート
+ * 
+ * プライバシー保護のため、csvFormatはリクエストボディ（FormData）で送信されます。
+ * 
+ * @param file CSVファイル
+ * @param csvFormat CSV形式（OLD_FORMAT: 三井住友カード 2025/12以前、NEW_FORMAT: 三井住友カード 2026/1以降）
  */
-export async function uploadCsvFile(file: File): Promise<CsvUploadResponse> {
-    const basePath = process.env.NEXT_PUBLIC_API_BASE_URL || '';
-    const url = `${basePath}/api/expenses/upload-csv`;
-
-    // FormDataを作成
-    const formData = new FormData();
-    formData.append('file', file);
-
-    // 認証ヘッダーを取得
-    const authHeader = await withAuthHeader();
-    const headers: HeadersInit = {};
+export async function uploadCsvFile(file: File, csvFormat: "OLD_FORMAT" | "NEW_FORMAT"): Promise<CsvUploadResponse> {
+    const api = getExpenseApiClient();
+    const options = await withAuthHeader();
     
-    // 認証ヘッダーを設定（withAuthHeaderが返すheadersから取得）
-    if (authHeader.headers && authHeader.headers.Authorization) {
-        headers['Authorization'] = authHeader.headers.Authorization;
-    }
-
-    // fetch APIでアップロード
-    const response = await fetch(url, {
-        method: 'POST',
-        headers,
-        body: formData,
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'CSVアップロードに失敗しました' }));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
-    }
-
-    return await response.json();
+    // 生成された列挙型に変換
+    const csvFormatEnum = csvFormat as ApiExpensesUploadCsvPostCsvFormatEnum;
+    
+    const response = await api.apiExpensesUploadCsvPost(file, csvFormatEnum, options);
+    return response.data;
 }

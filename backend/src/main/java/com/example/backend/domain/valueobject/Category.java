@@ -23,7 +23,7 @@ import java.util.List;
 public class Category {
     //TODO カテゴリーはEnumで管理する
     private static final List<String> VALID_CATEGORIES = Arrays.asList(
-        "食費", "交通費", "住居費", "光熱費", "通信費", "娯楽費", "医療費", "衣服費", "日用品", "その他"
+        "食費", "交通費", "住居費", "光熱費", "通信費", "娯楽費", "医療費", "衣服費", "日用品", "投資", "教育費", "その他"
     );
 
     @Column(name = "category", nullable = false, length = 50)

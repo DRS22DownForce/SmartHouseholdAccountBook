@@ -281,15 +281,19 @@ public class ExpenseApplicationService {
     /**
      * CSVファイルから支出を一括追加するユースケース
      * 
+     * 三井住友カードのCSVフォーマットに対応しています。
+     * 
      * @param file CSVファイル
+     * @param csvFormat CSV形式（OLD_FORMAT: 三井住友カード 2025/12以前、NEW_FORMAT: 三井住友カード 2026/1以降）
      * @return CSVアップロード結果（成功件数、エラー件数、エラー詳細）
      * @throws IOException ファイルの読み込みに失敗した場合
      */
-    public CsvUploadResult uploadCsvAndAddExpenses(MultipartFile file) throws IOException {
+    public CsvUploadResult uploadCsvAndAddExpenses(MultipartFile file, CsvParserService.CsvFormat csvFormat) throws IOException {
         Objects.requireNonNull(file, "ファイルはnullであってはなりません");
+        Objects.requireNonNull(csvFormat, "CSV形式はnullであってはなりません");
         
-        // CSVファイルを解析
-        CsvParserService.CsvParseResult parseResult = csvParserService.parseCsv(file.getInputStream());
+        // CSVファイルを解析（指定された形式を使用）
+        CsvParserService.CsvParseResult parseResult = csvParserService.parseCsv(file.getInputStream(), csvFormat);
         
         // CSV解析でエラーが発生した場合、警告ログを出力
         // エラー件数を記録して、CSVファイルに問題があることを把握できます
