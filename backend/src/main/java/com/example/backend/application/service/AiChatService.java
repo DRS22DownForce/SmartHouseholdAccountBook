@@ -107,8 +107,8 @@ public class AiChatService {
         String systemPrompt = "あなたは親切な家計簿アドバイザーです。以下の過去30日間の支出データを分析し、ユーザーの質問に答えてください。\n\n" +
                 "支出データ:\n" +
                 expenses.stream()
-                        .map(e -> String.format("- %s: %s (%d円) %s", e.getDate().getValue(), e.getCategory().getValue(),
-                                e.getAmount().getValue(), e.getDescription()))
+                        .map(e -> String.format("- %s: %s (%d円) %s", e.getDate().getValue(), e.getCategory().getDisplayName(),
+                                e.getAmount().toInteger(), e.getDescription()))
                         .collect(Collectors.joining("\n"));
 
         // 4. OpenAI APIを呼び出し

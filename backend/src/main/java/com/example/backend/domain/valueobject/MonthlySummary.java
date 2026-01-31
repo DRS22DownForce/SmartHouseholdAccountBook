@@ -82,24 +82,18 @@ public class MonthlySummary {
         // 2. カテゴリー別集計
         Map<String, Integer> categoryAmountMap = expenses.stream()
             .collect(Collectors.groupingBy(
-                expense -> expense.getCategory() != null ? expense.getCategory().getValue() : "その他",
+                expense -> expense.getCategory() != null ? expense.getCategory().getDisplayName() : CategoryType.OTHER.getDisplayName(),
                 Collectors.summingInt(expense -> expense.getAmount() != null ? expense.getAmount().toInteger() : 0)
             ));
-        
+
         // 3. CategorySummary値オブジェクトのリストを作成（金額の降順でソート）
         List<CategorySummary> categorySummaries = categoryAmountMap.entrySet().stream()
             .map(entry -> {
                 try {
-                    Category category = new Category(entry.getKey());
-                    return new CategorySummary(category, entry.getValue());
+                    CategoryType categoryType = CategoryType.fromDisplayName(entry.getKey());
+                    return new CategorySummary(categoryType, entry.getValue());
                 } catch (IllegalArgumentException e) {
-                    // 無効なカテゴリーの場合は「その他」として扱う
-                    try {
-                        Category category = new Category("その他");
-                        return new CategorySummary(category, entry.getValue());
-                    } catch (IllegalArgumentException ex) {
-                        throw new IllegalStateException("カテゴリーの作成に失敗しました", ex);
-                    }
+                    return new CategorySummary(CategoryType.OTHER, entry.getValue());
                 }
             })
             .sorted(Comparator.comparing(CategorySummary::getAmount).reversed())

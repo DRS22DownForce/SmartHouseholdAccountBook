@@ -1,7 +1,7 @@
 package com.example.backend.application.service;
 
 import com.example.backend.domain.repository.ExpenseRepository;
-import com.example.backend.domain.valueobject.Category;
+import com.example.backend.domain.valueobject.CategoryType;
 import com.example.backend.domain.valueobject.ExpenseAmount;
 import com.example.backend.domain.valueobject.ExpenseDate;
 import com.example.backend.entity.Expense;
@@ -220,7 +220,7 @@ public class CsvExpenseService {
                     categoryValue = "その他";
                 }
             }
-            Category category = new Category(categoryValue);
+            CategoryType category = CategoryType.fromDisplayName(categoryValue);
 
             // エンティティを作成
             Expense expense = new Expense(

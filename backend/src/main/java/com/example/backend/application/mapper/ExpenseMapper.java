@@ -1,7 +1,7 @@
 package com.example.backend.application.mapper;
 
-import com.example.backend.domain.valueobject.Category;
 import com.example.backend.domain.valueobject.CategorySummary;
+import com.example.backend.domain.valueobject.CategoryType;
 import com.example.backend.domain.valueobject.ExpenseAmount;
 import com.example.backend.domain.valueobject.ExpenseDate;
 import com.example.backend.domain.valueobject.MonthlySummary;
@@ -58,8 +58,8 @@ public class ExpenseMapper {
         // 値オブジェクトからLocalDate値へ変換
         dto.setDate(expense.getDate() != null ? expense.getDate().toLocalDate() : null);
 
-        // 値オブジェクトからString値へ変換
-        dto.setCategory(expense.getCategory() != null ? expense.getCategory().getValue() : null);
+        // CategoryTypeから表示名へ変換
+        dto.setCategory(expense.getCategory() != null ? expense.getCategory().getDisplayName() : null);
 
         return dto;
     }
@@ -78,10 +78,10 @@ public class ExpenseMapper {
             return null;
         }
 
-        // プリミティブ型から値オブジェクトへ変換
+        // プリミティブ型から値オブジェクト・Enumへ変換
         ExpenseAmount amount = dto.getAmount() != null ? new ExpenseAmount(dto.getAmount()) : null;
         ExpenseDate date = dto.getDate() != null ? new ExpenseDate(dto.getDate()) : null;
-        Category category = dto.getCategory() != null ? new Category(dto.getCategory()) : null;
+        CategoryType category = dto.getCategory() != null ? CategoryType.fromDisplayName(dto.getCategory()) : null;
 
         return new Expense(
                 dto.getDescription(),
@@ -105,10 +105,10 @@ public class ExpenseMapper {
             return null;
         }
 
-        // プリミティブ型から値オブジェクトへ変換
+        // プリミティブ型から値オブジェクト・Enumへ変換
         ExpenseAmount amount = dto.getAmount() != null ? new ExpenseAmount(dto.getAmount()) : null;
         ExpenseDate date = dto.getDate() != null ? new ExpenseDate(dto.getDate()) : null;
-        Category category = dto.getCategory() != null ? new Category(dto.getCategory()) : null;
+        CategoryType category = dto.getCategory() != null ? CategoryType.fromDisplayName(dto.getCategory()) : null;
 
         return new Expense(
                 dto.getDescription(),
@@ -135,8 +135,8 @@ public class ExpenseMapper {
         ExpenseDate date = dto.getDate() != null
                 ? new ExpenseDate(dto.getDate())
                 : null;
-        Category category = dto.getCategory() != null
-                ? new Category(dto.getCategory())
+        CategoryType category = dto.getCategory() != null
+                ? CategoryType.fromDisplayName(dto.getCategory())
                 : null;
 
         return new ValueObjectsForUpdate(amount, date, category);
@@ -148,7 +148,7 @@ public class ExpenseMapper {
     public record ValueObjectsForUpdate(
             ExpenseAmount amount,
             ExpenseDate date,
-            Category category) {
+            CategoryType category) {
     }
 
     /**
@@ -173,7 +173,7 @@ public class ExpenseMapper {
         if (monthlySummary.getByCategory() != null) {
             for (CategorySummary categorySummary : monthlySummary.getByCategory()) {
                 com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner categoryDto = new com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner();
-                categoryDto.setCategory(categorySummary.getCategoryValue());
+                categoryDto.setCategory(categorySummary.getDisplayName());
                 categoryDto.setAmount(categorySummary.getAmount());
                 byCategoryList.add(categoryDto);
             }
