@@ -1,6 +1,6 @@
 package com.example.backend.application.service;
 
-import com.example.backend.domain.valueobject.Category;
+import com.example.backend.domain.valueobject.CategoryType;
 import com.example.backend.exception.QuotaExceededException;
 import com.example.backend.exception.AiServiceException;
 import org.slf4j.Logger;
@@ -70,7 +70,7 @@ public class AiCategoryService {
         }
 
         // 有効なカテゴリーリストを取得
-        List<String> validCategories = Category.getValidCategories();
+        List<String> validCategories = CategoryType.getValidDisplayNames();
         String categoriesList = String.join("、", validCategories);
 
         // システムプロンプトを構築
@@ -194,7 +194,7 @@ public class AiCategoryService {
      */
     private Map<String, String> predictCategoriesBatchChunk(List<String> descriptions) {
         // 有効なカテゴリーリストを取得
-        List<String> validCategories = Category.getValidCategories();
+        List<String> validCategories = CategoryType.getValidDisplayNames();
         String categoriesList = String.join("、", validCategories);
 
         // 説明文を番号付きリストとして構築

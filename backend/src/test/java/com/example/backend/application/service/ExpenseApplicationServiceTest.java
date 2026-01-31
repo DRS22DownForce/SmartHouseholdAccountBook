@@ -2,7 +2,7 @@ package com.example.backend.application.service;
 
 import com.example.backend.application.mapper.ExpenseMapper;
 import com.example.backend.domain.repository.ExpenseRepository;
-import com.example.backend.domain.valueobject.Category;
+import com.example.backend.domain.valueobject.CategoryType;
 import com.example.backend.domain.valueobject.ExpenseAmount;
 import com.example.backend.domain.valueobject.ExpenseDate;
 import com.example.backend.entity.Expense;
@@ -49,12 +49,12 @@ class ExpenseApplicationServiceTest {
         User user = new User("cognitoSub", "test@example.com");
         ExpenseAmount amount1 = new ExpenseAmount(1000);
         ExpenseDate date1 = new ExpenseDate(LocalDate.of(2024, 1, 1));
-        Category category1 = new Category("食費");
+        CategoryType category1 = CategoryType.FOOD;
         Expense expense1 = new Expense("支出1", amount1, date1, category1, user);
         
         ExpenseAmount amount2 = new ExpenseAmount(2000);
         ExpenseDate date2 = new ExpenseDate(LocalDate.of(2024, 1, 2));
-        Category category2 = new Category("交通費");
+        CategoryType category2 = CategoryType.TRANSPORT;
         Expense expense2 = new Expense("支出2", amount2, date2, category2, user);
         
         ExpenseDto dto1 = new ExpenseDto();
@@ -96,7 +96,7 @@ class ExpenseApplicationServiceTest {
         User user = new User("cognitoSub", "test@example.com");
         ExpenseAmount amount = new ExpenseAmount(1000);
         ExpenseDate date = new ExpenseDate(LocalDate.of(2024, 1, 1));
-        Category category = new Category("食費");
+        CategoryType category = CategoryType.FOOD;
         Expense expense = new Expense("テスト支出", amount, date, category, user);
         
         when(expenseMapper.toEntity(requestDto, user)).thenReturn(expense);
@@ -143,7 +143,7 @@ class ExpenseApplicationServiceTest {
         User user = new User("cognitoSub", "test@example.com");
         ExpenseAmount originalAmount = new ExpenseAmount(1000);
         ExpenseDate originalDate = new ExpenseDate(LocalDate.of(2024, 1, 1));
-        Category originalCategory = new Category("食費");
+        CategoryType originalCategory = CategoryType.FOOD;
         Expense existingExpense = new Expense("元の支出", originalAmount, originalDate, originalCategory, user);
 
         // 更新後の支出DTOをモック
@@ -156,7 +156,7 @@ class ExpenseApplicationServiceTest {
         // 更新用の値オブジェクトを準備
         ExpenseAmount updatedAmount = new ExpenseAmount(1500);
         ExpenseDate updatedDate = new ExpenseDate(LocalDate.of(2024, 1, 15));
-        Category updatedCategory = new Category("娯楽費");
+        CategoryType updatedCategory = CategoryType.ENTERTAINMENT;
         ExpenseMapper.ValueObjectsForUpdate valueObjectsForUpdate = 
             new ExpenseMapper.ValueObjectsForUpdate(updatedAmount, updatedDate, updatedCategory);
 
@@ -223,12 +223,12 @@ class ExpenseApplicationServiceTest {
         User user = new User("cognitoSub", "test@example.com");
         ExpenseAmount amount1 = new ExpenseAmount(1000);
         ExpenseDate date1 = new ExpenseDate(LocalDate.of(2024, 1, 1));
-        Category category1 = new Category("食費");
+        CategoryType category1 = CategoryType.FOOD;
         Expense expense1 = new Expense("支出1", amount1, date1, category1, user);
         
         ExpenseAmount amount2 = new ExpenseAmount(2000);
         ExpenseDate date2 = new ExpenseDate(LocalDate.of(2024, 1, 2));
-        Category category2 = new Category("交通費");
+        CategoryType category2 = CategoryType.TRANSPORT;
         Expense expense2 = new Expense("支出2", amount2, date2, category2, user);
 
         // モックの設定

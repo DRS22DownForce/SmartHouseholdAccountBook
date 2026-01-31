@@ -4,7 +4,7 @@ import com.example.backend.application.service.UserApplicationService;
 import com.example.backend.config.TestSecurityConfig;
 import com.example.backend.domain.repository.ExpenseRepository;
 import com.example.backend.domain.repository.UserRepository;
-import com.example.backend.domain.valueobject.Category;
+import com.example.backend.domain.valueobject.CategoryType;
 import com.example.backend.domain.valueobject.ExpenseAmount;
 import com.example.backend.domain.valueobject.ExpenseDate;
 import com.example.backend.entity.Expense;
@@ -89,7 +89,7 @@ class ExpenseControllerIntegrationTest {
         // 2. DBに保存されたか確認
         assertThat(expenseRepository.count()).isEqualTo(1);
         Expense saved = expenseRepository.findByUser(user).get(0);
-        assertThat(saved.getCategoryValue()).isEqualTo("食費");
+        assertThat(saved.getCategory().getDisplayName()).isEqualTo("食費");
 
         // 3. GETで家計簿データ一覧を取得
         mockMvc.perform(get("/api/expenses"))
@@ -103,7 +103,7 @@ class ExpenseControllerIntegrationTest {
         // 事前にデータを登録
         ExpenseAmount amount = new ExpenseAmount(500);
         ExpenseDate date = new ExpenseDate(LocalDate.now());
-        Category category = new Category("交通費");
+        CategoryType category = CategoryType.TRANSPORT;
         Expense expense = new Expense("バス代", amount, date, category, user);
         expense = expenseRepository.save(expense);
 
@@ -121,7 +121,7 @@ class ExpenseControllerIntegrationTest {
         // 事前にデータを登録
         ExpenseAmount amount = new ExpenseAmount(500);
         ExpenseDate date = new ExpenseDate(LocalDate.now());
-        Category category = new Category("交通費");
+        CategoryType category = CategoryType.TRANSPORT;
         Expense expense = new Expense("バス代", amount, date, category, user);
         expense = expenseRepository.save(expense);
 
@@ -141,10 +141,10 @@ class ExpenseControllerIntegrationTest {
         // 2. DBに更新されたことを確認
         Expense updated = expenseRepository.findById(expense.getId()).orElse(null);
         assertThat(updated).isNotNull();
-        assertThat(updated.getCategoryValue()).isEqualTo("食費");
-        assertThat(updated.getAmountValue()).isEqualTo(1000);
+        assertThat(updated.getCategory().getDisplayName()).isEqualTo("食費");
+        assertThat(updated.getAmount().toInteger()).isEqualTo(1000);
         assertThat(updated.getDescription()).isEqualTo("テスト");
-        assertThat(updated.getDateValue()).isEqualTo(LocalDate.now());
+        assertThat(updated.getDate().toLocalDate()).isEqualTo(LocalDate.now());
     }
 
     @Test
@@ -153,13 +153,13 @@ class ExpenseControllerIntegrationTest {
         // 事前にデータを登録
         ExpenseAmount amount1 = new ExpenseAmount(1000);
         ExpenseDate date1 = new ExpenseDate(LocalDate.of(2024, 1, 1));
-        Category category1 = new Category("食費");
+        CategoryType category1 = CategoryType.FOOD;
         Expense expense1 = new Expense("支出1", amount1, date1, category1, user);
         expenseRepository.save(expense1);
 
         ExpenseAmount amount2 = new ExpenseAmount(2000);
         ExpenseDate date2 = new ExpenseDate(LocalDate.of(2024, 1, 2));
-        Category category2 = new Category("交通費");
+        CategoryType category2 = CategoryType.TRANSPORT;
         Expense expense2 = new Expense("支出2", amount2, date2, category2, user);
         expenseRepository.save(expense2);
 
@@ -180,13 +180,13 @@ class ExpenseControllerIntegrationTest {
         // 事前にデータを登録（1月と2月）
         ExpenseAmount amount1 = new ExpenseAmount(1000);
         ExpenseDate date1 = new ExpenseDate(LocalDate.of(2024, 1, 1));
-        Category category1 = new Category("食費");
+        CategoryType category1 = CategoryType.FOOD;
         Expense expense1 = new Expense("支出1", amount1, date1, category1, user);
         expenseRepository.save(expense1);
 
         ExpenseAmount amount2 = new ExpenseAmount(2000);
         ExpenseDate date2 = new ExpenseDate(LocalDate.of(2024, 2, 1));
-        Category category2 = new Category("交通費");
+        CategoryType category2 = CategoryType.TRANSPORT;
         Expense expense2 = new Expense("支出2", amount2, date2, category2, user);
         expenseRepository.save(expense2);
 
@@ -206,13 +206,13 @@ class ExpenseControllerIntegrationTest {
         // 事前にデータを登録（異なる月）
         ExpenseAmount amount1 = new ExpenseAmount(1000);
         ExpenseDate date1 = new ExpenseDate(LocalDate.of(2024, 1, 1));
-        Category category1 = new Category("食費");
+        CategoryType category1 = CategoryType.FOOD;
         Expense expense1 = new Expense("支出1", amount1, date1, category1, user);
         expenseRepository.save(expense1);
 
         ExpenseAmount amount2 = new ExpenseAmount(2000);
         ExpenseDate date2 = new ExpenseDate(LocalDate.of(2024, 2, 1));
-        Category category2 = new Category("交通費");
+        CategoryType category2 = CategoryType.TRANSPORT;
         Expense expense2 = new Expense("支出2", amount2, date2, category2, user);
         expenseRepository.save(expense2);
 
@@ -230,13 +230,13 @@ class ExpenseControllerIntegrationTest {
         // 事前にデータを登録（異なる月）
         ExpenseAmount amount1 = new ExpenseAmount(1000);
         ExpenseDate date1 = new ExpenseDate(LocalDate.of(2024, 1, 1));
-        Category category1 = new Category("食費");
+        CategoryType category1 = CategoryType.FOOD;
         Expense expense1 = new Expense("支出1", amount1, date1, category1, user);
         expenseRepository.save(expense1);
 
         ExpenseAmount amount2 = new ExpenseAmount(2000);
         ExpenseDate date2 = new ExpenseDate(LocalDate.of(2024, 2, 1));
-        Category category2 = new Category("交通費");
+        CategoryType category2 = CategoryType.TRANSPORT;
         Expense expense2 = new Expense("支出2", amount2, date2, category2, user);
         expenseRepository.save(expense2);
 
