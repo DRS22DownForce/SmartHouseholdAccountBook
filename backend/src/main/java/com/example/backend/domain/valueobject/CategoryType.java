@@ -57,6 +57,20 @@ public enum CategoryType {
     }
 
     /**
+     * 表示名からEnumを取得
+     * 無効な表示名の場合、デフォルト値を返す
+     * @param displayName
+     * @return
+     */
+    public static CategoryType fromDisplayNameOrDefault(String displayName, CategoryType defaultValue) {
+        try {
+            return fromDisplayName(displayName);
+        } catch (IllegalArgumentException e) {
+            return defaultValue;
+        }
+    }
+
+    /**
      * 有効なカテゴリの表示名リストを取得
      */
     public static List<String> getValidDisplayNames() {
@@ -64,4 +78,6 @@ public enum CategoryType {
                 .map(CategoryType::getDisplayName)
                 .collect(Collectors.toUnmodifiableList());
     }
+
+
 }

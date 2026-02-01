@@ -60,8 +60,8 @@ public class AiCategoryService {
      * @param description 支出の説明文
      * @return 推論されたカテゴリー名（有効なカテゴリーリストに含まれる値）
      * @throws IllegalArgumentException 説明文が空の場合
-     * @throws QuotaExceededException OpenAI APIの利用枠（クォータ）を超過した場合
-     * @throws AiServiceException AIサービスとの通信でエラーが発生した場合
+     * @throws QuotaExceededException   OpenAI APIの利用枠（クォータ）を超過した場合
+     * @throws AiServiceException       AIサービスとの通信でエラーが発生した場合
      */
     public String predictCategory(String description) {
         // 入力バリデーション: 説明文が空でないことを確認
@@ -76,13 +76,12 @@ public class AiCategoryService {
         // システムプロンプトを構築
         // AIに対して、説明文から適切なカテゴリーを推論するよう指示します
         String systemPrompt = String.format(
-            "あなたは家計簿アプリのカテゴリー分類AIです。\n" +
-            "ユーザーが入力した支出の説明文から、最も適切なカテゴリーを1つだけ選んでください。\n\n" +
-            "有効なカテゴリーは以下の通りです:\n%s\n\n" +
-            "カテゴリー名のみを返してください。説明やその他のテキストは含めないでください。\n" +
-            "例: 「コンビニでお弁当を購入」→「食費」",
-            categoriesList
-        );
+                "あなたは家計簿アプリのカテゴリー分類AIです。\n" +
+                        "ユーザーが入力した支出の説明文から、最も適切なカテゴリーを1つだけ選んでください。\n\n" +
+                        "有効なカテゴリーは以下の通りです:\n%s\n\n" +
+                        "カテゴリー名のみを返してください。説明やその他のテキストは含めないでください。\n" +
+                        "例: 「コンビニでお弁当を購入」→「食費」",
+                categoriesList);
 
         // OpenAI APIリクエストボディを作成
         Map<String, Object> requestBody = new HashMap<>();
@@ -126,8 +125,8 @@ public class AiCategoryService {
 
         // レスポンス検証: AIが返したカテゴリーが有効なカテゴリーリストに含まれることを確認
         if (!validCategories.contains(predictedCategory)) {
-            logger.warn("AIが無効なカテゴリーを返しました: 説明文={}, 返されたカテゴリー={}, デフォルト「その他」を使用", 
-                description, predictedCategory);
+            logger.warn("AIが無効なカテゴリーを返しました: 説明文={}, 返されたカテゴリー={}, デフォルト「その他」を使用",
+                    description, predictedCategory);
             return "その他";
         }
 
@@ -143,44 +142,35 @@ public class AiCategoryService {
      * 大量のデータ（BATCH_SIZEを超える場合）は自動的にチャンクに分割して処理します。
      * 
      * @param descriptions 支出の説明文のリスト
-     * @return 説明文とカテゴリーのマッピング（説明文 → カテゴリー名）
+     * @return 説明文とカテゴリーのマッピング（説明文 → カテゴリー）
      *         分類に失敗した説明文は「その他」が設定されます
      */
-    public Map<String, String> predictCategoriesBatch(List<String> descriptions) {
-        if (descriptions == null || descriptions.isEmpty()) {
+    public Map<String, CategoryType> predictCategoriesBatch(List<String> descriptions) {
+        if (descriptions.isEmpty()) {
+            logger.info("説明文のリストが空のため、空のマッピングを返します。");
             return new HashMap<>();
         }
 
         // 空の説明文をフィルタリング
         List<String> validDescriptions = descriptions.stream()
-            .filter(desc -> desc != null && !desc.trim().isEmpty())
-            .distinct() // 重複を除去
-            .toList();
+                .filter(desc -> desc != null && !desc.trim().isEmpty())
+                .distinct() // 重複を除去
+                .toList();
 
         if (validDescriptions.isEmpty()) {
+            logger.info("有効な説明文がないため、空のマッピングを返します。");
             return new HashMap<>();
         }
 
-        Map<String, String> resultMap = new LinkedHashMap<>();
-        
+        Map<String, CategoryType> resultMap = new LinkedHashMap<>();
+
         // チャンクに分割して処理
         for (int i = 0; i < validDescriptions.size(); i += BATCH_SIZE) {
             int end = Math.min(i + BATCH_SIZE, validDescriptions.size());
             List<String> chunk = validDescriptions.subList(i, end);
-            
-            try {
-                Map<String, String> chunkResult = predictCategoriesBatchChunk(chunk);
-                resultMap.putAll(chunkResult);
-            } catch (Exception e) {
-                // チャンク処理でエラーが発生した場合、警告ログを出力
-                // チャンクサイズとエラーメッセージを記録します
-                logger.warn("AIカテゴリ分類のチャンク処理でエラーが発生しました: チャンクサイズ={}, エラー={}", 
-                    chunk.size(), e.getMessage(), e);
-                // そのチャンクのすべての説明文に「その他」を設定
-                for (String description : chunk) {
-                    resultMap.put(description, "その他");
-                }
-            }
+
+            Map<String, CategoryType> chunkResult = predictCategoriesBatchChunk(chunk);
+            resultMap.putAll(chunkResult);
         }
 
         return resultMap;
@@ -191,8 +181,10 @@ public class AiCategoryService {
      * 
      * @param descriptions 説明文のリスト（BATCH_SIZE以下）
      * @return 説明文とカテゴリーのマッピング
+     * @throws QuotaExceededException OpenAI APIの利用枠（クォータ）を超過した場合
+     * @throws AiServiceException     AIサービスとの通信でエラーが発生した場合
      */
-    private Map<String, String> predictCategoriesBatchChunk(List<String> descriptions) {
+    private Map<String, CategoryType> predictCategoriesBatchChunk(List<String> descriptions) {
         // 有効なカテゴリーリストを取得
         List<String> validCategories = CategoryType.getValidDisplayNames();
         String categoriesList = String.join("、", validCategories);
@@ -205,20 +197,19 @@ public class AiCategoryService {
 
         // システムプロンプトを構築
         String systemPrompt = String.format(
-            "あなたは家計簿アプリのカテゴリー分類AIです。\n" +
-            "以下の支出の説明文のリストから、それぞれの説明文に最も適切なカテゴリーを1つずつ選んでください。\n\n" +
-            "有効なカテゴリーは以下の通りです:\n%s\n\n" +
-            "結果をJSON形式で返してください。形式は以下の通りです:\n" +
-            "{\n" +
-            "  \"1\": \"カテゴリー名\",\n" +
-            "  \"2\": \"カテゴリー名\",\n" +
-            "  ...\n" +
-            "}\n\n" +
-            "各説明文の番号をキーとして、対応するカテゴリー名を値として返してください。\n" +
-            "カテゴリー名のみを返してください。説明やその他のテキストは含めないでください。\n" +
-            "例: {\"1\": \"食費\", \"2\": \"交通費\"}",
-            categoriesList
-        );
+                "あなたは家計簿アプリのカテゴリー分類AIです。\n" +
+                        "以下の支出の説明文のリストから、それぞれの説明文に最も適切なカテゴリーを1つずつ選んでください。\n\n" +
+                        "有効なカテゴリーは以下の通りです:\n%s\n\n" +
+                        "結果をJSON形式で返してください。形式は以下の通りです:\n" +
+                        "{\n" +
+                        "  \"1\": \"カテゴリー名\",\n" +
+                        "  \"2\": \"カテゴリー名\",\n" +
+                        "  ...\n" +
+                        "}\n\n" +
+                        "各説明文の番号をキーとして、対応するカテゴリー名を値として返してください。\n" +
+                        "カテゴリー名のみを返してください。説明やその他のテキストは含めないでください。\n" +
+                        "例: {\"1\": \"食費\", \"2\": \"交通費\"}",
+                categoriesList);
 
         // ユーザープロンプトを構築
         String userPrompt = "以下の支出の説明文を分類してください:\n\n" + descriptionsList.toString();
@@ -234,48 +225,36 @@ public class AiCategoryService {
         try {
             // OpenAI APIを呼び出し
             OpenAiChatResponse response = restClient.post()
-                    .uri(Objects.requireNonNull(openAiApiUrl))
+                    .uri(openAiApiUrl)
                     .header("Authorization", "Bearer " + openAiApiKey)
-                    .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                    .contentType(MediaType.APPLICATION_JSON)
                     .body(requestBody)
                     .retrieve()
                     .body(OpenAiChatResponse.class);
 
             // レスポンスからJSONを抽出
-            if (response != null && response.choices() != null && !response.choices().isEmpty()) {
-                OpenAiChatMessage message = response.choices().get(0).message();
-                if (message != null && message.content() != null) {
-                    String jsonContent = message.content().trim();
-                    
-                    // JSONをパース
-                    Map<String, String> categoryMap = objectMapper.readValue(
-                        jsonContent,
-                        new TypeReference<Map<String, String>>() {}
-                    );
+            OpenAiChatMessage message = response.choices().get(0).message();
+            String jsonContent = message.content().trim();
 
-                    // 説明文とカテゴリーのマッピングを作成
-                    Map<String, String> resultMap = new LinkedHashMap<>();
-                    for (int i = 0; i < descriptions.size(); i++) {
-                        String description = descriptions.get(i);
-                        String key = String.valueOf(i + 1);
-                        String category = categoryMap.get(key);
-                        
-                        // カテゴリーが取得できた場合、有効性を検証
-                        if (category != null && !category.trim().isEmpty()) {
-                            category = category.trim();
-                            if (!validCategories.contains(category)) {
-                                category = "その他";
-                            }
-                        } else {
-                            category = "その他";
-                        }
-                        
-                        resultMap.put(description, category);
-                    }
-                    
-                    return resultMap;
-                }
+            // JSONをパース
+            Map<String, String> categoryMap = objectMapper.readValue(
+                    jsonContent,
+                    new TypeReference<Map<String, String>>() {
+                    });
+
+            // JSONの型チェック
+            validateCategoryMapFormat(categoryMap, descriptions.size());
+
+            // 説明文とカテゴリーのマッピングを作成
+            Map<String, CategoryType> resultMap = new LinkedHashMap<>();
+            for (int i = 0; i < descriptions.size(); i++) {
+                String description = descriptions.get(i);
+                String key = String.valueOf(i + 1);
+                CategoryType category = CategoryType.fromDisplayNameOrDefault(categoryMap.get(key), CategoryType.OTHER);
+                resultMap.put(description, category);
             }
+            return resultMap;
+
         } catch (HttpClientErrorException.TooManyRequests e) {
             // レート制限エラーの場合、警告ログを出力
             // チャンクサイズを記録して、どのくらいのデータ量で問題が発生したかを把握できます
@@ -284,23 +263,51 @@ public class AiCategoryService {
         } catch (Exception e) {
             // JSONパースエラーなど、その他のエラーの場合、エラーログを出力
             // チャンクサイズとエラーメッセージを記録します
-            logger.error("AIサービスとの通信でエラーが発生しました: チャンクサイズ={}, エラー={}", 
-                descriptions.size(), e.getMessage(), e);
+            logger.error("AIサービスとの通信でエラーが発生しました: チャンクサイズ={}, エラー={}",
+                    descriptions.size(), e.getMessage(), e);
             throw new AiServiceException("AIサービスとの通信でエラーが発生しました: " + e.getMessage(), e);
         }
+    }
 
-        // AI応答が取得できなかった場合、警告ログを出力
-        // すべて「その他」を設定して処理を続行します
-        logger.warn("AIからの応答を取得できませんでした: チャンクサイズ={}, すべて「その他」を設定", descriptions.size());
-        Map<String, String> defaultResult = new LinkedHashMap<>();
-        for (String description : descriptions) {
-            defaultResult.put(description, "その他");
+    /**
+     * AIの応答JSONが期待する形式か検証する
+     * 期待形式: {"1": "カテゴリー名", "2": "カテゴリー名", ...}
+     *
+     * @param categoryMap   パース済みのマップ
+     * @param expectedCount 期待するエントリ数（説明文の件数）
+     * @throws AiServiceException 形式が不正な場合
+     */
+    private void validateCategoryMapFormat(Map<String, String> categoryMap, int expectedCount) {
+        if (categoryMap == null) {
+            throw new AiServiceException("AIの応答が空です。JSON形式が不正です。");
         }
-        return defaultResult;
+        for (int i = 0; i < expectedCount; i++) {
+            String key = String.valueOf(i + 1);
+            if (!categoryMap.containsKey(key)) {
+                throw new AiServiceException(
+                        String.format("AIの応答にキー「%s」が含まれていません。期待される形式: {\"1\": \"カテゴリー名\", \"2\": \"カテゴリー名\", ...}",
+                                key));
+            }
+            Object value = categoryMap.get(key);
+            if (value == null) {
+                throw new AiServiceException(
+                        String.format("AIの応答のキー「%s」の値がnullです。", key));
+            }
+            if (!(value instanceof String)) {
+                throw new AiServiceException(
+                        String.format("AIの応答のキー「%s」の値が文字列ではありません。型: %s",
+                                key, value.getClass().getSimpleName()));
+            }
+        }
     }
 
     // OpenAI APIのレスポンスをパースするためのレコードクラス
-    private record OpenAiChatResponse(List<OpenAiChatChoice> choices) {}
-    private record OpenAiChatChoice(OpenAiChatMessage message) {}
-    private record OpenAiChatMessage(String content) {}
+    private record OpenAiChatResponse(List<OpenAiChatChoice> choices) {
+    }
+
+    private record OpenAiChatChoice(OpenAiChatMessage message) {
+    }
+
+    private record OpenAiChatMessage(String content) {
+    }
 }

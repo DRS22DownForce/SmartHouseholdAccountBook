@@ -159,7 +159,7 @@ public class CsvExpenseService {
                     .toList();
 
             // AIカテゴリ分類をバッチ処理で実行
-            Map<String, String> categoryMap = new LinkedHashMap<>();
+            Map<String, CategoryType> categoryMap = new LinkedHashMap<String, CategoryType>();
             if (!descriptions.isEmpty()) {
                 categoryMap = aiCategoryService.predictCategoriesBatch(descriptions);
             }
@@ -197,7 +197,7 @@ public class CsvExpenseService {
     private List<Expense> createExpenseEntities(
             List<CsvParserService.CsvParsedExpense> parsedExpenses,
             User user,
-            Map<String, String> categoryMap,
+            Map<String, CategoryType> categoryMap,
             boolean isFallback) {
         List<Expense> expenses = new ArrayList<>();
 
@@ -207,20 +207,14 @@ public class CsvExpenseService {
             ExpenseDate date = new ExpenseDate(parsed.date());
 
             // カテゴリを決定
-            String categoryValue;
-            if (isFallback || categoryMap == null) {
-                // フォールバック処理またはカテゴリマップがnullの場合
-                categoryValue = "その他";
+            CategoryType category;
+            if (isFallback) {
+                // フォールバック処理
+                category = CategoryType.OTHER;
             } else {
                 // AI分類結果を使用
-                String description = parsed.description();
-                if (description != null && !description.trim().isEmpty() && categoryMap.containsKey(description)) {
-                    categoryValue = categoryMap.get(description);
-                } else {
-                    categoryValue = "その他";
-                }
+                category = categoryMap.getOrDefault(parsed.description(), CategoryType.OTHER);
             }
-            CategoryType category = CategoryType.fromDisplayName(categoryValue);
 
             // エンティティを作成
             Expense expense = new Expense(
