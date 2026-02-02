@@ -1,5 +1,10 @@
 package com.example.backend.application.service;
 
+import com.example.backend.application.service.csv.CsvFormat;
+import com.example.backend.application.service.csv.CsvParseError;
+import com.example.backend.application.service.csv.CsvParsedExpense;
+import com.example.backend.application.service.csv.CsvParseResult;
+import com.example.backend.application.service.csv.CsvParserFactory;
 import com.example.backend.domain.repository.ExpenseRepository;
 import com.example.backend.domain.valueobject.CategoryType;
 import com.example.backend.domain.valueobject.ExpenseAmount;
@@ -21,7 +26,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * CSV支出処理サービス
@@ -37,25 +41,17 @@ public class CsvExpenseService {
 
     private final ExpenseRepository expenseRepository;
     private final UserApplicationService userApplicationService;
-    private final CsvParserService csvParserService;
+    private final CsvParserFactory csvParserFactory;
     private final AiCategoryService aiCategoryService;
 
-    /**
-     * コンストラクタ
-     * 
-     * @param expenseRepository      支出リポジトリ
-     * @param userApplicationService ユーザーアプリケーションサービス
-     * @param csvParserService       CSV解析サービス
-     * @param aiCategoryService      AIカテゴリ分類サービス
-     */
     public CsvExpenseService(
             ExpenseRepository expenseRepository,
             UserApplicationService userApplicationService,
-            CsvParserService csvParserService,
+            CsvParserFactory csvParserFactory,
             AiCategoryService aiCategoryService) {
         this.expenseRepository = expenseRepository;
         this.userApplicationService = userApplicationService;
-        this.csvParserService = csvParserService;
+        this.csvParserFactory = csvParserFactory;
         this.aiCategoryService = aiCategoryService;
     }
 
@@ -66,7 +62,7 @@ public class CsvExpenseService {
      * 部分成功をサポートし、一部の行でエラーが発生しても、正常な行は保存されます。
      * 
      * 処理フロー:
-     * 1. CSVファイルを解析（CsvParserServiceを使用）
+     * 1. CSVファイルを解析（CsvParserFactoryで取得したパーサーを使用）
      * 2. ユーザー情報を取得
      * 3. AIカテゴリ分類を適用してエンティティを作成
      * 4. データベースに一括保存
@@ -78,14 +74,10 @@ public class CsvExpenseService {
      * @return CSVアップロード結果（成功件数、エラー件数、エラー詳細）
      * @throws CsvUploadException ファイルの読み込みに失敗した場合、または処理中にエラーが発生した場合
      */
-    public CsvUploadResult uploadCsvAndAddExpenses(MultipartFile file, CsvParserService.CsvFormat csvFormat) {
-        Objects.requireNonNull(file, "ファイルはnullであってはなりません");
-        Objects.requireNonNull(csvFormat, "CSV形式はnullであってはなりません");
-
-        // CSVファイルを解析（指定された形式を使用）
-        CsvParserService.CsvParseResult parseResult;
+    public CsvUploadResult uploadCsvAndAddExpenses(MultipartFile file, CsvFormat csvFormat) {
+        CsvParseResult parseResult;
         try {
-            parseResult = csvParserService.parseCsv(file.getInputStream(), csvFormat);
+            parseResult = csvParserFactory.getParser(csvFormat).parse(file.getInputStream());
         } catch (IOException e) {
             logger.error("CSVファイルの読み込みに失敗しました", e);
             throw new CsvUploadException(
@@ -106,10 +98,7 @@ public class CsvExpenseService {
                     parseResult.errors());
         }
 
-        // ユーザー情報を取得
-        User user = Objects.requireNonNull(
-                userApplicationService.getUser(),
-                "ユーザー情報の取得に失敗しました");
+        User user = userApplicationService.getUser();
 
         // AIカテゴリ分類を適用してエンティティを作成
         List<Expense> expenses = applyAiCategoryClassificationAndCreateEntities(
@@ -143,18 +132,15 @@ public class CsvExpenseService {
      * @throws IllegalArgumentException parsedExpensesがnullまたは空の場合
      */
     private List<Expense> applyAiCategoryClassificationAndCreateEntities(
-            List<CsvParserService.CsvParsedExpense> parsedExpenses,
+            List<CsvParsedExpense> parsedExpenses,
             User user) {
-
-        Objects.requireNonNull(parsedExpenses, "解析された支出データのリストはnullであってはなりません");
         if (parsedExpenses.isEmpty()) {
-            throw new IllegalArgumentException("解析された支出データのリストは空であってはなりません。呼び出し元で空チェックを実施してください。");
+            throw new IllegalArgumentException("解析された支出データのリストは空です");
         }
 
         try {
-            // 説明文を収集（nullや空文字列を除外）
             List<String> descriptions = parsedExpenses.stream()
-                    .map(CsvParserService.CsvParsedExpense::description)
+                    .map(CsvParsedExpense::description)
                     .filter(desc -> desc != null && !desc.trim().isEmpty())
                     .toList();
 
@@ -195,13 +181,13 @@ public class CsvExpenseService {
      * @return エンティティのリスト
      */
     private List<Expense> createExpenseEntities(
-            List<CsvParserService.CsvParsedExpense> parsedExpenses,
+            List<CsvParsedExpense> parsedExpenses,
             User user,
             Map<String, CategoryType> categoryMap,
             boolean isFallback) {
         List<Expense> expenses = new ArrayList<>();
 
-        for (CsvParserService.CsvParsedExpense parsed : parsedExpenses) {
+        for (CsvParsedExpense parsed : parsedExpenses) {
             // 値オブジェクトを作成
             ExpenseAmount amount = new ExpenseAmount(parsed.amount());
             ExpenseDate date = new ExpenseDate(parsed.date());
@@ -242,6 +228,6 @@ public class CsvExpenseService {
     public record CsvUploadResult(
             int successCount,
             int errorCount,
-            List<CsvParserService.CsvParseError> errors) {
+            List<CsvParseError> errors) {
     }
 }

@@ -2,7 +2,7 @@ package com.example.backend.controller;
 
 import com.example.backend.application.mapper.ExpenseMapper;
 import com.example.backend.application.service.CsvExpenseService;
-import com.example.backend.application.service.CsvParserService;
+import com.example.backend.application.service.csv.CsvFormat;
 import com.example.backend.application.service.ExpenseApplicationService;
 import com.example.backend.domain.valueobject.MonthlySummary;
 import com.example.backend.generated.api.ExpensesApi;
@@ -182,8 +182,7 @@ public class ExpenseController implements ExpensesApi {
                     "無効なCSV形式です。MITSUISUMITOMO_OLD_FORMAT（三井住友カード 2025/12以前）またはMITSUISUMITOMO_NEW_FORMAT（三井住友カード 2026/1以降）を指定してください");
         }
 
-        // CsvFormat列挙型に変換
-        CsvParserService.CsvFormat format = CsvParserService.CsvFormat.valueOf(csvFormat);
+        CsvFormat format = CsvFormat.valueOf(csvFormat);
 
         // CSV処理を実行（部分成功をサポート）
         CsvExpenseService.CsvUploadResult result = csvExpenseService.uploadCsvAndAddExpenses(file, format);
