@@ -5,11 +5,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -25,12 +24,10 @@ import java.util.List;
  * 対応するCSVフォーマット（2つの形式に対応）:
  * 
  * 【三井住友カード 旧形式（2025/12以前）】
- * - ヘッダー行: ご利用日,ご利用店名 ※,ご利用金額,支払区分,今回回数,お支払い金額　現地通貨額,略称,換算レート,換算日
- * - 金額は3列目（インデックス2）
+ * - ご利用日,ご利用店名,ご利用金額,支払区分,今回回数,お支払い金額　現地通貨額,略称,換算レート,換算日
  * 
  * 【三井住友カード 新形式（2026/1以降）】
- * - ヘッダー行: ご利用日,ご利用店名 ※,カード,支払区分,分割回数,支払予定月,ご利用金額　現地通貨額　略称,換算レート,換算日
- * - 金額は7列目（インデックス6）以降
+ * - ご利用日,ご利用店名,カード,支払区分,分割回数,支払予定月,ご利用金額,（お支払い総額）,（内手数料）, 現地通貨額, 略称,換算レート,換算日
  * 
  * 【共通】
  * - カード情報行（スキップ）
@@ -42,146 +39,87 @@ public class CsvParserService {
 
     private static final Logger logger = LoggerFactory.getLogger(CsvParserService.class);
 
-    // 日付フォーマッター（1桁または2桁の月・日に対応）
+    // 日付フォーマッター
     // M: 1桁または2桁の月、d: 1桁または2桁の日
     private static final DateTimeFormatter INPUT_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy/M/d");
 
     /**
      * CSV形式の列挙型
      * 
+     * 各フォーマットはエンコーディングと列構造の情報を持つ。
      * 三井住友カードのクレジットカード明細のCSVフォーマットが変更されたため、2つの形式に対応します。
      * 将来的に他のカード会社を追加する際は、この列挙型を拡張するか、カード会社と形式を組み合わせた新しい列挙型を検討します。
      */
     public enum CsvFormat {
         /**
          * 三井住友カード 旧形式（2025/12以前）
-         * 列構成: ご利用日, ご利用店名, ご利用金額, 支払区分, 今回回数, ...
-         * 金額は3列目（インデックス2）
+         * 列: ご利用日,ご利用店名,ご利用金額,支払区分,今回回数,お支払い金額　現地通貨額,略称,換算レート,換算日
          */
-        MITSUISUMITOMO_OLD_FORMAT,
-        
+        MITSUISUMITOMO_OLD_FORMAT(Charset.forName("Shift_JIS"), 0, 1, 2, 3),
+
         /**
          * 三井住友カード 新形式（2026/1以降）
-         * 列構成: ご利用日, ご利用店名, カード, 支払区分, 分割回数, 支払予定月, ご利用金額, ...
-         * 金額は7列目（インデックス6）以降
+         * 列: ご利用日,ご利用店名,カード,支払区分,分割回数,支払予定月,ご利用金額,（お支払い総額）,（内手数料）,現地通貨額,略称,換算レート,換算日
          */
-        MITSUISUMITOMO_NEW_FORMAT
+        MITSUISUMITOMO_NEW_FORMAT(Charset.forName("Shift_JIS"), 0, 1, 6, 7);
+
+        private final Charset charset;
+        private final int dateColumnIndex;
+        private final int descriptionColumnIndex;
+        private final int amountColumnIndex;
+        private final int minColumnCount;
+
+        /**
+         * コンストラクタ
+         * 
+         * @param charset 文字エンコーディング
+         * @param dateColumnIndex 日付の列インデックス
+         * @param descriptionColumnIndex 説明の列インデックス
+         * @param amountColumnIndex 金額の列インデックス
+         * @param minColumnCount 最低列数
+         */
+        CsvFormat(Charset charset, int dateColumnIndex, int descriptionColumnIndex,
+                  int amountColumnIndex, int minColumnCount) {
+            this.charset = charset;
+            this.dateColumnIndex = dateColumnIndex;
+            this.descriptionColumnIndex = descriptionColumnIndex;
+            this.amountColumnIndex = amountColumnIndex;
+            this.minColumnCount = minColumnCount;
+        }
+
+        public Charset getCharset() {
+            return charset;
+        }
+
+        public int getDateColumnIndex() {
+            return dateColumnIndex;
+        }
+
+        public int getDescriptionColumnIndex() {
+            return descriptionColumnIndex;
+        }
+
+        public int getAmountColumnIndex() {
+            return amountColumnIndex;
+        }
+
+        public int getMinColumnCount() {
+            return minColumnCount;
+        }
     }
 
     /**
      * CSVファイルを解析してCsvParsedExpenseのリストに変換
      * 
-     * UTF-8とShift-JISの両方のエンコーディングに対応しています。
-     * 日本のクレジットカード明細はShift-JISで作成されることが多いため、
-     * まずShift-JISで試し、次にUTF-8で試します。
-     * より多くのデータが成功し、文字化けが少ない方の結果を返します。
+     * 各フォーマットに定義されたエンコーディング（Charset）で1回だけ解析します。
+     * 三井住友カードはShift-JIS、将来的にUTF-8のフォーマットを追加する場合はenumにStandardCharsets.UTF_8を指定します。
      * 
      * @param inputStream CSVファイルの入力ストリーム
-     * @param csvFormat CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード 2025/12以前、MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 2026/1以降）
+     * @param csvFormat CSV形式（フォーマットごとのエンコーディング・列構造で解析）
      * @return 解析結果（成功したデータとエラー情報を含む）
      */
-    public CsvParseResult parseCsv(InputStream inputStream, CsvFormat csvFormat) {
-        // ストリームを読み込んでバイト配列に変換（複数のエンコーディングを試すため）
-        byte[] bytes;
-        try {
-            bytes = inputStream.readAllBytes();
-        } catch (Exception e) {
-            // CSVファイルの読み込みに失敗した場合、エラーログを出力
-            // logger.error()は重大なエラーを記録します
-            // 第1引数: メッセージ、第2引数: 例外オブジェクト（スタックトレースも記録されます）
-            logger.error("CSVファイルの読み込みに失敗しました", e);
-            return new CsvParseResult(
-                new ArrayList<>(),
-                List.of(new CsvParseError(0, "", "CSVファイルの読み込みに失敗しました: " + e.getMessage()))
-            );
-        }
-
-        // まずShift-JISで試す（日本のクレジットカード明細はShift-JISが多い）
-        CsvParseResult shiftJisResult = null;
-        try {
-            Charset shiftJis = Charset.forName("Shift_JIS");
-            shiftJisResult = parseCsvWithEncoding(new ByteArrayInputStream(bytes), shiftJis, csvFormat);
-        } catch (Exception e) {
-            // Shift-JISがサポートされていない場合は無視
-        }
-
-        // UTF-8で試す
-        CsvParseResult utf8Result = parseCsvWithEncoding(new ByteArrayInputStream(bytes), StandardCharsets.UTF_8, csvFormat);
-
-        // どちらの結果が良いか判定
-        // 1. 成功したデータが多い方を選ぶ
-        // 2. 同じ場合は、文字化けが少ない方（日本語文字が含まれている方）を選ぶ
-        if (shiftJisResult != null) {
-            int shiftJisScore = calculateScore(shiftJisResult);
-            int utf8Score = calculateScore(utf8Result);
-            
-            if (shiftJisScore > utf8Score) {
-                return shiftJisResult;
-            } else if (utf8Score > shiftJisScore) {
-                return utf8Result;
-            } else {
-                // スコアが同じ場合は、成功したデータが多い方を選ぶ
-                if (shiftJisResult.validExpenses().size() >= utf8Result.validExpenses().size()) {
-                    return shiftJisResult;
-                }
-            }
-        }
-
-        // Shift-JISの結果が取得できなかった場合はUTF-8の結果を返す
-        return utf8Result;
-    }
-
-    /**
-     * 解析結果のスコアを計算
-     * 
-     * 成功したデータの数と、日本語文字が含まれているかを考慮してスコアを計算します。
-     * 
-     * @param result 解析結果
-     * @return スコア（高いほど良い）
-     */
-    private int calculateScore(CsvParseResult result) {
-        int score = result.validExpenses().size() * 10; // 成功したデータ1件につき10点
-        
-        // 日本語文字が含まれているデータの数をカウント
-        int japaneseCount = 0;
-        for (CsvParsedExpense expense : result.validExpenses()) {
-            String description = expense.description();
-            if (description != null && containsJapanese(description)) {
-                japaneseCount++;
-            }
-        }
-        
-        score += japaneseCount * 5; // 日本語が含まれているデータ1件につき5点追加
-        score -= result.errors().size(); // エラー1件につき1点減点
-        
-        return score;
-    }
-
-    /**
-     * 文字列に日本語文字（ひらがな、カタカナ、漢字）が含まれているかチェック
-     * 
-     * @param text チェックする文字列
-     * @return 日本語文字が含まれている場合true
-     */
-    private boolean containsJapanese(String text) {
-        if (text == null || text.isEmpty()) {
-            return false;
-        }
-        
-        // 文字化け文字（）が含まれている場合は文字化けしていると判断
-        if (text.contains("")) {
-            return false;
-        }
-        
-        // ひらがな、カタカナ、漢字の範囲をチェック
-        for (char c : text.toCharArray()) {
-            if ((c >= 0x3040 && c <= 0x309F) || // ひらがな
-                (c >= 0x30A0 && c <= 0x30FF) || // カタカナ
-                (c >= 0x4E00 && c <= 0x9FAF)) { // 漢字
-                return true;
-            }
-        }
-        return false;
+    public CsvParseResult parseCsv(InputStream inputStream, CsvFormat csvFormat) throws IOException {
+        return parseCsvWithEncoding(inputStream, csvFormat.getCharset(), csvFormat);
     }
 
     /**
@@ -275,13 +213,13 @@ public class CsvParserService {
         // CSV行をカンマで分割
         String[] columns = line.split(",", -1);
 
-        // 最低限の列数チェック（日付、店名、金額は必須）
-        if (columns.length < 3) {
-            throw new IllegalArgumentException("列数が不足しています（最低3列必要）");
+        // フォーマットごとの最低列数チェック
+        if (columns.length < format.getMinColumnCount()) {
+            throw new IllegalArgumentException("列数が不足しています（最低" + format.getMinColumnCount() + "列必要）");
         }
 
-        // 日付を取得（1列目）
-        String dateStr = columns[0].trim();
+        // 日付を取得（フォーマットごとの列インデックス）
+        String dateStr = columns[format.getDateColumnIndex()].trim();
         if (dateStr.isEmpty()) {
             throw new IllegalArgumentException("日付が空です");
         }
@@ -295,65 +233,30 @@ public class CsvParserService {
             throw new IllegalArgumentException("日付の形式が不正です（期待: YYYY/M/D または YYYY/MM/DD）: " + dateStr);
         }
 
-        // 店名を取得（2列目）→ 説明として使用
-        String description = columns[1].trim();
+        // 店名を取得（フォーマットごとの列インデックス）→ 説明として使用
+        String description = columns[format.getDescriptionColumnIndex()].trim();
         if (description.isEmpty()) {
             throw new IllegalArgumentException("店名が空です");
         }
 
-        // 金額を取得（形式に応じて適切な列から取得）
+        // 金額を取得（フォーマットごとの検索開始列から順に有効な金額を探す）
+        // 店名にカンマが含まれる場合など列がずれる可能性があるため、検索開始列以降を順に確認
         Integer amount = null;
-        
-        if (format == CsvFormat.MITSUISUMITOMO_OLD_FORMAT) {
-            // 旧形式: 金額は通常3列目（インデックス2）にあるが、
-            // 店名にカンマが含まれている場合など、列の位置がずれる可能性がある
-            // そのため、2列目以降を順に確認して、最初に見つかった有効な金額を使用
-            
-            // まず、通常の位置（3列目、インデックス2）を確認
-            if (columns.length > 2) {
-                String amountStr = columns[2].trim();
-                amount = tryParseAmount(amountStr, 2);
-            }
-            
-            // 3列目で金額が見つからない場合、他の列も順に確認（フォールバック）
-            // 店名にカンマが含まれている場合など、列の位置がずれる可能性があるため
-            if (amount == null) {
-                // 2列目以降を順に確認（店名の列はスキップするため、2列目から開始）
-                // tryParseAmountメソッドが適切に判定するため、ここでは全ての列を確認
-                for (int i = 2; i < columns.length; i++) {
-                    String candidateStr = columns[i].trim();
-                    if (!candidateStr.isEmpty()) {
-                        Integer candidateAmount = tryParseAmount(candidateStr, i);
-                        if (candidateAmount != null && candidateAmount > 0) {
-                            amount = candidateAmount;
-                            break; // 最初に見つかった有効な金額を使用
-                        }
-                    }
-                }
-            }
-            
-            // デバッグログ: 金額が見つからない場合の詳細情報
-            if (amount == null) {
-                logger.warn("旧形式の金額解析失敗: 行番号={}, 列数={}, 列内容={}", 
-                    lineNumber, columns.length, java.util.Arrays.toString(columns));
-            }
-        } else {
-            // 新形式: 金額は7列目（インデックス6）以降
-            // 6列目以降を順に確認して、最初に見つかった有効な金額を使用
-            for (int i = 6; i < columns.length; i++) {
-                String amountStr = columns[i].trim();
-                if (!amountStr.isEmpty()) {
-                    Integer candidateAmount = tryParseAmount(amountStr, i);
-                    if (candidateAmount != null && candidateAmount > 0) {
-                        amount = candidateAmount;
-                        break; // 最初に見つかった有効な金額を使用
-                    }
+        int amountStart = format.getAmountColumnIndex();
+        for (int i = amountStart; i < columns.length; i++) {
+            String candidateStr = columns[i].trim();
+            if (!candidateStr.isEmpty()) {
+                Integer candidateAmount = tryParseAmount(candidateStr, i);
+                if (candidateAmount != null && candidateAmount > 0) {
+                    amount = candidateAmount;
+                    break;
                 }
             }
         }
-        
-        // 金額が見つからない場合
+
         if (amount == null || amount <= 0) {
+            logger.warn("金額解析失敗: 行番号={}, フォーマット={}, 列数={}, 列内容={}",
+                lineNumber, format, columns.length, java.util.Arrays.toString(columns));
             throw new IllegalArgumentException("金額が見つかりません。形式に応じた列を確認しましたが、有効な金額が見つかりませんでした。");
         }
 

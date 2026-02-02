@@ -7,6 +7,7 @@ import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.time.LocalDate;
@@ -27,7 +28,7 @@ class CsvParserServiceTest {
 
     @Test
     @DisplayName("旧形式のCSVファイルを正常に解析できる")
-    void parseCsv_旧形式のCSVを正常に解析できる() {
+    void parseCsv_旧形式のCSVを正常に解析できる() throws IOException {
         // テストデータの準備（旧形式のCSV）
         // Shift-JISでエンコード（日本のクレジットカード明細はShift-JISが多いため）
         String csvContent = """
@@ -62,7 +63,7 @@ class CsvParserServiceTest {
 
     @Test
     @DisplayName("新形式のCSVファイルを正常に解析できる")
-    void parseCsv_新形式のCSVを正常に解析できる() {
+    void parseCsv_新形式のCSVを正常に解析できる() throws IOException {
         // テストデータの準備（新形式のCSV）
         // Shift-JISでエンコード（日本のクレジットカード明細はShift-JISが多いため）
         String csvContent = """
@@ -97,7 +98,7 @@ class CsvParserServiceTest {
 
     @Test
     @DisplayName("日付の形式が不正な場合はエラーを返す")
-    void parseCsv_日付の形式が不正な場合はエラーを返す() {
+    void parseCsv_日付の形式が不正な場合はエラーを返す() throws IOException {
         // テストデータの準備（日付が不正）
         // Shift-JISでエンコード
         String csvContent = """
@@ -120,7 +121,7 @@ class CsvParserServiceTest {
 
     @Test
     @DisplayName("金額が空の場合はエラーを返す")
-    void parseCsv_金額が空の場合はエラーを返す() {
+    void parseCsv_金額が空の場合はエラーを返す() throws IOException {
         // テストデータの準備（金額が空）
         // 注意: 実際のCSVでは、金額列が空の場合でも他の列から金額が解析される可能性があります
         // そのため、このテストケースでは、金額列が空で他の列も有効な金額として認識されない場合を想定します
@@ -155,7 +156,7 @@ class CsvParserServiceTest {
 
     @Test
     @DisplayName("店名が空の場合はエラーを返す")
-    void parseCsv_店名が空の場合はエラーを返す() {
+    void parseCsv_店名が空の場合はエラーを返す() throws IOException {
         // テストデータの準備（店名が空）
         // Shift-JISでエンコード
         String csvContent = """
@@ -178,7 +179,7 @@ class CsvParserServiceTest {
 
     @Test
     @DisplayName("空行はスキップされる")
-    void parseCsv_空行はスキップされる() {
+    void parseCsv_空行はスキップされる() throws IOException {
         // テストデータの準備（空行を含む）
         // Shift-JISでエンコード
         String csvContent = """
@@ -202,7 +203,7 @@ class CsvParserServiceTest {
 
     @Test
     @DisplayName("カード情報行はスキップされる")
-    void parseCsv_カード情報行はスキップされる() {
+    void parseCsv_カード情報行はスキップされる() throws IOException {
         // テストデータの準備（カード情報行を含む）
         // Shift-JISでエンコード
         String csvContent = """
@@ -225,7 +226,7 @@ class CsvParserServiceTest {
 
     @Test
     @DisplayName("全角数字を含む金額を正常に解析できる")
-    void parseCsv_全角数字を含む金額を正常に解析できる() {
+    void parseCsv_全角数字を含む金額を正常に解析できる() throws IOException {
         // テストデータの準備（全角数字を含む金額）
         // Shift-JISでエンコード
         String csvContent = """
@@ -248,7 +249,7 @@ class CsvParserServiceTest {
 
     @Test
     @DisplayName("カンマを含む金額を正常に解析できる")
-    void parseCsv_カンマを含む金額を正常に解析できる() {
+    void parseCsv_カンマを含む金額を正常に解析できる() throws IOException {
         // テストデータの準備（カンマを含む金額）
         // 注意: CSVのカンマ区切りと金額のカンマが競合するため、金額列にカンマを含む場合は
         // 実際のCSVでは引用符で囲まれるか、別の列に配置される可能性があります
@@ -275,7 +276,7 @@ class CsvParserServiceTest {
 
     @Test
     @DisplayName("複数のエラーが発生した場合は全て記録される")
-    void parseCsv_複数のエラーが発生した場合は全て記録される() {
+    void parseCsv_複数のエラーが発生した場合は全て記録される() throws IOException {
         // テストデータの準備（複数のエラーを含む）
         // 注意: 実際の動作では、一部の行が有効なデータとして解析される可能性があります
         // そのため、エラーが記録されていることを確認します
@@ -303,7 +304,7 @@ class CsvParserServiceTest {
 
     @Test
     @DisplayName("有効なデータとエラーが混在する場合")
-    void parseCsv_有効なデータとエラーが混在する場合() {
+    void parseCsv_有効なデータとエラーが混在する場合() throws IOException {
         // テストデータの準備（有効なデータとエラーが混在）
         // Shift-JISでエンコード
         String csvContent = """
@@ -327,7 +328,7 @@ class CsvParserServiceTest {
 
     @Test
     @DisplayName("新形式で金額が7列目以降にある場合を正常に解析できる")
-    void parseCsv_新形式で金額が7列目以降にある場合を正常に解析できる() {
+    void parseCsv_新形式で金額が7列目以降にある場合を正常に解析できる() throws IOException {
         // テストデータの準備（新形式、金額が7列目）
         // Shift-JISでエンコード
         String csvContent = """
@@ -350,7 +351,7 @@ class CsvParserServiceTest {
 
     @Test
     @DisplayName("1桁の月・日を含む日付を正常に解析できる")
-    void parseCsv_1桁の月日を含む日付を正常に解析できる() {
+    void parseCsv_1桁の月日を含む日付を正常に解析できる() throws IOException {
         // テストデータの準備（1桁の月・日）
         // Shift-JISでエンコード
         String csvContent = """
