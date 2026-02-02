@@ -8,7 +8,7 @@ import com.example.backend.domain.valueobject.MonthlySummary;
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.User;
 import com.example.backend.application.service.CsvExpenseService;
-import com.example.backend.application.service.CsvParserService;
+import com.example.backend.application.service.csv.CsvParseError;
 import com.example.backend.generated.model.CsvUploadResponseDto;
 import com.example.backend.generated.model.CsvUploadResponseDtoErrorsInner;
 import com.example.backend.generated.model.ExpenseDto;
@@ -216,7 +216,7 @@ public class ExpenseMapper {
      * @param error CSV解析エラー（行番号、行内容、エラーメッセージを含む）
      * @return エラー詳細DTO
      */
-    private CsvUploadResponseDtoErrorsInner toErrorDto(CsvParserService.CsvParseError error) {
+    private CsvUploadResponseDtoErrorsInner toErrorDto(CsvParseError error) {
         // エラー詳細DTOを作成
         // 行番号とエラーメッセージはコンストラクタで設定します
         CsvUploadResponseDtoErrorsInner errorDto = new CsvUploadResponseDtoErrorsInner(

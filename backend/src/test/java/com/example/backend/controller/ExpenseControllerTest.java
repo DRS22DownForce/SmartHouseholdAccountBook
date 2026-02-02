@@ -2,7 +2,8 @@ package com.example.backend.controller;
 
 import com.example.backend.application.mapper.ExpenseMapper;
 import com.example.backend.application.service.CsvExpenseService;
-import com.example.backend.application.service.CsvParserService;
+import com.example.backend.application.service.csv.CsvFormat;
+import com.example.backend.application.service.csv.CsvParseError;
 import com.example.backend.application.service.ExpenseApplicationService;
 import com.example.backend.generated.model.CsvUploadResponseDto;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,7 +70,7 @@ class ExpenseControllerTest {
                 new ArrayList<>());
         when(csvExpenseService.uploadCsvAndAddExpenses(
                 any(MultipartFile.class),
-                eq(CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT))).thenReturn(result);
+                eq(CsvFormat.MITSUISUMITOMO_OLD_FORMAT))).thenReturn(result);
 
         // Mapperのモック設定
         CsvUploadResponseDto expectedDto = new CsvUploadResponseDto();
@@ -92,7 +93,7 @@ class ExpenseControllerTest {
         // CSV支出処理サービスが正しく呼ばれたことを確認
         verify(csvExpenseService, times(1)).uploadCsvAndAddExpenses(
                 eq(mockFile),
-                eq(CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT));
+                eq(CsvFormat.MITSUISUMITOMO_OLD_FORMAT));
     }
 
     @Test
@@ -107,7 +108,7 @@ class ExpenseControllerTest {
                 new ArrayList<>());
         when(csvExpenseService.uploadCsvAndAddExpenses(
                 any(MultipartFile.class),
-                eq(CsvParserService.CsvFormat.MITSUISUMITOMO_NEW_FORMAT))).thenReturn(result);
+                eq(CsvFormat.MITSUISUMITOMO_NEW_FORMAT))).thenReturn(result);
 
         // Mapperのモック設定
         CsvUploadResponseDto expectedDto = new CsvUploadResponseDto();
@@ -129,7 +130,7 @@ class ExpenseControllerTest {
         // CSV支出処理サービスが正しく呼ばれたことを確認
         verify(csvExpenseService, times(1)).uploadCsvAndAddExpenses(
                 eq(mockFile),
-                eq(CsvParserService.CsvFormat.MITSUISUMITOMO_NEW_FORMAT));
+                eq(CsvFormat.MITSUISUMITOMO_NEW_FORMAT));
     }
 
     @Test
@@ -259,13 +260,13 @@ class ExpenseControllerTest {
         when(mockFile.getOriginalFilename()).thenReturn("test.csv");
 
         // エラーを含む解析結果を準備
-        List<CsvParserService.CsvParseError> errors = new ArrayList<>();
-        errors.add(new CsvParserService.CsvParseError(2, "2024/1/1,テスト店,1000", "日付の形式が不正です"));
+        List<CsvParseError> errors = new ArrayList<>();
+        errors.add(new CsvParseError(2, "2024/1/1,テスト店,1000", "日付の形式が不正です"));
 
         CsvExpenseService.CsvUploadResult result = new CsvExpenseService.CsvUploadResult(1, 1, errors);
         when(csvExpenseService.uploadCsvAndAddExpenses(
                 any(MultipartFile.class),
-                eq(CsvParserService.CsvFormat.MITSUISUMITOMO_OLD_FORMAT))).thenReturn(result);
+                eq(CsvFormat.MITSUISUMITOMO_OLD_FORMAT))).thenReturn(result);
 
         // Mapperのモック設定
         CsvUploadResponseDto expectedDto = new CsvUploadResponseDto();
@@ -308,7 +309,7 @@ class ExpenseControllerTest {
                 org.springframework.http.HttpStatus.BAD_REQUEST);
         when(csvExpenseService.uploadCsvAndAddExpenses(
                 any(MultipartFile.class),
-                any(CsvParserService.CsvFormat.class))).thenThrow(csvException);
+                any(CsvFormat.class))).thenThrow(csvException);
 
         // テスト実行と検証
         assertThrows(com.example.backend.exception.CsvUploadException.class, () -> {
@@ -330,7 +331,7 @@ class ExpenseControllerTest {
                 org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR);
         when(csvExpenseService.uploadCsvAndAddExpenses(
                 any(MultipartFile.class),
-                any(CsvParserService.CsvFormat.class))).thenThrow(csvException);
+                any(CsvFormat.class))).thenThrow(csvException);
 
         // テスト実行と検証
         assertThrows(com.example.backend.exception.CsvUploadException.class, () -> {
