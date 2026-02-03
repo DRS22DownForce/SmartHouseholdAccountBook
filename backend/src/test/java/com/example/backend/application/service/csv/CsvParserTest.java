@@ -127,7 +127,7 @@ class CsvParserTest {
 
             assertEquals(1, result.validExpenses().size());
             assertEquals(0, result.errors().size());
-            assertEquals("CURSOR", result.validExpenses().get(0).description());
+            assertEquals("CURSOR,AI POWERED IDE (CURSOR.COM )", result.validExpenses().get(0).description());
             assertEquals(3200, result.validExpenses().get(0).amount());
         }
 
