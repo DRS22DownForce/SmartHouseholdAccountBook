@@ -1,5 +1,7 @@
 package com.example.backend.application.service.csv;
 
+import com.example.backend.application.service.csv.model.CsvParseResult;
+
 import java.io.IOException;
 import java.io.InputStream;
 

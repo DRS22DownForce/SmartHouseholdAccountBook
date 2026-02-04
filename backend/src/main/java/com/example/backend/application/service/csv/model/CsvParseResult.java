@@ -1,4 +1,4 @@
-package com.example.backend.application.service.csv;
+package com.example.backend.application.service.csv.model;
 
 import java.util.List;
 

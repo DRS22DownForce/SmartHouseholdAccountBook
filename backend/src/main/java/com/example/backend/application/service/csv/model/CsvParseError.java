@@ -1,4 +1,4 @@
-package com.example.backend.application.service.csv;
+package com.example.backend.application.service.csv.model;
 
 /**
  * CSV解析エラーを保持するレコード

@@ -1,10 +1,10 @@
 package com.example.backend.application.service;
 
 import com.example.backend.application.service.csv.CsvFormat;
-import com.example.backend.application.service.csv.CsvParseError;
-import com.example.backend.application.service.csv.CsvParsedExpense;
-import com.example.backend.application.service.csv.CsvParseResult;
 import com.example.backend.application.service.csv.CsvParserFactory;
+import com.example.backend.application.service.csv.model.CsvParseError;
+import com.example.backend.application.service.csv.model.CsvParsedExpense;
+import com.example.backend.application.service.csv.model.CsvParseResult;
 import com.example.backend.domain.repository.ExpenseRepository;
 import com.example.backend.domain.valueobject.CategoryType;
 import com.example.backend.domain.valueobject.ExpenseAmount;
