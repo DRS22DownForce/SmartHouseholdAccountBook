@@ -2,8 +2,8 @@ package com.example.backend.controller;
 
 import com.example.backend.application.mapper.ExpenseMapper;
 import com.example.backend.application.service.CsvExpenseService;
-import com.example.backend.application.service.csv.CsvFormat;
 import com.example.backend.application.service.ExpenseApplicationService;
+import com.example.backend.application.service.csv.CsvFormat;
 import com.example.backend.domain.valueobject.MonthlySummary;
 import com.example.backend.generated.api.ExpensesApi;
 import com.example.backend.generated.model.CsvUploadResponseDto;
@@ -145,13 +145,6 @@ public class ExpenseController implements ExpensesApi {
      * CSVファイルアップロードエンドポイント
      * 
      * このメソッドはコントローラー層として、HTTPリクエストの受け取りとレスポンスの返却に専念します。
-     * 例外処理はService層で行われるため、ここでは例外をキャッチする必要はありません。
-     * 
-     * バリデーションエラー（処理開始前）はIllegalArgumentExceptionをスローし、
-     * GlobalExceptionHandlerでErrorResponseを返します。
-     * 部分成功の場合はCsvUploadResponseDtoを返します。
-     * 処理全体が失敗した場合はService層でCsvUploadExceptionがスローされ、
-     * GlobalExceptionHandlerでErrorResponseを返します。
      * 
      * @param file      アップロードされたCSVファイル
      * @param csvFormat CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード

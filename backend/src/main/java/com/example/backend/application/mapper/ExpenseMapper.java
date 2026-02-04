@@ -8,7 +8,7 @@ import com.example.backend.domain.valueobject.MonthlySummary;
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.User;
 import com.example.backend.application.service.CsvExpenseService;
-import com.example.backend.application.service.csv.CsvParseError;
+import com.example.backend.application.service.csv.model.CsvParseError;
 import com.example.backend.generated.model.CsvUploadResponseDto;
 import com.example.backend.generated.model.CsvUploadResponseDtoErrorsInner;
 import com.example.backend.generated.model.ExpenseDto;

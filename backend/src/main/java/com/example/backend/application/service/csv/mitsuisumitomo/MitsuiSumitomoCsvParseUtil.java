@@ -1,5 +1,8 @@
-package com.example.backend.application.service.csv;
+package com.example.backend.application.service.csv.mitsuisumitomo;
 
+import com.example.backend.application.service.csv.model.CsvParseError;
+import com.example.backend.application.service.csv.model.CsvParseResult;
+import com.example.backend.application.service.csv.model.CsvParsedExpense;
 import org.slf4j.Logger;
 
 import java.io.BufferedReader;
@@ -141,7 +144,7 @@ public final class MitsuiSumitomoCsvParseUtil {
         }
         String description = descriptionSb.toString();
 
-        return new CsvParsedExpense(description, date, amount, "その他"); //TODO: カテゴリーをデフォルトで入れなといけないデータ構造でいいのか
+        return new CsvParsedExpense(description, date, amount);
     }
 
     /**

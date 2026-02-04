@@ -3,7 +3,7 @@ package com.example.backend.controller;
 import com.example.backend.application.mapper.ExpenseMapper;
 import com.example.backend.application.service.CsvExpenseService;
 import com.example.backend.application.service.csv.CsvFormat;
-import com.example.backend.application.service.csv.CsvParseError;
+import com.example.backend.application.service.csv.model.CsvParseError;
 import com.example.backend.application.service.ExpenseApplicationService;
 import com.example.backend.generated.model.CsvUploadResponseDto;
 import org.junit.jupiter.api.BeforeEach;
