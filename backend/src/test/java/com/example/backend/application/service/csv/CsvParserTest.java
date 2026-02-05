@@ -14,7 +14,7 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.time.LocalDate;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.*;
 
 /**
  * CSVパーサーのユニットテスト
@@ -33,123 +33,175 @@ class CsvParserTest {
         @DisplayName("旧形式のCSVを正常に解析できる")
         void parse_正常に解析できる() throws IOException {
             String csvContent = """
-                ご利用日,ご利用店名 ※,ご利用金額,支払区分,今回回数,お支払い金額　現地通貨額,略称,換算レート,換算日
-                2024/1/1,テスト店1,1000,一括,1,1000,JPY,1.0,2024/1/1
-                2024/1/2,テスト店2,2000,一括,1,2000,JPY,1.0,2024/1/2
+                2025/11/01,やよい軒大阪店,1220,１,１,1220,
+                2025/11/01,マツモトキヨシ大阪駅前店,480,１,１,480,
                 """;
             InputStream inputStream = new ByteArrayInputStream(csvContent.getBytes(SHIFT_JIS));
 
             CsvParseResult result = parser.parse(inputStream);
 
-            assertEquals(2, result.validExpenses().size());
-            assertEquals(0, result.errors().size());
+            assertThat(result.validExpenses()).hasSize(2);
+            assertThat(result.errors()).isEmpty();
             CsvParsedExpense expense1 = result.validExpenses().get(0);
-            assertEquals("テスト店1", expense1.description());
-            assertEquals(LocalDate.of(2024, 1, 1), expense1.date());
-            assertEquals(1000, expense1.amount());
+            assertThat(expense1.description()).isEqualTo("やよい軒大阪店");
+            assertThat(expense1.date()).isEqualTo(LocalDate.of(2025, 11, 1));
+            assertThat(expense1.amount()).isEqualTo(1220);
             CsvParsedExpense expense2 = result.validExpenses().get(1);
-            assertEquals("テスト店2", expense2.description());
-            assertEquals(LocalDate.of(2024, 1, 2), expense2.date());
-            assertEquals(2000, expense2.amount());
+            assertThat(expense2.description()).isEqualTo("マツモトキヨシ大阪駅前店");
+            assertThat(expense2.date()).isEqualTo(LocalDate.of(2025, 11, 1));
+            assertThat(expense2.amount()).isEqualTo(480);
         }
 
         @Test
         @DisplayName("日付の形式が不正な場合はエラーを返す")
         void parse_日付が不正な場合はエラーを返す() throws IOException {
             String csvContent = """
-                ご利用日,ご利用店名 ※,ご利用金額,支払区分,今回回数,お支払い金額　現地通貨額,略称,換算レート,換算日
-                2024-1-1,テスト店1,1000,一括,1,1000,JPY,1.0,2024/1/1
+                2025-11-01,やよい軒大阪店,1220,１,１,1220,
                 """;
             InputStream inputStream = new ByteArrayInputStream(csvContent.getBytes(SHIFT_JIS));
 
             CsvParseResult result = parser.parse(inputStream);
 
-            assertEquals(0, result.validExpenses().size());
-            assertEquals(1, result.errors().size());
-            assertTrue(result.errors().get(0).message().contains("日付の形式が不正です"));
+            assertThat(result.validExpenses()).isEmpty();
+            assertThat(result.errors()).hasSize(1);
+            assertThat(result.errors().get(0).message()).isEqualTo("日付の形式が不正です: 2025-11-01");
         }
 
         @Test
         @DisplayName("店名が空の場合はエラーを返す")
         void parse_店名が空の場合はエラーを返す() throws IOException {
             String csvContent = """
-                ご利用日,ご利用店名 ※,ご利用金額,支払区分,今回回数,お支払い金額　現地通貨額,略称,換算レート,換算日
-                2024/1/1,,1000,一括,1,1000,JPY,1.0,2024/1/1
+                2025/11/01,,1220,１,１,1220,
                 """;
             InputStream inputStream = new ByteArrayInputStream(csvContent.getBytes(SHIFT_JIS));
 
             CsvParseResult result = parser.parse(inputStream);
 
-            assertEquals(0, result.validExpenses().size());
-            assertEquals(1, result.errors().size());
-            assertTrue(result.errors().get(0).message().contains("店名が空です"));
+            assertThat(result.validExpenses()).isEmpty();
+            assertThat(result.errors()).hasSize(1);
+            assertThat(result.errors().get(0).message()).isEqualTo("店名が空です");
         }
 
         @Test
         @DisplayName("空行はスキップされる")
         void parse_空行はスキップされる() throws IOException {
             String csvContent = """
-                ご利用日,ご利用店名 ※,ご利用金額,支払区分,今回回数,お支払い金額　現地通貨額,略称,換算レート,換算日
 
-                2024/1/1,テスト店1,1000,一括,1,1000,JPY,1.0,2024/1/1
+                2025/11/01,やよい軒大阪店,1220,１,１,1220,
 
                 """;
             InputStream inputStream = new ByteArrayInputStream(csvContent.getBytes(SHIFT_JIS));
 
             CsvParseResult result = parser.parse(inputStream);
 
-            assertEquals(1, result.validExpenses().size());
-            assertEquals(0, result.errors().size());
+            assertThat(result.validExpenses()).hasSize(1);
+            assertThat(result.errors()).isEmpty();
         }
 
         @Test
         @DisplayName("カード情報行はスキップされる")
         void parse_カード情報行はスキップされる() throws IOException {
             String csvContent = """
-                ご利用日,ご利用店名 ※,ご利用金額,支払区分,今回回数,お支払い金額　現地通貨額,略称,換算レート,換算日
-                テスト　ユーザー　様,4980-00**-****-****,三井住友ゴールドＶＩＳＡ（ＮＬ）
-                2024/1/1,テスト店1,1000,一括,1,1000,JPY,1.0,2024/1/1
+                テスト　ユーザー　様,1234-56**-****-****,三井住友ゴールドＶＩＳＡ（ＮＬ）
+                2025/11/01,やよい軒大阪店,1220,１,１,1220,
                 """;
             InputStream inputStream = new ByteArrayInputStream(csvContent.getBytes(SHIFT_JIS));
 
             CsvParseResult result = parser.parse(inputStream);
 
-            assertEquals(1, result.validExpenses().size());
-            assertEquals(0, result.errors().size());
+            assertThat(result.validExpenses()).hasSize(1);
+            assertThat(result.errors()).isEmpty();
         }
 
         @Test
         @DisplayName("店名にカンマが含まれる場合も正常に解析できる")
         void parse_店名にカンマが含まれる場合も解析できる() throws IOException {
             String csvContent = """
-                ご利用日,ご利用店名 ※,ご利用金額,支払区分,今回回数,お支払い金額　現地通貨額,略称,換算レート,換算日
-                2024/1/6,CURSOR, AI POWERED IDE (CURSOR.COM ),3200,１,１,3200,
+                2025/11/06,CURSOR, AI POWERED IDE (CURSOR.COM ),3200,１,１,3200,20.00　USD　160.042　11 06
                 """;
             InputStream inputStream = new ByteArrayInputStream(csvContent.getBytes(SHIFT_JIS));
 
             CsvParseResult result = parser.parse(inputStream);
 
-            assertEquals(1, result.validExpenses().size());
-            assertEquals(0, result.errors().size());
-            assertEquals("CURSOR,AI POWERED IDE (CURSOR.COM )", result.validExpenses().get(0).description());
-            assertEquals(3200, result.validExpenses().get(0).amount());
+            assertThat(result.validExpenses()).hasSize(1);
+            assertThat(result.errors()).isEmpty();
+            assertThat(result.validExpenses().get(0).description()).isEqualTo("CURSOR, AI POWERED IDE (CURSOR.COM )");
+            assertThat(result.validExpenses().get(0).amount()).isEqualTo(3200);
         }
 
         @Test
         @DisplayName("有効なデータとエラーが混在する場合")
         void parse_有効なデータとエラーが混在する場合() throws IOException {
             String csvContent = """
-                ご利用日,ご利用店名 ※,ご利用金額,支払区分,今回回数,お支払い金額　現地通貨額,略称,換算レート,換算日
-                2024/1/1,テスト店1,1000,一括,1,1000,JPY,1.0,2024/1/1
-                2024-1-2,テスト店2,2000,一括,1,2000,JPY,1.0,2024/1/2
-                2024/1/3,テスト店3,3000,一括,1,3000,JPY,1.0,2024/1/3
+                2025/11/01,やよい軒大阪店,1220,１,１,1220,
+                2025-11-02,マクドナルド,630,１,１,630,
+                2025/11/03,セブン－イレブン,195,１,１,195,
                 """;
             InputStream inputStream = new ByteArrayInputStream(csvContent.getBytes(SHIFT_JIS));
 
             CsvParseResult result = parser.parse(inputStream);
 
-            assertEquals(2, result.validExpenses().size());
-            assertEquals(1, result.errors().size());
+            assertThat(result.validExpenses()).hasSize(2);
+            assertThat(result.errors()).hasSize(1);
+            assertThat(result.errors().get(0).message()).isEqualTo("日付の形式が不正です: 2025-11-02");
+        }
+
+        @Test
+        @DisplayName("複数のカード情報行がある場合も正常に解析できる")
+        void parse_複数のカード情報行がある場合も解析できる() throws IOException {
+            String csvContent = """
+                テスト　ユーザー　様,1234-56**-****-****,三井住友ゴールドＶＩＳＡ（ＮＬ）
+                2025/11/01,やよい軒大阪店,1220,１,１,1220,
+                テスト　ユーザー　様,1234-56**-****-****,ＡｐｐｌｅＰａｙ／ｉＤ
+                2025/11/01,駅北口駐輪場／ｉＤ,120,１,１,120,
+                """;
+            InputStream inputStream = new ByteArrayInputStream(csvContent.getBytes(SHIFT_JIS));
+
+            CsvParseResult result = parser.parse(inputStream);
+
+            assertThat(result.validExpenses()).hasSize(2);
+            assertThat(result.errors()).isEmpty();
+            assertThat(result.validExpenses().get(0).description()).isEqualTo("やよい軒大阪店");
+            assertThat(result.validExpenses().get(1).description()).isEqualTo("駅北口駐輪場／ｉＤ");
+        }
+
+        @Test
+        @DisplayName("合計行はスキップされる")
+        void parse_合計行はスキップされる() throws IOException {
+            String csvContent = """
+                2025/11/01,やよい軒大阪店,1220,１,１,1220,
+                ,,,,,302155,
+                """;
+            InputStream inputStream = new ByteArrayInputStream(csvContent.getBytes(SHIFT_JIS));
+
+            CsvParseResult result = parser.parse(inputStream);
+
+            assertThat(result.validExpenses()).hasSize(1);
+            assertThat(result.errors()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("実際のCSVデータ形式で正常に解析できる")
+        void parse_実際のCSVデータ形式で解析できる() throws IOException {
+            String csvContent = """
+                テスト　ユーザー　様,1234-56**-****-****,三井住友ゴールドＶＩＳＡ（ＮＬ）
+                2025/11/01,やよい軒大阪店,1220,１,１,1220,
+                2025/11/01,マツモトキヨシ大阪駅前店,480,１,１,480,
+                2025/11/01,マクドナルド,630,１,１,630,
+                2025/11/06,CURSOR, AI POWERED IDE (CURSOR.COM ),3200,１,１,3200,20.00　USD　160.042　11 06
+                テスト　ユーザー　様,1234-56**-****-****,ＡｐｐｌｅＰａｙ／ｉＤ
+                2025/11/01,駅北口駐輪場／ｉＤ,120,１,１,120,
+                """;
+            InputStream inputStream = new ByteArrayInputStream(csvContent.getBytes(SHIFT_JIS));
+
+            CsvParseResult result = parser.parse(inputStream);
+
+            assertThat(result.validExpenses()).hasSize(5);
+            assertThat(result.errors()).isEmpty();
+            assertThat(result.validExpenses().get(0).description()).isEqualTo("やよい軒大阪店");
+            assertThat(result.validExpenses().get(0).amount()).isEqualTo(1220);
+            assertThat(result.validExpenses().get(3).description()).isEqualTo("CURSOR, AI POWERED IDE (CURSOR.COM )");
+            assertThat(result.validExpenses().get(3).amount()).isEqualTo(3200);
         }
     }
 
@@ -163,36 +215,39 @@ class CsvParserTest {
         @DisplayName("新形式のCSVを正常に解析できる")
         void parse_正常に解析できる() throws IOException {
             String csvContent = """
-                ご利用日,ご利用店名 ※,カード,支払区分,分割回数,支払予定月,ご利用金額　現地通貨額　略称,換算レート,換算日
-                2024/1/1,テスト店1,4980-00**-****-****,一括,1,'24/01,1000,JPY,1.0,2024/1/1
-                2024/1/2,テスト店2,4980-00**-****-****,一括,1,'24/01,2000,JPY,1.0,2024/1/2
+                2026/1/31,ＪＲ東日本モバイルＳｕｉｃａ,ご本人,1回払い,,'26/02,5000,5000,,,,,
+                2026/1/31,セブンーイレブン,ご本人,1回払い,,'26/02,754,754,,,,,
+                2026/1/28,ＡＰＰＬＥ  ＣＯＭ  ＢＩＬＬ,ご本人,1回払い,,'26/02,1450,1450,,,,,
                 """;
             InputStream inputStream = new ByteArrayInputStream(csvContent.getBytes(SHIFT_JIS));
 
             CsvParseResult result = parser.parse(inputStream);
 
-            assertEquals(2, result.validExpenses().size());
-            assertEquals(0, result.errors().size());
+            assertThat(result.validExpenses()).hasSize(3);
+            assertThat(result.errors()).isEmpty();
             CsvParsedExpense expense1 = result.validExpenses().get(0);
-            assertEquals("テスト店1", expense1.description());
-            assertEquals(LocalDate.of(2024, 1, 1), expense1.date());
-            assertEquals(1000, expense1.amount());
+            assertThat(expense1.description()).isEqualTo("ＪＲ東日本モバイルＳｕｉｃａ");
+            assertThat(expense1.date()).isEqualTo(LocalDate.of(2026, 1, 31));
+            assertThat(expense1.amount()).isEqualTo(5000);
+            CsvParsedExpense expense2 = result.validExpenses().get(1);
+            assertThat(expense2.description()).isEqualTo("セブンーイレブン");
+            assertThat(expense2.amount()).isEqualTo(754);
         }
 
         @Test
-        @DisplayName("金額が7列目にある場合を正常に解析できる")
-        void parse_金額が7列目にある場合を解析できる() throws IOException {
+        @DisplayName("店名にカンマとスペースが含まれる場合も正常に解析できる")
+        void parse_店名にカンマとスペースが含まれる場合も解析できる() throws IOException {
             String csvContent = """
-                ご利用日,ご利用店名 ※,カード,支払区分,分割回数,支払予定月,ご利用金額　現地通貨額　略称,換算レート,換算日
-                2024/1/1,テスト店1,4980-00**-****-****,一括,1,'24/01,5000,JPY,1.0,2024/1/1
+                2026/1/6,ＣＵＲＳＯＲ，  ＡＩ  ＰＯＷＥＲＥＤ  Ｉ,ご本人,1回払い,,'26/02,3256,,,20.00,USD,162.822,01/06
                 """;
             InputStream inputStream = new ByteArrayInputStream(csvContent.getBytes(SHIFT_JIS));
 
             CsvParseResult result = parser.parse(inputStream);
 
-            assertEquals(1, result.validExpenses().size());
-            assertEquals(0, result.errors().size());
-            assertEquals(5000, result.validExpenses().get(0).amount());
+            assertThat(result.validExpenses()).hasSize(1);
+            assertThat(result.errors()).isEmpty();
+            assertThat(result.validExpenses().get(0).description()).isEqualTo("ＣＵＲＳＯＲ，  ＡＩ  ＰＯＷＥＲＥＤ  Ｉ");
+            assertThat(result.validExpenses().get(0).amount()).isEqualTo(3256);
         }
     }
 }
