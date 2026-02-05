@@ -27,7 +27,7 @@ public class MitsuiSumitomoOldCsvParser implements CsvParser {
             2,  // amountStartColumn
             3,  // minColumnCount
             0,  // columnsBetweenDescriptionAndAmount
-            true // skipFirstLine
+            true // checkTotalLine
     );
 
     @Override

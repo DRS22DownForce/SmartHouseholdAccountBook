@@ -31,7 +31,7 @@ public final class MitsuiSumitomoCsvParseUtil {
             int amountStartColumn,
             int minColumnCount,
             int columnsBetweenDescriptionAndAmount,
-            boolean skipFirstLine
+            boolean checkTotalLine
     ) {
     }
 
@@ -57,7 +57,6 @@ public final class MitsuiSumitomoCsvParseUtil {
 
             String line;
             int lineNumber = 0;
-            boolean isFirstLine = true;
 
             while ((line = reader.readLine()) != null) {
                 lineNumber++;
@@ -66,11 +65,10 @@ public final class MitsuiSumitomoCsvParseUtil {
                 if (line.isEmpty()) {
                     continue;
                 }
-                if (config.skipFirstLine() && isFirstLine) {
-                    isFirstLine = false;
+                if (isCardInfoLine(line)) {
                     continue;
                 }
-                if (isCardInfoLine(line)) {
+                if (config.checkTotalLine() && isTotalLine(line, config)) {
                     continue;
                 }
 
@@ -128,6 +126,7 @@ public final class MitsuiSumitomoCsvParseUtil {
         }
 
         // 店名を取得する
+        // カンマの後のスペースを保持するため、trim()を使わずに元の値を結合する
         int descriptionEndIndex = amountColumnIndex - config.columnsBetweenDescriptionAndAmount() - 1;
         if (descriptionEndIndex < config.descriptionColumn()) {
             throw new IllegalArgumentException("列構成が不正です（店名の範囲を特定できません）");
@@ -137,7 +136,17 @@ public final class MitsuiSumitomoCsvParseUtil {
             if (descriptionSb.length() > 0) {
                 descriptionSb.append(',');
             }
-            descriptionSb.append(columns[i].trim());
+            // カンマの後のスペースを保持するため、trim()を使わない
+            // ただし、最初と最後の列の先頭・末尾の空白は削除する
+            String columnValue = columns[i];
+            if (i == config.descriptionColumn()) {
+                // 最初の列は先頭の空白を削除
+                columnValue = columnValue.stripLeading();
+            } else if (i == descriptionEndIndex) {
+                // 最後の列は末尾の空白を削除
+                columnValue = columnValue.stripTrailing();
+            }
+            descriptionSb.append(columnValue);
         }
         if (descriptionSb.length() == 0) {
             throw new IllegalArgumentException("店名が空です");
@@ -180,5 +189,31 @@ public final class MitsuiSumitomoCsvParseUtil {
         }
         String second = columns[1].trim();
         return second.matches(".*\\d{4}-\\d{2}\\*{2}-\\*{4}-\\*{4}.*");
+    }
+
+    /**
+     * 合計行かどうかを判定する（旧形式のみ）
+     */
+    public static boolean isTotalLine(String line, Config config) {
+        String[] columns = line.split(",", -1);
+        
+        if (columns.length < config.minColumnCount()) {
+            return false;
+        }
+        
+        // 日付列が空かどうかを確認
+        String dateStr = columns[config.dateColumn()].trim();
+        if (!dateStr.isEmpty()) {
+            return false;
+        }
+        
+        if (columns.length > 5) {
+            Optional<Integer> opt = tryParseAmount(columns[5].trim());
+            if (opt.isPresent()) {
+                return true;
+            }
+        }
+        
+        return false;
     }
 }
