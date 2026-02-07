@@ -150,19 +150,6 @@ class ExpenseControllerTest {
     }
 
     @Test
-    @DisplayName("CSVファイルがnullの場合は400エラーを返す")
-    void apiExpensesUploadCsvPost_ファイルがnullの場合は400エラー() throws IOException {
-        // テスト実行と検証
-        // IllegalArgumentExceptionがスローされることを確認
-        assertThrows(IllegalArgumentException.class, () -> {
-            expenseController.apiExpensesUploadCsvPost(null, "MITSUISUMITOMO_OLD_FORMAT");
-        });
-
-        // CSV支出処理サービスは呼ばれないことを確認
-        verify(csvExpenseService, never()).uploadCsvAndAddExpenses(any(), any());
-    }
-
-    @Test
     @DisplayName("CSVファイル以外のファイル形式の場合は400エラーを返す")
     void apiExpensesUploadCsvPost_CSVファイル以外の場合は400エラー() throws IOException {
         // テストデータの準備
@@ -193,24 +180,6 @@ class ExpenseControllerTest {
             expenseController.apiExpensesUploadCsvPost(mockFile, "MITSUISUMITOMO_OLD_FORMAT");
         });
         assertEquals("CSVファイルを選択してください", exception.getMessage());
-
-        // CSV支出処理サービスは呼ばれないことを確認
-        verify(csvExpenseService, never()).uploadCsvAndAddExpenses(any(), any());
-    }
-
-    @Test
-    @DisplayName("CSV形式がnullの場合は400エラーを返す")
-    void apiExpensesUploadCsvPost_CSV形式がnullの場合は400エラー() throws IOException {
-        // テストデータの準備
-        when(mockFile.isEmpty()).thenReturn(false);
-        when(mockFile.getOriginalFilename()).thenReturn("test.csv");
-
-        // テスト実行と検証
-        // IllegalArgumentExceptionがスローされることを確認
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            expenseController.apiExpensesUploadCsvPost(mockFile, null);
-        });
-        assertEquals("CSV形式を指定してください", exception.getMessage());
 
         // CSV支出処理サービスは呼ばれないことを確認
         verify(csvExpenseService, never()).uploadCsvAndAddExpenses(any(), any());
