@@ -1,12 +1,9 @@
 package com.example.backend.application.service;
 
-import com.example.backend.application.mapper.ExpenseMapper;
 import com.example.backend.domain.repository.ExpenseRepository;
 import com.example.backend.domain.valueobject.MonthlySummary;
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.User;
-import com.example.backend.generated.model.ExpenseDto;
-import com.example.backend.generated.model.ExpenseRequestDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.lang.NonNull;
@@ -31,22 +28,18 @@ import java.util.stream.Collectors;
 public class ExpenseApplicationService {
     private static final String MONTH_FORMAT = "yyyy-MM";
     private final ExpenseRepository expenseRepository;
-    private final ExpenseMapper expenseMapper;
     private final UserApplicationService userApplicationService;
 
     /**
      * コンストラクタ
-     * 
+     *
      * @param expenseRepository      支出リポジトリ
-     * @param expenseMapper          支出マッパー
      * @param userApplicationService ユーザーアプリケーションサービス
      */
     public ExpenseApplicationService(
             ExpenseRepository expenseRepository,
-            ExpenseMapper expenseMapper,
             UserApplicationService userApplicationService) {
         this.expenseRepository = expenseRepository;
-        this.expenseMapper = expenseMapper;
         this.userApplicationService = userApplicationService;
     }
 
@@ -64,36 +57,34 @@ public class ExpenseApplicationService {
 
     /**
      * 全ての支出を取得するユースケース
-     * 
-     * 現在のユーザーの支出を取得し、DTOに変換して返します。
-     * 
-     * @return 支出DTOリスト
+     *
+     * 現在のユーザーの支出エンティティのリストを返します。
+     *
+     * @return 支出エンティティのリスト
      */
     @Transactional(readOnly = true)
-    public List<ExpenseDto> getExpenses() {
+    public List<Expense> getExpenses() {
         User user = userApplicationService.getUser();
-        List<Expense> expenses = expenseRepository.findByUser(user);
-
-        return expenses.stream()
-                .map(expenseMapper::toDto)
-                .collect(Collectors.toList());
+        return expenseRepository.findByUser(user);
     }
 
     /**
      * 新しい支出を追加するユースケース
-     * 
-     * リクエストDTOからエンティティを作成し、保存してDTOに変換して返します。
-     * 
-     * @param expenseRequestDto 支出リクエストDTO
-     * @return 追加した支出DTO
+     *
+     * 作成内容（ExpenseUpdate）と現在ユーザーからエンティティを生成し、保存して返します。
+     *
+     * @param creation 支出の作成内容（説明・金額・日付・カテゴリ）
+     * @return 保存後の支出エンティティ
      */
-    public ExpenseDto addExpense(ExpenseRequestDto expenseRequestDto) {
+    public Expense addExpense(Expense.ExpenseUpdate creation) {
         User user = userApplicationService.getUser();
-        Expense expense = expenseMapper.toEntity(expenseRequestDto, user);
-
-        Expense savedExpense = expenseRepository.save(expense);
-
-        return expenseMapper.toDto(savedExpense);
+        Expense expense = new Expense(
+                creation.description(),
+                creation.amount(),
+                creation.date(),
+                creation.category(),
+                user);
+        return expenseRepository.save(expense);
     }
 
     /**
@@ -109,45 +100,39 @@ public class ExpenseApplicationService {
 
     /**
      * 支出を更新するユースケース
-     * 
-     * 既存の支出を取得し、リクエストDTOの内容で更新します。
-     * 
-     * @param id                支出ID
-     * @param expenseRequestDto 更新する支出リクエストDTO
-     * @return 更新された支出DTO
+     *
+     * 既存の支出を取得し、更新内容（ExpenseUpdate）を適用して保存し、エンティティを返します。
+     *
+     * @param id    支出ID
+     * @param update 更新内容（説明・金額・日付・カテゴリ）
+     * @return 更新後の支出エンティティ
      */
-    public ExpenseDto updateExpense(Long id, ExpenseRequestDto expenseRequestDto) {
+    public Expense updateExpense(Long id, Expense.ExpenseUpdate update) {
         Expense existingExpense = expenseRepository.findById(id)
                 .orElseThrow(() -> new ExpenseNotFoundException(id));
-        Expense.ExpenseUpdate update = expenseMapper.toExpenseUpdate(expenseRequestDto);
-
         existingExpense.update(update);
-        Expense savedExpense = expenseRepository.save(existingExpense);
-
-        return expenseMapper.toDto(savedExpense);
+        return expenseRepository.save(existingExpense);
     }
 
     /**
      * 月別支出を取得するユースケース（ページネーション対応）
-     * 
-     * 指定された月の支出を取得し、DTOに変換して返します。
+     *
+     * 指定された月の支出エンティティのページを返します。
      * H2とMySQLの両方で動作するように、日付範囲を使用してクエリします。
-     * 
+     *
      * @param month    月（YYYY-MM形式）
      * @param pageable ページネーション情報
-     * @return 支出DTOページ
+     * @return 支出エンティティのページ
      */
     @Transactional(readOnly = true)
-    public Page<ExpenseDto> getExpensesByMonth(@NonNull String month, Pageable pageable) {
+    public Page<Expense> getExpensesByMonth(@NonNull String month, Pageable pageable) {
         YearMonth yearMonth = parseMonth(month);
         User user = userApplicationService.getUser();
 
         LocalDate startDate = yearMonth.atDay(1);
         LocalDate endDate = yearMonth.atEndOfMonth();
 
-        Page<Expense> expensePage = expenseRepository.findByUserAndDateRange(user, startDate, endDate, pageable);
-
-        return expensePage.map(expenseMapper::toDto);
+        return expenseRepository.findByUserAndDateRange(user, startDate, endDate, pageable);
     }
 
     /**
