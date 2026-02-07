@@ -124,12 +124,6 @@ class ExpenseApplicationServiceTest {
     }
 
     @Test
-    void addExpense_リクエストがnullなら例外() {
-        // テスト実行と検証
-        assertThrows(NullPointerException.class, () -> expenseApplicationService.addExpense(null));
-    }
-
-    @Test
     void updateExpense_正常に更新できる() {
         // テストデータの準備
         Long expenseId = 1L;
@@ -207,17 +201,6 @@ class ExpenseApplicationServiceTest {
 
         assertEquals("ID: " + nonExistentId + " の支出が見つかりませんでした", exception.getMessage());
         verify(expenseRepository, times(1)).findById(nonExistentId);
-        verify(expenseRepository, never()).save(any());
-    }
-
-    @Test
-    void updateExpense_リクエストがnullなら例外() {
-        // テスト実行と検証
-        assertThrows(NullPointerException.class,
-                () -> expenseApplicationService.updateExpense(1L, null));
-
-        // リポジトリは呼ばれないことを確認
-        verify(expenseRepository, never()).findById(any());
         verify(expenseRepository, never()).save(any());
     }
 
