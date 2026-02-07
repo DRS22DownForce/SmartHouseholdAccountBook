@@ -125,14 +125,10 @@ public class ExpenseApplicationService {
         Expense existingExpense = expenseRepository.findById(id)
                 .orElseThrow(() -> new ExpenseNotFoundException(id));
 
-        ExpenseMapper.ValueObjectsForUpdate valueObjectsForUpdate = expenseMapper
-                .toValueObjectsForUpdate(expenseRequestDto);
+        Expense.ExpenseUpdate update = expenseMapper
+                .toExpenseUpdate(expenseRequestDto);
 
-        existingExpense.update(
-                expenseRequestDto.getDescription(),
-                valueObjectsForUpdate.amount(),
-                valueObjectsForUpdate.date(),
-                valueObjectsForUpdate.category());
+        existingExpense.update(update);
 
         Expense savedExpense = expenseRepository.save(existingExpense);
         return expenseMapper.toDto(savedExpense);

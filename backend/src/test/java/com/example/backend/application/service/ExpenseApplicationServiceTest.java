@@ -153,20 +153,25 @@ class ExpenseApplicationServiceTest {
         updatedDto.setDate(LocalDate.of(2024, 1, 15));
         updatedDto.setCategory("娯楽費");
 
-        // 更新用の値オブジェクトを準備
+        // 更新用のExpenseUpdateレコードを準備
         ExpenseAmount updatedAmount = new ExpenseAmount(1500);
         ExpenseDate updatedDate = new ExpenseDate(LocalDate.of(2024, 1, 15));
         CategoryType updatedCategory = CategoryType.ENTERTAINMENT;
-        ExpenseMapper.ValueObjectsForUpdate valueObjectsForUpdate = 
-            new ExpenseMapper.ValueObjectsForUpdate(updatedAmount, updatedDate, updatedCategory);
+        Expense.ExpenseUpdate expenseUpdate = 
+            new Expense.ExpenseUpdate(
+                "更新された支出",
+                updatedAmount,
+                updatedDate,
+                updatedCategory
+            );
 
         // モックの設定
         when(expenseRepository.findById(expenseId)).thenReturn(java.util.Optional.of(existingExpense));
         when(expenseRepository.save(existingExpense)).thenReturn(existingExpense);
         when(expenseMapper.toDto(existingExpense)).thenReturn(updatedDto);
-        // toValueObjectsForUpdateメソッドのモック設定を追加
+        // toExpenseUpdateメソッドのモック設定を追加
         // これがないと、updateExpenseメソッド内でnullが返されてNullPointerExceptionが発生します
-        when(expenseMapper.toValueObjectsForUpdate(requestDto)).thenReturn(valueObjectsForUpdate);
+        when(expenseMapper.toExpenseUpdate(requestDto)).thenReturn(expenseUpdate);
 
         // テスト実行
         ExpenseDto result = expenseApplicationService.updateExpense(expenseId, requestDto);
@@ -182,8 +187,8 @@ class ExpenseApplicationServiceTest {
         verify(expenseRepository, times(1)).findById(expenseId);
         verify(expenseRepository, times(1)).save(existingExpense);
         verify(expenseMapper, times(1)).toDto(existingExpense);
-        // toValueObjectsForUpdateメソッドが呼ばれたことを確認
-        verify(expenseMapper, times(1)).toValueObjectsForUpdate(requestDto);
+        // toExpenseUpdateメソッドが呼ばれたことを確認
+        verify(expenseMapper, times(1)).toExpenseUpdate(requestDto);
     }
 
     @Test
