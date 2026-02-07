@@ -119,36 +119,17 @@ public class ExpenseMapper {
     }
 
     /**
-     * リクエストDTOから値オブジェクトへの変換（更新用）
+     * リクエストDTOから更新用の値オブジェクトへの変換
      * 
      * @param dto 支出リクエストDTO
-     * @return 値オブジェクト（amount, date, category）
+     * @return 更新用の値オブジェクト
      */
-    public ValueObjectsForUpdate toValueObjectsForUpdate(ExpenseRequestDto dto) {
-        if (dto == null) {
-            return new ValueObjectsForUpdate(null, null, null);
-        }
-
-        ExpenseAmount amount = dto.getAmount() != null
-                ? new ExpenseAmount(dto.getAmount())
-                : null;
-        ExpenseDate date = dto.getDate() != null
-                ? new ExpenseDate(dto.getDate())
-                : null;
-        CategoryType category = dto.getCategory() != null
-                ? CategoryType.fromDisplayName(dto.getCategory())
-                : null;
-
-        return new ValueObjectsForUpdate(amount, date, category);
-    }
-
-    /**
-     * 更新用の値オブジェクトを保持するレコード
-     */
-    public record ValueObjectsForUpdate(
-            ExpenseAmount amount,
-            ExpenseDate date,
-            CategoryType category) {
+    public Expense.ExpenseUpdate toExpenseUpdate(ExpenseRequestDto dto) {
+        return new Expense.ExpenseUpdate(
+                dto.getDescription(),
+                new ExpenseAmount(dto.getAmount()), 
+                new ExpenseDate(dto.getDate()),
+                CategoryType.fromDisplayName(dto.getCategory()));
     }
 
     /**

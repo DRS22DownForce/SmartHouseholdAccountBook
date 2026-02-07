@@ -20,6 +20,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.util.Objects;
+import java.util.Optional;
 
 /**
  * 支出エンティティ
@@ -87,44 +88,20 @@ public class Expense {
         }
     }
 
-    public void changeDescription(String description) {
-        requireNonEmptyDescription(description);
-        this.description = description.trim();
-    }
-
-    public void changeAmount(ExpenseAmount amount) {
-        this.amount = Objects.requireNonNull(amount, "金額は必須です。");
-    }
-
-    public void changeDate(ExpenseDate date) {
-        this.date = Objects.requireNonNull(date, "日付は必須です。");
-    }
-
-    public void changeCategory(CategoryType category) {
-        this.category = Objects.requireNonNull(category, "カテゴリーは必須です。");
-    }
-
     /**
-     * 部分更新: nullのパラメータは更新対象外。
-     * 各フィールドのバリデーションはchange*メソッドに委譲。
-     *
-     * @param description 新しい説明（nullの場合は更新しない）
-     * @param amount 新しい金額（nullの場合は更新しない）
-     * @param date 新しい日付（nullの場合は更新しない）
-     * @param category 新しいカテゴリ（nullの場合は更新しない）
+     * 支出を更新する
+     * @param update 更新用の値オブジェクト
      */
-    public void update(String description, ExpenseAmount amount, ExpenseDate date, CategoryType category) {
-        if (description != null && !description.trim().isEmpty()) {
-            changeDescription(description);
-        }
-        if (amount != null) {
-            changeAmount(amount);
-        }
-        if (date != null) {
-            changeDate(date);
-        }
-        if (category != null) {
-            changeCategory(category);
-        }
+    public void update(ExpenseUpdate update) {
+        this.description = update.description();
+        this.amount = update.amount();
+        this.date = update.date();
+        this.category = update.category();
     }
+
+    public record ExpenseUpdate(
+            String description,
+            ExpenseAmount amount,
+            ExpenseDate date,
+            CategoryType category) {}
 }
