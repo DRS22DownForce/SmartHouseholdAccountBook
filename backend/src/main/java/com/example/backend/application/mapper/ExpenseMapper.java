@@ -21,16 +21,17 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * 支出エンティティとDTO間の変換を行うマッパー
- * 
- * アプリケーション層に配置されるマッパーです。
- * ドメインオブジェクト（エンティティ、値オブジェクト）とDTO間の変換を担当します。
- * 
- * このクラスは以下の責務を持ちます:
- * - エンティティからDTOへの変換
- * - DTOからエンティティへの変換（値オブジェクトの作成を含む）
- * - リクエストDTOから値オブジェクトへの変換（更新用）
- * - Service層の結果オブジェクトからDTOへの変換（CSVアップロード結果など）
+ * 支出に関する DTO と Entity/値オブジェクト間の変換を行うマッパー
+ *
+ * Controller 層専用です。リクエスト DTO をドメイン用の型に変換し、
+ * サービス層が返す Entity/値オブジェクトをレスポンス DTO に変換する責務を持ちます。
+ * サービス層では DTO を扱わず、本マッパーは Controller 内でのみ使用します。
+ *
+ * 主な変換:
+ * - エンティティ（Expense）からレスポンス DTO（ExpenseDto）への変換
+ * - リクエスト DTO（ExpenseRequestDto）から更新/作成用の値オブジェクト（ExpenseUpdate）への変換
+ * - 値オブジェクト（MonthlySummary）から DTO への変換
+ * - サービス結果（CsvUploadResult）から DTO への変換
  */
 @Component
 public class ExpenseMapper {

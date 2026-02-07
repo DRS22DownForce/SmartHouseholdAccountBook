@@ -5,6 +5,7 @@ import com.example.backend.application.service.CsvExpenseService;
 import com.example.backend.application.service.ExpenseApplicationService;
 import com.example.backend.application.service.csv.CsvFormat;
 import com.example.backend.domain.valueobject.MonthlySummary;
+import com.example.backend.entity.Expense;
 import com.example.backend.generated.api.ExpensesApi;
 import com.example.backend.generated.model.CsvUploadResponseDto;
 import com.example.backend.generated.model.ExpenseDto;
@@ -61,16 +62,18 @@ public class ExpenseController implements ExpensesApi {
      */
     @Override
     public ResponseEntity<List<ExpenseDto>> apiExpensesGet(@Nullable String month) {
-        // monthパラメータが指定されている場合は月別フィルタリング、指定されていない場合は全データ取得
         if (month != null) {
             // TODO 現状ではページネーションに対応できていない。今後対応予定。
             Pageable pageable = PageRequest.of(0, Integer.MAX_VALUE);
-            Page<ExpenseDto> expensePage = expenseApplicationService.getExpensesByMonth(month, pageable);
-            return ResponseEntity.ok(expensePage.getContent());
+            Page<Expense> expensePage = expenseApplicationService.getExpensesByMonth(month, pageable);
+            List<ExpenseDto> dtos = expensePage.map(expenseMapper::toDto).getContent();
+            return ResponseEntity.ok(dtos);
         } else {
-            // 全データ取得（既存の機能を維持）
-            List<ExpenseDto> expenseDtos = expenseApplicationService.getExpenses();
-            return ResponseEntity.ok(expenseDtos);
+            List<Expense> expenses = expenseApplicationService.getExpenses();
+            List<ExpenseDto> dtos = expenses.stream()
+                    .map(expenseMapper::toDto)
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(dtos);
         }
     }
 
@@ -82,8 +85,9 @@ public class ExpenseController implements ExpensesApi {
      */
     @Override
     public ResponseEntity<ExpenseDto> apiExpensesPost(ExpenseRequestDto expenseRequestDto) {
-        ExpenseDto expenseDto = expenseApplicationService.addExpense(expenseRequestDto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(expenseDto);
+        Expense.ExpenseUpdate creation = expenseMapper.toExpenseUpdate(expenseRequestDto);
+        Expense expense = expenseApplicationService.addExpense(creation);
+        return ResponseEntity.status(HttpStatus.CREATED).body(expenseMapper.toDto(expense));
     }
 
     /**
@@ -107,9 +111,9 @@ public class ExpenseController implements ExpensesApi {
      */
     @Override
     public ResponseEntity<ExpenseDto> apiExpensesIdPut(Long id, ExpenseRequestDto expenseRequestDto) {
-        //FIXME: サービス層がDTOを返すのではなく、Entityを返すように修正する。
-        ExpenseDto expenseDto = expenseApplicationService.updateExpense(id, expenseRequestDto);
-        return ResponseEntity.ok(expenseDto);
+        Expense.ExpenseUpdate update = expenseMapper.toExpenseUpdate(expenseRequestDto);
+        Expense expense = expenseApplicationService.updateExpense(id, update);
+        return ResponseEntity.ok(expenseMapper.toDto(expense));
     }
 
     /**
