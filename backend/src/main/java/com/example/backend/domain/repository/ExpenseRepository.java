@@ -10,12 +10,15 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 支出エンティティのリポジトリインターフェース
  * 
  * DDDの原則に従い、ドメイン層のリポジトリインターフェースとして定義します。
  * Spring Data JPAの命名規則に従ってメソッドを定義します。
+ * 
+ * データ取得の際はこのメソッドを使用し、別ユーザーのデータは取得できないようにする。
  */
 public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     /**
@@ -25,6 +28,15 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
      * @return 該当ユーザーの支出リスト
      */
     List<Expense> findByUser(User user);
+    
+    /**
+     * ユーザーとIDを指定して支出を取得
+     * 
+     * @param id 支出ID
+     * @param user ユーザーエンティティ
+     * @return 該当ユーザーの支出（存在しない場合は空）
+     */
+    Optional<Expense> findByIdAndUser(Long id, User user);
 
     /**
      * ユーザーと日付範囲を指定して支出を取得
