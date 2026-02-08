@@ -100,7 +100,8 @@ class ExpenseApplicationServiceTest {
                 CategoryType.FOOD,
                 user);
 
-        when(expenseRepository.findById(expenseId)).thenReturn(Optional.of(existingExpense));
+        when(userApplicationService.getUser()).thenReturn(user);
+        when(expenseRepository.findByIdAndUser(expenseId, user)).thenReturn(Optional.of(existingExpense));
         when(expenseRepository.save(existingExpense)).thenReturn(existingExpense);
 
         Expense result = expenseApplicationService.updateExpense(expenseId, expenseUpdate);
@@ -110,7 +111,7 @@ class ExpenseApplicationServiceTest {
         assertEquals(1500, result.getAmount().toInteger());
         assertEquals(LocalDate.of(2024, 1, 15), result.getDate().toLocalDate());
         assertEquals(CategoryType.ENTERTAINMENT, result.getCategory());
-        verify(expenseRepository, times(1)).findById(expenseId);
+        verify(expenseRepository, times(1)).findByIdAndUser(expenseId, user);
         verify(expenseRepository, times(1)).save(existingExpense);
     }
 
@@ -123,13 +124,15 @@ class ExpenseApplicationServiceTest {
                 new ExpenseDate(LocalDate.EPOCH),
                 CategoryType.OTHER);
 
-        when(expenseRepository.findById(nonExistentId)).thenReturn(Optional.empty());
+        User user = new User("cognitoSub", "test@example.com");
+        when(userApplicationService.getUser()).thenReturn(user);
+        when(expenseRepository.findByIdAndUser(nonExistentId, user)).thenReturn(Optional.empty());
 
         ExpenseNotFoundException exception = assertThrows(ExpenseNotFoundException.class,
                 () -> expenseApplicationService.updateExpense(nonExistentId, update));
 
-        assertEquals("ID: " + nonExistentId + " の支出が見つかりませんでした", exception.getMessage());
-        verify(expenseRepository, times(1)).findById(nonExistentId);
+        assertEquals("ID: " + nonExistentId + " の支出が見つかりませんでした。", exception.getMessage());
+        verify(expenseRepository, times(1)).findByIdAndUser(nonExistentId, user);
         verify(expenseRepository, never()).save(any());
     }
 

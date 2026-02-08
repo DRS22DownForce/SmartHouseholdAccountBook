@@ -95,7 +95,10 @@ public class ExpenseApplicationService {
      * @param id 支出ID
      */
     public void deleteExpense(Long id) {
-        expenseRepository.deleteById(id);
+        User user = userApplicationService.getUser();
+        Expense existingExpense = expenseRepository.findByIdAndUser(id, user)
+                .orElseThrow(() -> new ExpenseNotFoundException(id));
+        expenseRepository.delete(existingExpense);
     }
 
     /**
@@ -108,7 +111,8 @@ public class ExpenseApplicationService {
      * @return 更新後の支出エンティティ
      */
     public Expense updateExpense(Long id, Expense.ExpenseUpdate update) {
-        Expense existingExpense = expenseRepository.findById(id)
+        User user = userApplicationService.getUser();
+        Expense existingExpense = expenseRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new ExpenseNotFoundException(id));
         existingExpense.update(update);
         return expenseRepository.save(existingExpense);
