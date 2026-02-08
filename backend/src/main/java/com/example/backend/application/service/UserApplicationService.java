@@ -8,13 +8,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.example.backend.exception.UserNotFoundException;
+import org.springframework.cache.annotation.Cacheable;
 
 /**
  * ユーザーに関するアプリケーションサービス
  * このクラスはユーザーの取得、作成というユースケースを実装します。
  */
 @Service
-@Transactional // トランザクション管理
+@Transactional
 public class UserApplicationService {
     private static final Logger logger = LoggerFactory.getLogger(UserApplicationService.class);
     private final UserRepository userRepository;
@@ -62,11 +63,13 @@ public class UserApplicationService {
      * 現在のユーザーを取得するユースケース
      * 
      * 現在の認証情報からユーザーを取得します。
+     * キャッシュを利用してユーザーを取得します。
      * 
      * @return ユーザーエンティティ
      * @throws RuntimeException ユーザーが見つからない場合
      */
-    @Transactional(readOnly = true) // 読み取り専用トランザクション
+    @Cacheable(value = "users", key = "@currentAuthProvider.getCurrentSub()")
+    @Transactional(readOnly = true)
     public User getUser() {
         // 1. 認証情報を取得
         String sub = currentAuthProvider.getCurrentSub();

@@ -106,7 +106,7 @@ public class ExpenseApplicationService {
      *
      * 既存の支出を取得し、更新内容（ExpenseUpdate）を適用して保存し、エンティティを返します。
      *
-     * @param id    支出ID
+     * @param id     支出ID
      * @param update 更新内容（説明・金額・日付・カテゴリ）
      * @return 更新後の支出エンティティ
      */
@@ -147,6 +147,7 @@ public class ExpenseApplicationService {
      * @param month 月（YYYY-MM形式）
      * @return 月別サマリー値オブジェクト
      */
+    // TODO 引数は文字列ではなく、YearMonthオブジェクトを使用するように修正する。
     @Transactional(readOnly = true)
     public MonthlySummary getMonthlySummary(String month) {
         YearMonth yearMonth = parseMonth(month);

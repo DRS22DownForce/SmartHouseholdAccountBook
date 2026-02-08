@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.cache.annotation.Cacheable;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -63,12 +64,8 @@ public class AiCategoryService {
      * @throws QuotaExceededException   OpenAI APIの利用枠（クォータ）を超過した場合
      * @throws AiServiceException       AIサービスとの通信でエラーが発生した場合
      */
+    @Cacheable(value = "aiCategory", key = "#description")
     public String predictCategory(String description) {
-        // 入力バリデーション: 説明文が空でないことを確認
-        if (description == null || description.trim().isEmpty()) {
-            throw new IllegalArgumentException("説明文は必須です。");
-        }
-
         // 有効なカテゴリーリストを取得
         List<String> validCategories = CategoryType.getValidDisplayNames();
         String categoriesList = String.join("、", validCategories);

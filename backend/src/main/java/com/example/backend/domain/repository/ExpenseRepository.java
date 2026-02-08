@@ -54,10 +54,10 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     );
 
     /**
-     * ユーザーを指定して、利用可能な月（YYYY-MM形式）のリストを取得
+     * ユーザーを指定して、利用可能な日付のリストを取得
      * 
      * @param user ユーザーエンティティ
-     * @return 利用可能な月のリスト（YYYY-MM形式、降順でソート済み）
+     * @return 利用可能な日付のリスト（降順でソート済み、重複なし）
      */
     @Query("SELECT DISTINCT e.date.value FROM Expense e WHERE e.user = :user ORDER BY e.date.value DESC")
     List<LocalDate> findDistinctDatesByUser(@Param("user") User user);
