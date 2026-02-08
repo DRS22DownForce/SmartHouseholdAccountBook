@@ -39,10 +39,12 @@ public class AiCategoryController implements AiApi {
     @Override
     public ResponseEntity<CategoryPredictionResponse> apiAiCategoryPost(
             CategoryPredictionRequest categoryPredictionRequest) {
-        // サービス層を呼び出してカテゴリーを推論
-        // エラーが発生した場合は、GlobalExceptionHandlerで処理される
-        String predictedCategory = aiCategoryService.predictCategory(
-                categoryPredictionRequest.getDescription());
+        String description = categoryPredictionRequest.getDescription();
+        if (description.isEmpty()) {
+            throw new IllegalArgumentException("説明文が空白です。");
+        }
+        // カテゴリーを推論
+        String predictedCategory = aiCategoryService.predictCategory(description);
 
         // レスポンスオブジェクトを作成
         CategoryPredictionResponse response = new CategoryPredictionResponse();
