@@ -11,6 +11,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.http.MediaType;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.beans.factory.annotation.Qualifier;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,6 +21,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.ArrayList;
+import java.util.concurrent.Executor;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+import java.util.concurrent.CompletionException;
 
 /**
  * AIカテゴリー自動分類サービス
@@ -35,7 +41,8 @@ public class AiCategoryService {
     private final String openAiApiKey;
     private final String openAiApiUrl;
     private final ObjectMapper objectMapper;
-    private static final int BATCH_SIZE = 30; // 1リクエストあたりの最大件数（トークン制限を考慮）
+    private final Executor executor;
+    private static final int BATCH_SIZE = 10; // 1リクエストあたりの最大件数（トークン制限を考慮）
 
     /**
      * コンストラクタ
@@ -45,11 +52,13 @@ public class AiCategoryService {
      */
     public AiCategoryService(
             @Value("${openai.api.key}") String openAiApiKey,
-            @Value("${openai.api.url:https://api.openai.com/v1/chat/completions}") String openAiApiUrl) {
+            @Value("${openai.api.url:https://api.openai.com/v1/chat/completions}") String openAiApiUrl,
+            @Qualifier("aiCategoryTaskExecutor") Executor executor) {
         this.restClient = RestClient.builder().build();
         this.openAiApiKey = openAiApiKey;
         this.openAiApiUrl = openAiApiUrl;
         this.objectMapper = new ObjectMapper();
+        this.executor = executor;
     }
 
     /**
@@ -159,17 +168,38 @@ public class AiCategoryService {
             return new HashMap<>();
         }
 
-        Map<String, CategoryType> resultMap = new LinkedHashMap<>();
-
-        // チャンクに分割して処理
+        // チャンクに分割
+        List<List<String>> chunks = new ArrayList<>();
         for (int i = 0; i < validDescriptions.size(); i += BATCH_SIZE) {
             int end = Math.min(i + BATCH_SIZE, validDescriptions.size());
             List<String> chunk = validDescriptions.subList(i, end);
-
-            Map<String, CategoryType> chunkResult = predictCategoriesBatchChunk(chunk);
-            resultMap.putAll(chunkResult);
+            chunks.add(chunk);
+        }
+        // チャンクが1つの場合は並列処理のオーバヘッドを避ける
+        if (chunks.size() == 1) {
+            return predictCategoriesBatchChunk(chunks.get(0));
         }
 
+        // 各チャンクを並列処理（SpringのTaskExecutorを使用）
+        List<CompletableFuture<Map<String, CategoryType>>> futures = chunks.stream()
+                .map(chunk -> CompletableFuture.supplyAsync(
+                        () -> {
+                            return predictCategoriesBatchChunk(chunk);
+                        },
+                        executor))
+                .collect(Collectors.toList());
+
+        // すべてのチャンク処理の完了を待つ
+        Map<String, CategoryType> resultMap = new LinkedHashMap<>();
+        for (CompletableFuture<Map<String, CategoryType>> future : futures) {
+            try {
+                Map<String, CategoryType> chunkResult = future.join();
+                resultMap.putAll(chunkResult);
+            } catch (CompletionException e) {
+                logger.error("チャンク処理中にエラーが発生しました", e);
+                throw (RuntimeException) e.getCause();
+            }
+        }
         return resultMap;
     }
 
