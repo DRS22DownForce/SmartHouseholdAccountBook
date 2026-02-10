@@ -17,7 +17,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -190,7 +189,7 @@ public class AiCategoryService {
                 .collect(Collectors.toList());
 
         // すべてのチャンク処理の完了を待つ
-        Map<String, CategoryType> resultMap = new LinkedHashMap<>();
+        Map<String, CategoryType> resultMap = new HashMap<>();
         for (CompletableFuture<Map<String, CategoryType>> future : futures) {
             try {
                 Map<String, CategoryType> chunkResult = future.join();
@@ -273,7 +272,7 @@ public class AiCategoryService {
             validateCategoryMapFormat(categoryMap, descriptions.size());
 
             // 説明文とカテゴリーのマッピングを作成
-            Map<String, CategoryType> resultMap = new LinkedHashMap<>();
+            Map<String, CategoryType> resultMap = new HashMap<>();
             for (int i = 0; i < descriptions.size(); i++) {
                 String description = descriptions.get(i);
                 String key = String.valueOf(i + 1);

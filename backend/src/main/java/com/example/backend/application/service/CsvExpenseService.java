@@ -23,7 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -145,7 +145,7 @@ public class CsvExpenseService {
                     .toList();
 
             // AIカテゴリ分類をバッチ処理で実行
-            Map<String, CategoryType> categoryMap = new LinkedHashMap<String, CategoryType>();
+            Map<String, CategoryType> categoryMap = new HashMap<String, CategoryType>();
             if (!descriptions.isEmpty()) {
                 categoryMap = aiCategoryService.predictCategoriesBatch(descriptions);
             }
