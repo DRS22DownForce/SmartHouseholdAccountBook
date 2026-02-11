@@ -1,0 +1,23 @@
+/api/ai/category:
+    post:
+      tags:
+        - ai
+      summary: AIカテゴリー自動分類
+      description: 支出の説明文から、AIが適切なカテゴリーを自動分類します。
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/ai-category.yaml#/CategoryPredictionRequest'
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '../components/schemas/ai-category.yaml#/CategoryPredictionResponse'
+        '400':
+          description: 不正なリクエスト（説明文が空など）
+        '500':
+          description: サーバーエラー

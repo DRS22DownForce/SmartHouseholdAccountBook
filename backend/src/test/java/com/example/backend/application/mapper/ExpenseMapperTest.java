@@ -1,6 +1,6 @@
 package com.example.backend.application.mapper;
 
-import com.example.backend.domain.valueobject.Category;
+import com.example.backend.domain.valueobject.CategoryType;
 import com.example.backend.domain.valueobject.ExpenseAmount;
 import com.example.backend.domain.valueobject.ExpenseDate;
 import com.example.backend.entity.Expense;
@@ -28,7 +28,7 @@ class ExpenseMapperTest {
         User user = new User("cognitoSub", "test@example.com");
         ExpenseAmount amount = new ExpenseAmount(1234);
         ExpenseDate date = new ExpenseDate(LocalDate.of(2024, 6, 1));
-        Category category = new Category("食費");
+        CategoryType category = CategoryType.FOOD;
         Expense expense = new Expense("説明", amount, date, category, user);
         
         // テスト実行
@@ -65,9 +65,9 @@ class ExpenseMapperTest {
         // 検証
         assertNotNull(entity);
         assertEquals("テスト", entity.getDescription());
-        assertEquals(500, entity.getAmountValue());
-        assertEquals(LocalDate.of(2024, 5, 1), entity.getDateValue());
-        assertEquals("交通費", entity.getCategoryValue());
+        assertEquals(500, entity.getAmount().toInteger());
+        assertEquals(LocalDate.of(2024, 5, 1), entity.getDate().toLocalDate());
+        assertEquals("交通費", entity.getCategory().getDisplayName());
     }
 
     @Test
@@ -95,9 +95,9 @@ class ExpenseMapperTest {
         // 検証
         assertNotNull(entity);
         assertEquals("リクエスト", entity.getDescription());
-        assertEquals(999, entity.getAmountValue());
-        assertEquals(LocalDate.of(2024, 4, 1), entity.getDateValue());
-        assertEquals("日用品", entity.getCategoryValue());
+        assertEquals(999, entity.getAmount().toInteger());
+        assertEquals(LocalDate.of(2024, 4, 1), entity.getDate().toLocalDate());
+        assertEquals("日用品", entity.getCategory().getDisplayName());
     }
 
     @Test

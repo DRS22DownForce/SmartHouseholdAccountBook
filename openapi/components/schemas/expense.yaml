@@ -60,35 +60,72 @@ ErrorResponse:
       format: date-time
       description: エラー発生時刻
 MonthlySummaryDto:
-  type: object
-  description: 月別サマリー用DTO
-  required:
-    - total
-    - count
-    - byCategory
-  properties:
-    total:
-      type: integer
-      description: 合計支出金額
-      example: 50000
-    count:
-      type: integer
-      description: 支出件数
-      example: 15
-    byCategory:
-      type: array
-      description: カテゴリー別集計（金額の降順でソート済み）
-      items:
-        type: object
-        required:
-          - category
-          - amount
-        properties:
-          category:
-            type: string
-            description: カテゴリー名
-            example: '食費'
-          amount:
-            type: integer
-            description: カテゴリー別の合計金額
-            example: 20000
+    type: object
+    description: 月別サマリー用DTO
+    required:
+      - total
+      - count
+      - byCategory
+    properties:
+      total:
+        type: integer
+        description: 合計支出金額
+        example: 50000
+      count:
+        type: integer
+        description: 支出件数
+        example: 15
+      byCategory:
+        type: array
+        description: カテゴリー別集計（金額の降順でソート済み）
+        items:
+          type: object
+          required:
+            - category
+            - amount
+          properties:
+            category:
+              type: string
+              description: カテゴリー名
+              example: '食費'
+            amount:
+              type: integer
+              description: カテゴリー別の合計金額
+              example: 20000
+CsvUploadResponseDto:
+    type: object
+    description: CSVアップロード結果用DTO
+    required:
+      - successCount
+      - errorCount
+      - errors
+    properties:
+      successCount:
+        type: integer
+        description: 正常にインポートされたデータ件数
+        example: 25
+      errorCount:
+        type: integer
+        description: エラーが発生した行数
+        example: 2
+      errors:
+        type: array
+        description: エラー詳細のリスト
+        items:
+          type: object
+          required:
+            - lineNumber
+            - message
+          properties:
+            lineNumber:
+              type: integer
+              description: エラーが発生した行番号
+              example: 5
+            lineContent:
+              type: string
+              description: エラーが発生した行の内容
+              example: '2025/11/01,xxx店,invalid,1,1,1220,'
+            message:
+              type: string
+              description: エラーメッセージ
+              example: '金額が数値として解析できません: invalid'

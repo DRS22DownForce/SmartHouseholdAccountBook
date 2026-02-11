@@ -18,7 +18,7 @@ export async function sendChatMessage(message: string): Promise<ChatResponse> {
         message: message,
     };
 
-    const response = await api.apiChatPost(request, options);
+    const response = await api.apiAiChatPost(request, options);
     return response.data;
 }
 
@@ -31,6 +31,6 @@ export async function getChatHistory(): Promise<ChatMessageDto[]> {
     const api = getChatApiClient();
     const options = await withAuthHeader();
 
-    const response: AxiosResponse<ChatHistoryResponse> = await api.apiChatGet(options);
+    const response: AxiosResponse<ChatHistoryResponse> = await api.apiAiChatGet(options);
     return response.data.messages || [];
 }

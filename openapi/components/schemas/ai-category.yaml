@@ -1,0 +1,18 @@
+CategoryPredictionRequest:
+  type: object
+  required:
+    - description
+  properties:
+    description:
+      type: string
+      description: 支出の説明文。この説明文から適切なカテゴリーを推論します。
+      example: "コンビニでお弁当を購入"
+CategoryPredictionResponse:
+  type: object
+  required:
+    - category
+  properties:
+    category:
+      type: string
+      description: AIが推論したカテゴリー名
+      example: "食費"

@@ -1,25 +1,22 @@
 package com.example.backend.application.service;
 
-import com.example.backend.application.mapper.ExpenseMapper;
 import com.example.backend.domain.repository.ExpenseRepository;
 import com.example.backend.domain.valueobject.MonthlySummary;
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.User;
-import com.example.backend.generated.model.ExpenseDto;
-import com.example.backend.generated.model.ExpenseRequestDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.example.backend.exception.ExpenseNotFoundException;
-
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -29,71 +26,65 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class ExpenseApplicationService {
+    private static final String MONTH_FORMAT = "yyyy-MM";
     private final ExpenseRepository expenseRepository;
-    private final ExpenseMapper expenseMapper;
     private final UserApplicationService userApplicationService;
 
     /**
      * コンストラクタ
-     * 
-     * @param expenseRepository 支出リポジトリ
-     * @param expenseMapper 支出マッパー
+     *
+     * @param expenseRepository      支出リポジトリ
      * @param userApplicationService ユーザーアプリケーションサービス
      */
     public ExpenseApplicationService(
             ExpenseRepository expenseRepository,
-            ExpenseMapper expenseMapper,
             UserApplicationService userApplicationService) {
         this.expenseRepository = expenseRepository;
-        this.expenseMapper = expenseMapper;
         this.userApplicationService = userApplicationService;
     }
 
     /**
+     * 月文字列（yyyy-MM）を YearMonth にパースする。
+     * 形式が不正な場合は IllegalArgumentException を投げる。
+     */
+    private static YearMonth parseMonth(String month) {
+        try {
+            return YearMonth.parse(month, DateTimeFormatter.ofPattern(MONTH_FORMAT));
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("月の形式が不正です。yyyy-MM で指定してください: " + month, e);
+        }
+    }
+
+    /**
      * 全ての支出を取得するユースケース
-     * 
-     * 現在のユーザーの支出を取得し、DTOに変換して返します。
-     * 
-     * @return 支出DTOリスト
+     *
+     * 現在のユーザーの支出エンティティのリストを返します。
+     *
+     * @return 支出エンティティのリスト
      */
     @Transactional(readOnly = true)
-    public List<ExpenseDto> getExpenses() {
-        User user = Objects.requireNonNull(
-            userApplicationService.getUser(),
-            "ユーザー情報の取得に失敗しました"
-        );
-        
-        List<Expense> expenses = expenseRepository.findByUser(user);
-        
-        return expenses.stream()
-                .map(expenseMapper::toDto)
-                .collect(Collectors.toList());
+    public List<Expense> getExpenses() {
+        User user = userApplicationService.getUser();
+        return expenseRepository.findByUser(user);
     }
 
     /**
      * 新しい支出を追加するユースケース
-     * 
-     * リクエストDTOからエンティティを作成し、保存してDTOに変換して返します。
-     * 
-     * @param expenseRequestDto 支出リクエストDTO
-     * @return 追加した支出DTO
+     *
+     * 作成内容（ExpenseUpdate）と現在ユーザーからエンティティを生成し、保存して返します。
+     *
+     * @param creation 支出の作成内容（説明・金額・日付・カテゴリ）
+     * @return 保存後の支出エンティティ
      */
-    public ExpenseDto addExpense(ExpenseRequestDto expenseRequestDto) {
-        Objects.requireNonNull(expenseRequestDto, "支出リクエストDTOはnullであってはなりません");
-        
-        User user = Objects.requireNonNull(
-            userApplicationService.getUser(),
-            "ユーザー情報の取得に失敗しました"
-        );
-        
-        Expense expense = Objects.requireNonNull(
-            expenseMapper.toEntity(expenseRequestDto, user),
-            "エンティティの生成に失敗しました"
-        );
-        
-        Expense savedExpense = expenseRepository.save(expense);
-        
-        return expenseMapper.toDto(savedExpense);
+    public Expense addExpense(Expense.ExpenseUpdate creation) {
+        User user = userApplicationService.getUser();
+        Expense expense = new Expense(
+                creation.description(),
+                creation.amount(),
+                creation.date(),
+                creation.category(),
+                user);
+        return expenseRepository.save(expense);
     }
 
     /**
@@ -104,67 +95,48 @@ public class ExpenseApplicationService {
      * @param id 支出ID
      */
     public void deleteExpense(Long id) {
-        Objects.requireNonNull(id, "支出IDはnullであってはなりません");
-        
-        expenseRepository.deleteById(id);
+        User user = userApplicationService.getUser();
+        Expense existingExpense = expenseRepository.findByIdAndUser(id, user)
+                .orElseThrow(() -> new ExpenseNotFoundException(id));
+        expenseRepository.delete(existingExpense);
     }
 
     /**
      * 支出を更新するユースケース
-     * 
-     * 既存の支出を取得し、リクエストDTOの内容で更新します。
-     * 
-     * @param id 支出ID
-     * @param expenseRequestDto 更新する支出リクエストDTO
-     * @return 更新された支出DTO
+     *
+     * 既存の支出を取得し、更新内容（ExpenseUpdate）を適用して保存し、エンティティを返します。
+     *
+     * @param id     支出ID
+     * @param update 更新内容（説明・金額・日付・カテゴリ）
+     * @return 更新後の支出エンティティ
      */
-    public ExpenseDto updateExpense(Long id, ExpenseRequestDto expenseRequestDto) {
-        Objects.requireNonNull(expenseRequestDto, "支出リクエストDTOはnullであってはなりません");
-        Objects.requireNonNull(id, "支出IDはnullであってはなりません");
-        
-        Expense existingExpense = expenseRepository.findById(id)
+    public Expense updateExpense(Long id, Expense.ExpenseUpdate update) {
+        User user = userApplicationService.getUser();
+        Expense existingExpense = expenseRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new ExpenseNotFoundException(id));
-
-        ExpenseMapper.ValueObjectsForUpdate valueObjectsForUpdate = 
-            expenseMapper.toValueObjectsForUpdate(expenseRequestDto);
-
-        existingExpense.update(
-            expenseRequestDto.getDescription(),
-            valueObjectsForUpdate.amount(),
-            valueObjectsForUpdate.date(),
-            valueObjectsForUpdate.category()
-        );
-
-        Expense savedExpense = expenseRepository.save(existingExpense);
-        return expenseMapper.toDto(savedExpense);
+        existingExpense.update(update);
+        return expenseRepository.save(existingExpense);
     }
 
     /**
      * 月別支出を取得するユースケース（ページネーション対応）
-     * 
-     * 指定された月の支出を取得し、DTOに変換して返します。
+     *
+     * 指定された月の支出エンティティのページを返します。
      * H2とMySQLの両方で動作するように、日付範囲を使用してクエリします。
-     * 
-     * @param month 月（YYYY-MM形式）
+     *
+     * @param month    月（YYYY-MM形式）
      * @param pageable ページネーション情報
-     * @return 支出DTOページ
+     * @return 支出エンティティのページ
      */
     @Transactional(readOnly = true)
-    public Page<ExpenseDto> getExpensesByMonth(String month, Pageable pageable) {
-        Objects.requireNonNull(month, "月はnullであってはなりません");
-        YearMonth yearMonth = parseAndValidateMonth(month);
-        
-        User user = Objects.requireNonNull(
-            userApplicationService.getUser(),
-            "ユーザー情報の取得に失敗しました"
-        );
-        
+    public Page<Expense> getExpensesByMonth(@NonNull String month, Pageable pageable) {
+        YearMonth yearMonth = parseMonth(month);
+        User user = userApplicationService.getUser();
+
         LocalDate startDate = yearMonth.atDay(1);
         LocalDate endDate = yearMonth.atEndOfMonth();
-        
-        Page<Expense> expensePage = expenseRepository.findByUserAndDateRange(user, startDate, endDate, pageable);
-        
-        return expensePage.map(expenseMapper::toDto);
+
+        return expenseRepository.findByUserAndDateRange(user, startDate, endDate, pageable);
     }
 
     /**
@@ -175,21 +147,18 @@ public class ExpenseApplicationService {
      * @param month 月（YYYY-MM形式）
      * @return 月別サマリー値オブジェクト
      */
+    // TODO 引数は文字列ではなく、YearMonthオブジェクトを使用するように修正する。
     @Transactional(readOnly = true)
     public MonthlySummary getMonthlySummary(String month) {
-        Objects.requireNonNull(month, "月はnullであってはなりません");
-        YearMonth yearMonth = parseAndValidateMonth(month);
-        
-        User user = Objects.requireNonNull(
-            userApplicationService.getUser(),
-            "ユーザー情報の取得に失敗しました"
-        );
-        
+        YearMonth yearMonth = parseMonth(month);
+
+        User user = userApplicationService.getUser();
+
         LocalDate startDate = yearMonth.atDay(1);
         LocalDate endDate = yearMonth.atEndOfMonth();
-        
+
         List<Expense> expenses = expenseRepository.findByUserAndDateBetween(user, startDate, endDate);
-        
+
         return MonthlySummary.from(expenses);
     }
 
@@ -199,39 +168,34 @@ public class ExpenseApplicationService {
      * 指定された範囲の各月の支出を集計し、MonthlySummary値オブジェクトのリストを作成して返します。
      * 
      * @param startMonth 開始月（YYYY-MM形式）
-     * @param endMonth 終了月（YYYY-MM形式）
+     * @param endMonth   終了月（YYYY-MM形式）
      * @return 月別サマリー値オブジェクトのリスト
      */
     @Transactional(readOnly = true)
     public List<MonthlySummary> getMonthlySummaryRange(String startMonth, String endMonth) {
-        Objects.requireNonNull(startMonth, "開始月はnullであってはなりません");
-        Objects.requireNonNull(endMonth, "終了月はnullであってはなりません");
-        YearMonth start = parseAndValidateMonth(startMonth);
-        YearMonth end = parseAndValidateMonth(endMonth);
-        
+        YearMonth start = parseMonth(startMonth);
+        YearMonth end = parseMonth(endMonth);
+
         if (start.isAfter(end)) {
             throw new IllegalArgumentException("開始月は終了月以前でなければなりません。");
         }
-        
-        User user = Objects.requireNonNull(
-            userApplicationService.getUser(),
-            "ユーザー情報の取得に失敗しました"
-        );
-        
+
+        User user = userApplicationService.getUser();
+
         List<MonthlySummary> summaries = new ArrayList<>();
         YearMonth current = start;
         while (!current.isAfter(end)) {
             LocalDate monthStart = current.atDay(1);
             LocalDate monthEnd = current.atEndOfMonth();
-            
+
             List<Expense> expenses = expenseRepository.findByUserAndDateBetween(user, monthStart, monthEnd);
-            
+
             MonthlySummary summary = MonthlySummary.from(expenses);
             summaries.add(summary);
-            
+
             current = current.plusMonths(1);
         }
-        
+
         return summaries;
     }
 
@@ -245,32 +209,14 @@ public class ExpenseApplicationService {
      */
     @Transactional(readOnly = true)
     public List<String> getAvailableMonths() {
-        User user = Objects.requireNonNull(
-            userApplicationService.getUser(),
-            "ユーザー情報の取得に失敗しました"
-        );
-        
-        List<LocalDate> distinctDates = expenseRepository.findDistinctDatesByUser(user);
-        
-        return distinctDates.stream()
-            .map(date -> YearMonth.from(date).format(DateTimeFormatter.ofPattern("yyyy-MM")))
-            .distinct()
-            .sorted(Comparator.reverseOrder())
-            .collect(Collectors.toList());
-    }
+        User user = userApplicationService.getUser();
 
-    /**
-     * 月の形式を検証する
-     * 
-     * @param month 月（YYYY-MM形式）
-     * @return YearMonthオブジェクト
-     * @throws IllegalArgumentException 月の形式が不正な場合
-     */
-    private YearMonth parseAndValidateMonth(String month) {
-        if (!month.matches("^\\d{4}-\\d{2}$")) {
-            throw new IllegalArgumentException("月の形式が不正です。YYYY-MM形式で指定してください。");
-        }
-        return YearMonth.parse(month, DateTimeFormatter.ofPattern("yyyy-MM"));
+        List<LocalDate> distinctDates = expenseRepository.findDistinctDatesByUser(user);
+
+        return distinctDates.stream()
+                .map(date -> YearMonth.from(date).format(DateTimeFormatter.ofPattern(MONTH_FORMAT)))
+                .distinct()
+                .sorted(Comparator.reverseOrder())
+                .collect(Collectors.toList());
     }
 }
-

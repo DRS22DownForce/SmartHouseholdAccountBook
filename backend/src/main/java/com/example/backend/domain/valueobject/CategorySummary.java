@@ -11,12 +11,12 @@ import lombok.ToString;
 @ToString
 @EqualsAndHashCode
 public class CategorySummary {
-    
+
     /**
-     * カテゴリー（値オブジェクト）
+     * カテゴリー（CategoryType Enum）
      */
-    private final Category category;
-    
+    private final CategoryType category;
+
     /**
      * 金額（カテゴリー別の合計金額、0以上でなければならない）
      */
@@ -24,12 +24,12 @@ public class CategorySummary {
 
     /**
      * コンストラクタ
-     * 
-     * @param category カテゴリー（値オブジェクト、nullであってはならない）
-     * @param amount 金額（0以上でなければならない）
+     *
+     * @param category カテゴリー（CategoryType Enum、nullであってはならない）
+     * @param amount  金額（0以上でなければならない）
      * @throws IllegalArgumentException カテゴリーがnull、または金額が0未満の場合
      */
-    public CategorySummary(Category category, Integer amount) {
+    public CategorySummary(CategoryType category, Integer amount) {
         validate(category, amount);
         this.category = category;
         this.amount = amount;
@@ -37,12 +37,8 @@ public class CategorySummary {
 
     /**
      * バリデーション: カテゴリー別集計が有効かチェック
-     * 
-     * @param category 検証するカテゴリー
-     * @param amount 検証する金額
-     * @throws IllegalArgumentException カテゴリーがnull、または金額が0未満の場合
      */
-    private static void validate(Category category, Integer amount) {
+    private static void validate(CategoryType category, Integer amount) {
         if (category == null) {
             throw new IllegalArgumentException("カテゴリーはnullであってはなりません。");
         }
@@ -56,11 +52,8 @@ public class CategorySummary {
 
     /**
      * カテゴリー名を取得（DTO変換などで使用）
-     * 
-     * @return カテゴリー名
      */
-    public String getCategoryValue() {
-        return this.category != null ? this.category.getValue() : null;
+    public String getDisplayName() {
+        return category.getDisplayName();
     }
 }
-

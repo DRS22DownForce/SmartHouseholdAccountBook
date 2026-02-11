@@ -16,16 +16,25 @@ import type { ExpenseFormData } from "@/lib/types"
  * 
  * 支出の追加・更新・削除処理と、それに伴うデータ再取得のトリガー管理を行います。
  * 
- * @returns 支出操作ハンドラーとリフレッシュトリガー
+ * refreshTriggerは他のコンポーネント（ExpenseTrendChart, MonthlySummarySection等）
+ * の再取得用に使用されます。
+ * 
+ * @returns 操作ハンドラーとリフレッシュトリガー
  */
 export function useExpensesPageLogic() {
-    const { addExpenseItem, addExpenseItems, updateExpenseItem, deleteExpenseItem } = useExpenses()
     const [refreshTrigger, setRefreshTrigger] = useState(0)
+    const { 
+        addExpenseItem, 
+        addExpenseItems, 
+        updateExpenseItem, 
+        deleteExpenseItem 
+    } = useExpenses()
 
     /**
      * 支出を追加するハンドラー関数
      * 
-     * 支出を追加した後、画面を再取得するためにリフレッシュトリガーを更新します。
+     * 支出を追加した後、他のコンポーネント（グラフ、サマリー等）を再取得するために
+     * リフレッシュトリガーを更新します。
      * 
      * @param data - 追加する支出データ
      */
@@ -37,7 +46,8 @@ export function useExpensesPageLogic() {
     /**
      * 支出を一括追加するハンドラー関数
      * 
-     * 複数の支出を追加した後、画面を再取得するためにリフレッシュトリガーを更新します。
+     * 複数の支出を追加した後、他のコンポーネントを再取得するために
+     * リフレッシュトリガーを更新します。
      * 
      * @param dataArray - 追加する支出データの配列
      */
@@ -49,7 +59,8 @@ export function useExpensesPageLogic() {
     /**
      * 支出を更新するハンドラー関数
      * 
-     * 支出を更新した後、画面を再取得するためにリフレッシュトリガーを更新します。
+     * 支出を更新した後、他のコンポーネントを再取得するために
+     * リフレッシュトリガーを更新します。
      * 
      * @param id - 更新する支出のID
      * @param data - 更新する支出データ
@@ -62,7 +73,8 @@ export function useExpensesPageLogic() {
     /**
      * 支出を削除するハンドラー関数
      * 
-     * 支出を削除した後、画面を再取得するためにリフレッシュトリガーを更新します。
+     * 支出を削除した後、他のコンポーネントを再取得するために
+     * リフレッシュトリガーを更新します。
      * 
      * @param id - 削除する支出のID
      */
@@ -71,12 +83,23 @@ export function useExpensesPageLogic() {
         setRefreshTrigger((prev) => prev + 1)
     }, [deleteExpenseItem])
 
+    /**
+     * CSVアップロード後のデータ再取得ハンドラー関数
+     * 
+     * CSVアップロードが完了した後、他のコンポーネントを再取得するために
+     * リフレッシュトリガーを更新します。
+     */
+    const handleCsvUploadComplete = useCallback(() => {
+        setRefreshTrigger((prev) => prev + 1)
+    }, [])
+
     return {
         refreshTrigger,
         handleAddExpense,
         handleAddExpenses,
         handleUpdateExpense,
         handleDeleteExpense,
+        handleCsvUploadComplete,
     }
 }
 
