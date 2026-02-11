@@ -172,3 +172,49 @@
                 type: string
                 pattern: '^\d{4}-\d{2}$'
                 example: '2024-01'
+/api/expenses/upload-csv:
+  post:
+    tags:
+      - expenses
+    summary: CSVファイルから家計簿データを一括インポート
+    description: CSVファイルをアップロードして、複数の家計簿データを一括で追加します。部分成功をサポートし、エラーが発生した行の詳細を返します。
+    requestBody:
+      required: true
+      content:
+        multipart/form-data:
+          schema:
+            type: object
+            required:
+              - file
+              - csvFormat
+            properties:
+              file:
+                type: string
+                format: binary
+                description: CSVファイル（UTF-8エンコーディング）
+              csvFormat:
+                type: string
+                enum:
+                  - MITSUISUMITOMO_OLD_FORMAT
+                  - MITSUISUMITOMO_NEW_FORMAT
+                description: "CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード 2025/12以前、MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 2026/1以降）"
+                example: MITSUISUMITOMO_OLD_FORMAT
+    responses:
+      '200':
+        description: CSVインポート成功（部分成功も含む）
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/CsvUploadResponseDto'
+      '400':
+        description: バリデーションエラー（ファイルが空、形式が不正など）
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'
+      '413':
+        description: ファイルサイズが大きすぎる
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'

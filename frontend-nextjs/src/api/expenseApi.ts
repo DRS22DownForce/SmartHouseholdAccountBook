@@ -11,6 +11,7 @@ import {
 } from './expenseMappers';
 import type { MonthlySummary } from './expenseMappers';
 import type { Expense, ExpenseFormData } from '@/lib/types';
+import type { ApiExpensesUploadCsvPostCsvFormatEnum } from './generated/api';
 
 
 /**
@@ -107,4 +108,36 @@ export async function fetchMonthlySummaryRange(
     const options = await withAuthHeader();
     const response = await api.apiExpensesSummaryRangeGet(startMonth, endMonth, options);
     return response.data.map(toMonthlySummary);
+}
+
+/**
+ * CSVアップロード結果の型定義
+ */
+export interface CsvUploadResponse {
+    successCount: number;
+    errorCount: number;
+    errors: Array<{
+        lineNumber: number;
+        lineContent: string;
+        message: string;
+    }>;
+}
+
+/**
+ * CSVファイルをアップロードして一括インポート
+ * 
+ * プライバシー保護のため、csvFormatはリクエストボディ（FormData）で送信されます。
+ * 
+ * @param file CSVファイル
+ * @param csvFormat CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード 2025/12以前、MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 2026/1以降）
+ */
+export async function uploadCsvFile(file: File, csvFormat: "MITSUISUMITOMO_OLD_FORMAT" | "MITSUISUMITOMO_NEW_FORMAT"): Promise<CsvUploadResponse> {
+    const api = getExpenseApiClient();
+    const options = await withAuthHeader();
+    
+    // 生成された列挙型に変換
+    const csvFormatEnum = csvFormat as ApiExpensesUploadCsvPostCsvFormatEnum;
+    
+    const response = await api.apiExpensesUploadCsvPost(file, csvFormatEnum, options);
+    return response.data;
 }

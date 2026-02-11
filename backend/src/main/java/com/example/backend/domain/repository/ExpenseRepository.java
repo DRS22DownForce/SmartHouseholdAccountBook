@@ -10,12 +10,15 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * 支出エンティティのリポジトリインターフェース
  * 
  * DDDの原則に従い、ドメイン層のリポジトリインターフェースとして定義します。
  * Spring Data JPAの命名規則に従ってメソッドを定義します。
+ * 
+ * データ取得の際はこのメソッドを使用し、別ユーザーのデータは取得できないようにする。
  */
 public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     /**
@@ -25,6 +28,15 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
      * @return 該当ユーザーの支出リスト
      */
     List<Expense> findByUser(User user);
+    
+    /**
+     * ユーザーとIDを指定して支出を取得
+     * 
+     * @param id 支出ID
+     * @param user ユーザーエンティティ
+     * @return 該当ユーザーの支出（存在しない場合は空）
+     */
+    Optional<Expense> findByIdAndUser(Long id, User user);
 
     /**
      * ユーザーと日付範囲を指定して支出を取得
@@ -42,10 +54,10 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     );
 
     /**
-     * ユーザーを指定して、利用可能な月（YYYY-MM形式）のリストを取得
+     * ユーザーを指定して、利用可能な日付のリストを取得
      * 
      * @param user ユーザーエンティティ
-     * @return 利用可能な月のリスト（YYYY-MM形式、降順でソート済み）
+     * @return 利用可能な日付のリスト（降順でソート済み、重複なし）
      */
     @Query("SELECT DISTINCT e.date.value FROM Expense e WHERE e.user = :user ORDER BY e.date.value DESC")
     List<LocalDate> findDistinctDatesByUser(@Param("user") User user);

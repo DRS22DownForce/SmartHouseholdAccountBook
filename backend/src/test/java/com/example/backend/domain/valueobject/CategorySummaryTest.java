@@ -16,7 +16,7 @@ class CategorySummaryTest {
     @DisplayName("正常なカテゴリー別集計を作成できる")
     void createCategorySummary_正常な値() {
         // テストデータの準備
-        Category category = new Category("食費");
+        CategoryType category = CategoryType.FOOD;
         Integer amount = 1000;
 
         // テスト実行
@@ -24,7 +24,7 @@ class CategorySummaryTest {
 
         // 検証
         assertNotNull(categorySummary);
-        assertEquals("食費", categorySummary.getCategoryValue());
+        assertEquals("食費", categorySummary.getDisplayName());
         assertEquals(1000, categorySummary.getAmount());
     }
 
@@ -32,7 +32,7 @@ class CategorySummaryTest {
     @DisplayName("金額が0でも作成できる")
     void createCategorySummary_金額が0() {
         // テストデータの準備
-        Category category = new Category("食費");
+        CategoryType category = CategoryType.FOOD;
         Integer amount = 0;
 
         // テスト実行
@@ -57,7 +57,7 @@ class CategorySummaryTest {
     @DisplayName("金額がnullなら例外")
     void createCategorySummary_金額がnull() {
         // テストデータの準備
-        Category category = new Category("食費");
+        CategoryType category = CategoryType.FOOD;
 
         // テスト実行と検証
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
@@ -70,11 +70,11 @@ class CategorySummaryTest {
     @DisplayName("金額が負の値なら例外")
     void createCategorySummary_金額が負の値() {
         // テストデータの準備
-        Category category = new Category("食費");
+        CategoryType category = CategoryType.FOOD;
 
         // テスト実行と検証
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new CategorySummary(category, -1));
+                () -> new CategorySummary(CategoryType.FOOD, -1));
 
         assertEquals("金額は0以上でなければなりません。", exception.getMessage());
     }

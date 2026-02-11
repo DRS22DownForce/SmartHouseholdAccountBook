@@ -22,8 +22,8 @@ class MonthlySummaryTest {
         // テストデータの準備
         Integer total = 5000;
         Integer count = 3;
-        Category category1 = new Category("食費");
-        Category category2 = new Category("交通費");
+        CategoryType category1 = CategoryType.FOOD;
+        CategoryType category2 = CategoryType.TRANSPORT;
         CategorySummary categorySummary1 = new CategorySummary(category1, 3000);
         CategorySummary categorySummary2 = new CategorySummary(category2, 2000);
         List<CategorySummary> byCategory = Arrays.asList(categorySummary1, categorySummary2);
@@ -117,7 +117,7 @@ class MonthlySummaryTest {
         // テストデータの準備
         Integer total = 1000;
         Integer count = 1;
-        Category category = new Category("食費");
+        CategoryType category = CategoryType.FOOD;
         CategorySummary categorySummary = new CategorySummary(category, 1000);
         List<CategorySummary> byCategory = new ArrayList<>();
         byCategory.add(categorySummary);
@@ -127,7 +127,7 @@ class MonthlySummaryTest {
 
         // 検証: 不変リストなので、変更しようとすると例外が発生する
         assertThrows(UnsupportedOperationException.class,
-                () -> monthlySummary.getByCategory().add(new CategorySummary(category, 2000)));
+                () -> monthlySummary.getByCategory().add(new CategorySummary(CategoryType.FOOD, 2000)));
     }
 }
 

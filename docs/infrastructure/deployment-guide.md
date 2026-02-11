@@ -287,9 +287,9 @@ network:
   version: 2
   ethernets:
     "ens3":
-      gateway4: 133.242.164.1
+      gateway4: YOUR_GATEWAY_IP  # 実際のゲートウェイIPアドレスに置き換えてください
       nameservers:
-        addresses: [133.242.0.3, 133.242.0.4, 1.1.1.1, 8.8.8.8]
+        addresses: [YOUR_NAMESERVER_IP_1, YOUR_NAMESERVER_IP_2, 1.1.1.1, 8.8.8.8]  # 実際のDNSサーバーIPアドレスに置き換えてください
       # ... その他の設定 ...
 ```
 
@@ -306,7 +306,7 @@ sudo netplan apply
 resolvectl status ens3
 
 # 実際に名前解決ができるか確認
-dig +short A smart-household-account-book.com
+dig +short A your-domain.com  # 実際のドメイン名に置き換えてください
 ```
 
 **初心者向けの解説**: nameserversはDNSサーバーのIPアドレスを指定します。1.1.1.1（Cloudflare）と8.8.8.8（Google）は高速で安定性が高いDNSサーバーです。
@@ -349,9 +349,9 @@ hostname -I
 
 ```bash
 # ドメインが正しく設定されているか確認
-nslookup smart-household-account-book.com
+nslookup your-domain.com  # 実際のドメイン名に置き換えてください
 # または
-dig smart-household-account-book.com
+dig your-domain.com  # 実際のドメイン名に置き換えてください
 ```
 
 **初心者向けの解説**: Aレコードはドメイン名をIPアドレスに変換するDNSレコードです。Route53の変更は通常数分で反映されますが、最大48時間かかる場合もあります。
@@ -525,7 +525,7 @@ nano .env.production
 # バックエンドAPIのベースURL
 # 本番環境では、絶対パスを使用（明示的にドメインを指定）
 # 注意: OpenAPI定義に既に /api が含まれているため、ベースURLには /api を含めません
-NEXT_PUBLIC_API_BASE_URL=https://smart-household-account-book.com
+NEXT_PUBLIC_API_BASE_URL=https://your-domain.com  # 実際のドメイン名に置き換えてください
 
 # 開発環境の場合（ローカル開発用）
 # NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
@@ -537,7 +537,7 @@ NEXT_PUBLIC_API_BASE_URL=https://smart-household-account-book.com
   - `http://localhost:8080/api`のような設定は使用できません。ブラウザはユーザーのPC上で動作するため、サーバー側の`localhost:8080`にはアクセスできません。
   - `/api`を指定してはいけません。OpenAPI定義に既に`/api`が含まれているため、`basePath`に`/api`を指定すると、実際のリクエストが`/api/api/expenses`のようになってしまいます。
 - **正しい設定方法**:
-  - **本番環境（絶対パス、推奨）**: `NEXT_PUBLIC_API_BASE_URL=https://smart-household-account-book.com`を使用します
+  - **本番環境（絶対パス、推奨）**: `NEXT_PUBLIC_API_BASE_URL=https://your-domain.com`を使用します（実際のドメイン名に置き換えてください）
   - **開発環境**: `NEXT_PUBLIC_API_BASE_URL=http://localhost:8080`を使用します
 
 ### ステップ2: フロントエンドのビルド
@@ -612,16 +612,16 @@ sudo nano smart-household-account-book
 ```nginx
 # HTTPからHTTPSへのリダイレクト（Certbotが自動生成）
 server {
-    if ($host = www.smart-household-account-book.com) {
+    if ($host = www.your-domain.com) {  # 実際のドメイン名に置き換えてください
         return 301 https://$host$request_uri;
     } # managed by Certbot
 
-    if ($host = smart-household-account-book.com) {
+    if ($host = your-domain.com) {  # 実際のドメイン名に置き換えてください
         return 301 https://$host$request_uri;
     } # managed by Certbot
 
     listen 80;
-    server_name smart-household-account-book.com www.smart-household-account-book.com;
+    server_name your-domain.com www.your-domain.com;  # 実際のドメイン名に置き換えてください
     return 404; # managed by Certbot
 }
 
@@ -629,11 +629,11 @@ server {
 server {
     # ポート443でSSLとHTTP/2を有効化（listenはserverブロックの最初に配置）
     listen 443 ssl http2; # managed by Certbot
-    server_name smart-household-account-book.com www.smart-household-account-book.com;
+    server_name your-domain.com www.your-domain.com;  # 実際のドメイン名に置き換えてください
 
     # SSL証明書のパス（Certbotが自動設定）
-    ssl_certificate /etc/letsencrypt/live/smart-household-account-book.com/fullchain.pem; # managed by Certbot
-    ssl_certificate_key /etc/letsencrypt/live/smart-household-account-book.com/privkey.pem; # managed by Certbot
+    ssl_certificate /etc/letsencrypt/live/your-domain.com/fullchain.pem; # managed by Certbot（実際のドメイン名に置き換えてください）
+    ssl_certificate_key /etc/letsencrypt/live/your-domain.com/privkey.pem; # managed by Certbot（実際のドメイン名に置き換えてください）
     include /etc/letsencrypt/options-ssl-nginx.conf; # managed by Certbot
     ssl_dhparam /etc/letsencrypt/ssl-dhparams.pem; # managed by Certbot
 
@@ -729,9 +729,9 @@ sudo systemctl status nginx
 ### ステップ3: 動作確認
 
 ```bash
-# ブラウザで http://smart-household-account-book.com にアクセスして、アプリケーションが表示されるか確認
+# ブラウザで http://your-domain.com にアクセスして、アプリケーションが表示されるか確認（実際のドメイン名に置き換えてください）
 # または、curlで確認
-curl http://smart-household-account-book.com
+curl http://your-domain.com  # 実際のドメイン名に置き換えてください
 ```
 
 **注意**: この時点ではHTTP（ポート80）でのみアクセス可能です。SSL証明書を設定すると、HTTPS（ポート443）でアクセスできるようになります。
@@ -744,7 +744,7 @@ curl http://smart-household-account-book.com
 
 ```bash
 # CertbotでSSL証明書を取得（ドメイン名を実際のドメインに置き換えてください）
-sudo certbot --nginx -d smart-household-account-book.com -d www.smart-household-account-book.com
+sudo certbot --nginx -d your-domain.com -d www.your-domain.com  # 実際のドメイン名に置き換えてください
 
 # 対話形式で設定が進みます：
 # - メールアドレスを入力（証明書の有効期限通知用）

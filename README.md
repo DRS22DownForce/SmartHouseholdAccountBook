@@ -222,10 +222,41 @@ git clone https://github.com/your-username/SmartHouseholdAccountBook.git
 ### 2. 環境変数の設定
 
 #### フロントエンド
-`frontend-nextjs/.env.local` を作成:
+`frontend-nextjs/.env.local` を作成し、以下の環境変数を設定します：
+
 ```env
-NEXT_PUBLIC_API_URL=バックエンドAPIのベースURL
+# ========================================
+# AWS Cognito設定
+# ========================================
+# AWSリージョン
+NEXT_PUBLIC_AWS_REGION=ap-northeast-1
+
+# Cognito Identity Pool ID
+# 形式: ap-northeast-1:xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+NEXT_PUBLIC_COGNITO_IDENTITY_POOL_ID=your-identity-pool-id
+
+# Cognito User Pool ID
+# 形式: ap-northeast-1_xxxxxxxxxx
+NEXT_PUBLIC_COGNITO_USER_POOL_ID=your-user-pool-id
+
+# Cognito Client ID
+# 形式: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+NEXT_PUBLIC_COGNITO_CLIENT_ID=your-client-id
+
+# ========================================
+# バックエンドAPI設定
+# ========================================
+# バックエンドAPIのベースURL
+# 開発環境の場合: http://localhost:8080
+# 本番環境の場合: https://your-domain.com
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 ```
+
+**重要**: 
+- `.env.local`ファイルは`.gitignore`に含まれているため、Gitにコミットされません
+- 実際のAWS Cognito設定値は、AWSコンソールから取得してください
+- 環境変数を変更した場合は、開発サーバーを再起動してください
+- 詳細な設定方法は [`docs/setup/environment-variables.md`](docs/setup/environment-variables.md) を参照してください
 
 #### バックエンド
 プロジェクトルートに `.env` を作成し、以下の環境変数を設定します：

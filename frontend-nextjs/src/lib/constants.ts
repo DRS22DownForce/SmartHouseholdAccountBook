@@ -11,6 +11,9 @@ export const EXPENSE_CATEGORIES = [
   "娯楽費",
   "医療費",
   "衣服費",
+  "日用品",
+  "投資",
+  "教育費",
   "その他",
 ] as const
 

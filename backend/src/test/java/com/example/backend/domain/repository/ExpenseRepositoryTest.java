@@ -2,7 +2,7 @@ package com.example.backend.domain.repository;
 
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.User;
-import com.example.backend.domain.valueobject.Category;
+import com.example.backend.domain.valueobject.CategoryType;
 import com.example.backend.domain.valueobject.ExpenseAmount;
 import com.example.backend.domain.valueobject.ExpenseDate;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,13 +56,13 @@ class ExpenseRepositoryTest {
         // テストデータの準備: 支出データを作成して保存
         ExpenseAmount amount1 = new ExpenseAmount(1000);
         ExpenseDate date1 = new ExpenseDate(LocalDate.of(2024, 1, 15));
-        Category category1 = new Category("食費");
+        CategoryType category1 = CategoryType.FOOD;
         Expense expense1 = new Expense("支出1", amount1, date1, category1, testUser);
         expenseRepository.save(expense1);
 
         ExpenseAmount amount2 = new ExpenseAmount(2000);
         ExpenseDate date2 = new ExpenseDate(LocalDate.of(2024, 1, 20));
-        Category category2 = new Category("交通費");
+        CategoryType category2 = CategoryType.TRANSPORT;
         Expense expense2 = new Expense("支出2", amount2, date2, category2, testUser);
         expenseRepository.save(expense2);
 
@@ -83,14 +83,14 @@ class ExpenseRepositoryTest {
         // テストユーザーの支出を作成
         ExpenseAmount amount1 = new ExpenseAmount(1000);
         ExpenseDate date1 = new ExpenseDate(LocalDate.of(2024, 1, 15));
-        Category category1 = new Category("食費");
+        CategoryType category1 = CategoryType.FOOD;
         Expense expense1 = new Expense("テストユーザーの支出", amount1, date1, category1, testUser);
         expenseRepository.save(expense1);
 
         // 別のユーザーの支出を作成
         ExpenseAmount amount2 = new ExpenseAmount(2000);
         ExpenseDate date2 = new ExpenseDate(LocalDate.of(2024, 1, 20));
-        Category category2 = new Category("交通費");
+        CategoryType category2 = CategoryType.TRANSPORT;
         Expense expense2 = new Expense("別ユーザーの支出", amount2, date2, category2, otherUser);
         expenseRepository.save(expense2);
 
@@ -108,19 +108,19 @@ class ExpenseRepositoryTest {
         // テストデータの準備: 異なる日付の支出を作成
         ExpenseAmount amount1 = new ExpenseAmount(1000);
         ExpenseDate date1 = new ExpenseDate(LocalDate.of(2024, 1, 10));
-        Category category1 = new Category("食費");
+        CategoryType category1 = CategoryType.FOOD;
         Expense expense1 = new Expense("支出1", amount1, date1, category1, testUser);
         expenseRepository.save(expense1);
 
         ExpenseAmount amount2 = new ExpenseAmount(2000);
         ExpenseDate date2 = new ExpenseDate(LocalDate.of(2024, 1, 20));
-        Category category2 = new Category("交通費");
+        CategoryType category2 = CategoryType.TRANSPORT;
         Expense expense2 = new Expense("支出2", amount2, date2, category2, testUser);
         expenseRepository.save(expense2);
 
         ExpenseAmount amount3 = new ExpenseAmount(3000);
         ExpenseDate date3 = new ExpenseDate(LocalDate.of(2024, 2, 5));
-        Category category3 = new Category("住居費");
+        CategoryType category3 = CategoryType.HOUSING;
         Expense expense3 = new Expense("支出3", amount3, date3, category3, testUser);
         expenseRepository.save(expense3);
 
@@ -132,8 +132,8 @@ class ExpenseRepositoryTest {
         // 検証: 1月の支出のみが取得できることを確認（降順でソートされている）
         assertEquals(2, expenses.size());
         // 降順でソートされていることを確認（新しい日付が先頭）
-        assertTrue(expenses.get(0).getDateValue().isAfter(expenses.get(1).getDateValue()) ||
-                   expenses.get(0).getDateValue().equals(expenses.get(1).getDateValue()));
+        assertTrue(expenses.get(0).getDate().toLocalDate().isAfter(expenses.get(1).getDate().toLocalDate()) ||
+                   expenses.get(0).getDate().toLocalDate().equals(expenses.get(1).getDate().toLocalDate()));
     }
 
     @Test
@@ -142,19 +142,19 @@ class ExpenseRepositoryTest {
         // テストデータの準備: 異なる月の支出を作成
         ExpenseAmount amount1 = new ExpenseAmount(1000);
         ExpenseDate date1 = new ExpenseDate(LocalDate.of(2024, 1, 15));
-        Category category1 = new Category("食費");
+        CategoryType category1 = CategoryType.FOOD;
         Expense expense1 = new Expense("支出1", amount1, date1, category1, testUser);
         expenseRepository.save(expense1);
 
         ExpenseAmount amount2 = new ExpenseAmount(2000);
         ExpenseDate date2 = new ExpenseDate(LocalDate.of(2024, 2, 10));
-        Category category2 = new Category("交通費");
+        CategoryType category2 = CategoryType.TRANSPORT;
         Expense expense2 = new Expense("支出2", amount2, date2, category2, testUser);
         expenseRepository.save(expense2);
 
         ExpenseAmount amount3 = new ExpenseAmount(3000);
         ExpenseDate date3 = new ExpenseDate(LocalDate.of(2024, 2, 20));
-        Category category3 = new Category("住居費");
+        CategoryType category3 = CategoryType.HOUSING;
         Expense expense3 = new Expense("支出3", amount3, date3, category3, testUser);
         expenseRepository.save(expense3);
 
@@ -175,7 +175,7 @@ class ExpenseRepositoryTest {
         for (int i = 1; i <= 5; i++) {
             ExpenseAmount amount = new ExpenseAmount(1000 * i);
             ExpenseDate date = new ExpenseDate(LocalDate.of(2024, 1, i * 5));
-            Category category = new Category("食費");
+            CategoryType category = CategoryType.FOOD;
             Expense expense = new Expense("支出" + i, amount, date, category, testUser);
             expenseRepository.save(expense);
         }
@@ -191,10 +191,10 @@ class ExpenseRepositoryTest {
         assertEquals(2, expensePage.getContent().size()); // 現在のページの件数
         assertEquals(3, expensePage.getTotalPages()); // 総ページ数
         // 降順でソートされていることを確認
-        assertTrue(expensePage.getContent().get(0).getDateValue()
-                .isAfter(expensePage.getContent().get(1).getDateValue()) ||
-                expensePage.getContent().get(0).getDateValue()
-                        .equals(expensePage.getContent().get(1).getDateValue()));
+        assertTrue(expensePage.getContent().get(0).getDate().toLocalDate()
+                .isAfter(expensePage.getContent().get(1).getDate().toLocalDate()) ||
+                expensePage.getContent().get(0).getDate().toLocalDate()
+                        .equals(expensePage.getContent().get(1).getDate().toLocalDate()));
     }
 
     @Test

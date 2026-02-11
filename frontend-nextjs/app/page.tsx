@@ -1,49 +1,29 @@
 "use client"
 
 /**
- * ホームページコンポーネント
+ * ルートページコンポーネント
  * 
- * 支出追加後に月別サマリーと支出の推移を自動的に再取得します。
- * ロジックはuse-home-page-logicカスタムフックに分離されています。
+ * ルート（/）へのアクセスを支出ページ（/expenses）にリダイレクトします。
+ * バックエンドと連携している支出管理機能をメイン機能として提供するため、
+ * ホームページを削除し、支出ページをデフォルトページとしました。
+ * 
+ * 【初心者向け解説】
+ * - useEffect: コンポーネントが表示されたときに実行される処理を定義
+ * - useRouter: Next.jsのルーティング機能を使用するためのフック
+ * - replace: ブラウザの履歴を残さずにページ遷移（戻るボタンで戻れない）
  */
 
-import { useMemo } from "react"
-import { useAuthenticator } from "@aws-amplify/ui-react"
-import { useExpenses } from "@/hooks/use-expenses"
-import { Header } from "@/components/dashboard/Header"
-import { ExpenseTrendChart } from "@/components/expense-trend-chart"
-import { MonthlySummarySection } from "@/components/dashboard/MonthlySummarySection"
-import { LoadingSpinner } from "@/components/ui/loading-spinner"
-import { getUserDisplayName } from "@/lib/user-utils"
-import { useHomePageLogic } from "@/hooks/use-home-page-logic"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 
-export default function HomePage() {
-  const { user, signOut } = useAuthenticator((context) => [context.user])
-  const { isLoaded } = useExpenses()
-  const username = useMemo(() => getUserDisplayName(user), [user])
+export default function RootPage() {
+  const router = useRouter()
 
-  // ホームページのロジック（支出追加処理、リフレッシュトリガー管理）をカスタムフックから取得
-  const { refreshTrigger, handleAddExpense, handleAddExpenses } = useHomePageLogic()
+  // コンポーネントが表示されたときに支出ページにリダイレクト
+  useEffect(() => {
+    router.replace("/expenses")
+  }, [router])
 
-  if (!isLoaded) {
-    return <LoadingSpinner />
-  }
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <Header
-        username={username}
-        onLogout={signOut}
-        onAddExpense={handleAddExpense}
-        onAddExpenses={handleAddExpenses}
-      />
-
-      <main className="container mx-auto max-w-7xl px-6 md:px-8 lg:px-12 py-1 md:py-2">
-        <div className="space-y-2 md:space-y-2.5">
-          <ExpenseTrendChart refreshTrigger={refreshTrigger} />
-          <MonthlySummarySection refreshTrigger={refreshTrigger} />
-        </div>
-      </main>
-    </div>
-  )
+  // リダイレクト中は何も表示しない（またはローディング表示）
+  return null
 }

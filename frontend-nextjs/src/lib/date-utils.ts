@@ -57,3 +57,49 @@ export function generateMonthKeys(monthsToShow: number): string[] {
     return monthKeys
 }
 
+/**
+ * DateオブジェクトをYYYY-MM形式の文字列に変換
+ * 
+ * 日付オブジェクトから年月のみをYYYY-MM形式で取得します。
+ * APIリクエストや月のキー生成で使用する標準フォーマットです。
+ * 
+ * @param date - 変換するDateオブジェクト
+ * @returns YYYY-MM形式の文字列
+ * 
+ * @example
+ * ```typescript
+ * const monthKey = formatYearMonth(new Date(2024, 0, 15))
+ * // 結果: "2024-01"
+ * ```
+ */
+export function formatYearMonth(date: Date): string {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`
+}
+
+/**
+ * 前月の文字列（YYYY-MM形式）を取得
+ * 
+ * 現在の月から1ヶ月前の月をYYYY-MM形式で取得します。
+ * 前月比の計算などで使用します。
+ * 
+ * @returns 前月の文字列（YYYY-MM形式）
+ * 
+ * @example
+ * ```typescript
+ * const prevMonth = getPreviousMonthString()
+ * // 現在が2024年3月の場合: "2024-02"
+ * // 現在が2024年1月の場合: "2023-12"
+ * ```
+ */
+export function getPreviousMonthString(): string {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = now.getMonth()
+    
+    // 前月を計算（0月の場合は前年の12月になる）
+    const prevDate = new Date(year, month - 1, 1)
+    const prevYear = prevDate.getFullYear()
+    const prevMonth = prevDate.getMonth() + 1
+    
+    return `${prevYear}-${String(prevMonth).padStart(2, '0')}`
+}
