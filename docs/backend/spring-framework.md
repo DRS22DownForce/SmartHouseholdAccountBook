@@ -741,19 +741,6 @@ AWS Cognitoが発行するJWTトークンには、以下のような情報が含
   - `cognito:username`: Cognitoのユーザー名
   - `token_use`: トークンの種類（`id`、`access`など）
 
-**このプロジェクトで使用しているクレーム**:
-- `sub`: ユーザーを識別するために使用（データベースの`cognitoSub`として保存）
-- `email`: ユーザーのメールアドレスを取得するために使用
-
-**クレームの取得方法**:
-```java
-// セキュリティコンテキストからJWTを取得
-Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
-// クレームを取得
-String sub = jwt.getClaimAsString("sub");        // CognitoユーザーID
-String email = jwt.getClaimAsString("email");     // メールアドレス
-```
 
 2. **JWTトークンの署名検証**: AWS CognitoのJWKセット（公開鍵セット）を使用して、トークンの署名が正しいか検証
    - **署名検証の目的**: トークンが改ざんされていないことを確認
@@ -800,7 +787,7 @@ String email = jwt.getClaimAsString("email");     // メールアドレス
    ↓ Authorization: Bearer <JWTトークン> を送信
 4. JwtAuthFilter
    ↓ JWTトークンを取得
-5. AWS CognitoのJWKセットで署名を検証
+5. AWS CognitoのJWKソース（公開鍵）で署名を検証
    ↓ 検証成功
 6. Spring Securityのセキュリティコンテキストに認証情報を設定
    ↓
