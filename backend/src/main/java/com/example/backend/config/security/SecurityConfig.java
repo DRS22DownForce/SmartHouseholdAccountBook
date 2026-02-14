@@ -48,21 +48,18 @@ public class SecurityConfig {
                 })
 
                 // CSRF保護を無効化
-                // REST APIでJWTを使用する場合、CSRF保護は不要です
-                // CSRFは主にセッションクッキーを使用する場合に有効です
-                // Authorizationヘッダーはブラウザから自動送信されないため、CSRF保護は不要
+                // セッションクッキーではなくJWT認証を利用するためCSRF保護を無効化
                 .csrf(csrf -> csrf.disable())
 
                 // セッション管理の設定
-                // STATELESS: セッションを作成しない（JWT認証ではステートレスが推奨）
+                // STATELESS: JWT認証利用のためステートレスに設定
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 // 認可ルールの設定
                 .authorizeHttpRequests(authz -> authz
-                        // /api/** で始まるパスは認証が必要
-                        // authenticated()は認証済みユーザーのみアクセス可能にする
+                        .requestMatchers("/").permitAll()
                         .requestMatchers("/api/**").authenticated()
-                        .anyRequest().permitAll())
+                        .anyRequest().denyAll())
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(userRegistrationFilter, JwtAuthFilter.class);
 
