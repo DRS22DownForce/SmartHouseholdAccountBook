@@ -18,6 +18,8 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 import java.lang.IllegalStateException;
 
 import org.slf4j.Logger;
@@ -58,6 +60,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             this.jwtProcessor = new DefaultJWTProcessor<>();
             this.jwtProcessor.setJWSKeySelector(
                     new JWSVerificationKeySelector<>(JWSAlgorithm.RS256, jwkSource));
+            
+            // issとaudを検証し、subとexpが存在することを確認するバリデーターを設定
+            DefaultJWTClaimsVerifier<SecurityContext> claimsVerifier = new DefaultJWTClaimsVerifier<>(
+                jwtProperties.getClientId(),                                                // 期待する aud
+                new JWTClaimsSet.Builder().issuer(jwtProperties.getIssuerUrl()).build(),     // 必須の一致クレーム（iss）
+                Set.of("sub", "exp")                                                        // 必須クレーム名
+            );       
+            this.jwtProcessor.setJWTClaimsSetVerifier(claimsVerifier);
+
             logger.info("JWT認証フィルターを初期化しました。JWK URL: {}", jwtProperties.getJwkSetUrl());
         } catch (MalformedURLException e) {
             logger.error("JWT認証フィルターの初期化に失敗しました。JWK URLの形式を確認してください: {}", jwtProperties.getJwkSetUrl(), e);

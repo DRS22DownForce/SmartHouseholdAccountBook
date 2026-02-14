@@ -735,7 +735,7 @@ AWS Cognitoが発行するJWTトークンには、以下のような情報が含
   - `exp`（Expiration Time）: トークンの有効期限（Unixタイムスタンプ）
   - `nbf`（Not Before）: トークンが有効になる時刻（Unixタイムスタンプ）
   - `iss`（Issuer）: トークンの発行者（AWS CognitoのURL）
-  - `aud`（Audience）: トークンの受信者（クライアントID）
+  - `aud`（Audience）: どのアプリ向けに発行されたか
 
 - **Cognito固有のクレーム**:
   - `cognito:username`: Cognitoのユーザー名
