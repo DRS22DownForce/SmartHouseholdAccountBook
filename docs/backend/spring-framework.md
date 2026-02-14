@@ -601,7 +601,6 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 **このプロジェクトでの使用箇所**:
 - セキュリティ設定（`SecurityConfig.java`）
 - JWT認証フィルター（`JwtAuthFilter.java`）
-- ユーザー登録フィルター（`UserRegistrationFilter.java`）
 
 ---
 
@@ -659,17 +658,12 @@ Securityフィルターチェーンは、リクエストがコントローラー
    - JWTトークンを取得・検証
    - 認証情報をセキュリティコンテキストに設定
    ↓
-4. UserRegistrationFilter（ユーザー登録フィルター）
-   - JWT認証が成功した後、認証済みユーザーがデータベースに登録されているか確認
-   - 未登録の場合は自動的にデータベースに登録（`/api/**`パスのみ動作）
-   - これにより、初回ログイン時に自動的にユーザー情報がデータベースに保存される
-   ↓
-5. AuthorizationFilter（認可チェック）（Spring Securityが自動的に追加）
+4. AuthorizationFilter（認可チェック）（Spring Securityが自動的に追加）
    - `http.authorizeHttpRequest()`のルールを検証
    - `/api/**`パスは認証必須
    - 認証されていない場合は401 Unauthorizedを返す
    ↓
-6. コントローラー
+5. コントローラー
    - リクエストを処理
 ```
 
@@ -703,7 +697,6 @@ Securityフィルターチェーンは、リクエストがコントローラー
     2. `UsernamePasswordAuthenticationFilter`は、セキュリティコンテキストに認証情報が既に設定されている場合、処理をスキップします
     3. これは、Spring Securityの「既に認証済みのリクエストに対しては再度認証を行わない」という仕組みによるものです
     4. 結果として、JWT認証が成功したリクエストでは、ユーザー名・パスワード認証は実行されません
-- `addFilterAfter(userRegistrationFilter, JwtAuthFilter.class)`: ユーザー登録フィルターをJWT認証フィルターの後に配置
 
 ---
 

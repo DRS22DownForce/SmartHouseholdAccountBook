@@ -7,7 +7,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.example.backend.exception.UserNotFoundException;
 import org.springframework.cache.annotation.Cacheable;
 
 /**
@@ -33,51 +32,24 @@ public class UserApplicationService {
     }
 
     /**
-     * ユーザーが存在しない場合は作成するユースケース
-     * 
-     * 現在の認証情報からユーザーを取得し、存在しない場合は新規作成します。
-     * 
-     * @return ユーザーエンティティ（認証情報が取得できない場合はnull）
-     */
-    public User createUserIfNotExists() {
-        // 1. 認証情報を取得
-        String sub = currentAuthProvider.getCurrentSub();
-        String email = currentAuthProvider.getCurrentEmail();
-
-        if (sub != null) {
-            // 2. 既存のユーザーを検索
-            return userRepository.findByCognitoSub(sub)
-                    .orElseGet(() -> {
-                        // 3. 存在しない場合は新規作成
-                        User user = new User(sub, email);
-                        return userRepository.save(user);
-                    });
-        }
-
-        // 4. 認証情報が取得できない場合は警告をログに記録
-        logger.warn("subがnullです。認証情報が正しく取得できていません。");
-        return null;
-    }
-
-    /**
      * 現在のユーザーを取得するユースケース
      * 
      * 現在の認証情報からユーザーを取得します。
+     * 存在しない場合は新規作成します。
      * キャッシュを利用してユーザーを取得します。
      * 
      * @return ユーザーエンティティ
-     * @throws RuntimeException ユーザーが見つからない場合
      */
     @Cacheable(value = "users", key = "@currentAuthProvider.getCurrentSub()")
     @Transactional(readOnly = true)
     public User getUser() {
-        // 1. 認証情報を取得
         String sub = currentAuthProvider.getCurrentSub();
-        // 2. ユーザーを検索
         return userRepository.findByCognitoSub(sub)
-                .orElseThrow(() -> {
-                    logger.warn("ユーザーが見つかりませんでした。cognitoSub: {}", sub);
-                    return new UserNotFoundException();
+                .orElseGet(() -> {
+                    logger.info("ユーザが見つからないため新規作成します。cognitoSub: {}", sub);
+                    String email = currentAuthProvider.getCurrentEmail();
+                    User user = new User(sub, email);
+                    return userRepository.save(user);
                 });
     }
 }

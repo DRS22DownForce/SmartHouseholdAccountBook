@@ -13,7 +13,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import com.example.backend.auth.CustomAuthenticationEntryPoint;
 import com.example.backend.auth.filter.JwtAuthFilter;
-import com.example.backend.auth.filter.UserRegistrationFilter;
 
 /**
  * Spring Securityの設定クラス
@@ -29,17 +28,14 @@ import com.example.backend.auth.filter.UserRegistrationFilter;
 @Profile("!test") // test環境では無効化する
 public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
-    private final UserRegistrationFilter userRegistrationFilter;
     private final CorsProperties corsProperties;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     public SecurityConfig(
             JwtAuthFilter jwtAuthFilter,
-            UserRegistrationFilter userRegistrationFilter,
             CorsProperties corsProperties,
             CustomAuthenticationEntryPoint customAuthenticationEntryPoint) {
         this.jwtAuthFilter = jwtAuthFilter;
-        this.userRegistrationFilter = userRegistrationFilter;
         this.corsProperties = corsProperties;
         this.customAuthenticationEntryPoint = customAuthenticationEntryPoint;
     }
@@ -67,8 +63,7 @@ public class SecurityConfig {
                 // 認証エラー時のレスポンス処理(フィルターでAuthenticationExceptionが発生した場合や認可エラー時のハンドリングを行う)
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(customAuthenticationEntryPoint))
                 // JWT認証フィルター、ユーザー登録フィルターを登録
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(userRegistrationFilter, JwtAuthFilter.class);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
