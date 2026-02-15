@@ -30,7 +30,7 @@ public class CategorySummary {
      * @param category カテゴリー（CategoryType Enum、nullであってはならない）
      * @param amount  金額（0以上でなければならない）
      * @throws NullPointerException カテゴリーまたは金額がnullの場合
-     * @throws IllegalArgumentException 金額が0未満の場合
+     * @throws IllegalArgumentException 金額が1未満の場合
      */
     public CategorySummary(CategoryType category, Integer amount) {
         validate(category, amount);
@@ -41,8 +41,8 @@ public class CategorySummary {
     private static void validate(CategoryType category, Integer amount) {
         Objects.requireNonNull(category, "カテゴリーはnullであってはなりません。");
         Objects.requireNonNull(amount, "金額はnullであってはなりません。");
-        if (amount < 0) {
-            throw new IllegalArgumentException("金額は0以上でなければなりません。");
+        if (amount < 1) {
+            throw new IllegalArgumentException("金額は1以上でなければなりません。");
         }
     }
 

@@ -46,7 +46,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
      * @param end 終了日（含む）
      * @return 該当ユーザーの指定期間内の支出リスト(降順でソート)
      */
-    @Query("SELECT e FROM Expense e WHERE e.user = :user AND e.date.value >= :start AND e.date.value <= :end ORDER BY e.date.value DESC")
+    @Query("SELECT e FROM Expense e WHERE e.user = :user AND e.date.date >= :start AND e.date.date <= :end ORDER BY e.date.date DESC")
     List<Expense> findByUserAndDateBetween(
         @Param("user") User user,
         @Param("start") LocalDate start,
@@ -59,7 +59,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
      * @param user ユーザーエンティティ
      * @return 利用可能な日付のリスト（降順でソート済み、重複なし）
      */
-    @Query("SELECT DISTINCT e.date.value FROM Expense e WHERE e.user = :user ORDER BY e.date.value DESC")
+    @Query("SELECT DISTINCT e.date.date FROM Expense e WHERE e.user = :user ORDER BY e.date.date DESC")
     List<LocalDate> findDistinctDatesByUser(@Param("user") User user);
 
     /**
@@ -73,7 +73,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
      * @param pageable ページネーション情報
      * @return 該当ユーザーの指定月の支出ページ
      */
-    @Query("SELECT e FROM Expense e WHERE e.user = :user AND e.date.value >= :startDate AND e.date.value <= :endDate ORDER BY e.date.value DESC, e.id DESC")
+    @Query("SELECT e FROM Expense e WHERE e.user = :user AND e.date.date >= :startDate AND e.date.date <= :endDate ORDER BY e.date.date DESC, e.id DESC")
     Page<Expense> findByUserAndDateRange(
         @Param("user") User user,
         @Param("startDate") LocalDate startDate,

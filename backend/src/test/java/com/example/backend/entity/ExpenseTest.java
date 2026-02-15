@@ -34,8 +34,8 @@ class ExpenseTest {
         // 検証: 正常に作成され、値が正しく設定されていることを確認
         assertNotNull(expense);
         assertEquals("テスト支出", expense.getDescription());
-        assertEquals(1000, expense.getAmount().toInteger());
-        assertEquals(LocalDate.now(), expense.getDate().toLocalDate());
+        assertEquals(1000, expense.getAmount().getAmount());
+        assertEquals(LocalDate.now(), expense.getDate().getDate());
         assertEquals("食費", expense.getCategory().getDisplayName());
         assertEquals(user, expense.getUser());
     }
@@ -169,8 +169,8 @@ class ExpenseTest {
 
         // 検証: 説明が正しく変更されていることを確認
         assertEquals("新しい説明", expense.getDescription());
-        assertEquals(1000, expense.getAmount().toInteger());
-        assertEquals(LocalDate.now(), expense.getDate().toLocalDate());
+        assertEquals(1000, expense.getAmount().getAmount());
+        assertEquals(LocalDate.now(), expense.getDate().getDate());
         assertEquals("食費", expense.getCategory().getDisplayName());
     }
 
@@ -195,7 +195,7 @@ class ExpenseTest {
         expense.update(update);
 
         // 検証: 金額が正しく変更されていることを確認
-        assertEquals(2000, expense.getAmount().toInteger());
+        assertEquals(2000, expense.getAmount().getAmount());
     }
 
     @Test
@@ -219,7 +219,7 @@ class ExpenseTest {
         expense.update(update);
 
         // 検証: 日付が正しく変更されていることを確認
-        assertEquals(LocalDate.now().minusDays(1), expense.getDate().toLocalDate());
+        assertEquals(LocalDate.now().minusDays(1), expense.getDate().getDate());
     }
 
     @Test
@@ -270,8 +270,8 @@ class ExpenseTest {
 
         // 検証: すべてのフィールドが正しく更新されていることを確認
         assertEquals("新しい説明", expense.getDescription());
-        assertEquals(2000, expense.getAmount().toInteger());
-        assertEquals(LocalDate.now().minusDays(1), expense.getDate().toLocalDate());
+        assertEquals(2000, expense.getAmount().getAmount());
+        assertEquals(LocalDate.now().minusDays(1), expense.getDate().getDate());
         assertEquals("交通費", expense.getCategory().getDisplayName());
     }
 

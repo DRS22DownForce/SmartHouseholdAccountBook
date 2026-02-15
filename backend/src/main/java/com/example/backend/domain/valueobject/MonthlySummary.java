@@ -75,7 +75,7 @@ public class MonthlySummary {
 
         // 1. 合計金額と件数を計算
         int total = expenses.stream()
-            .mapToInt(expense -> expense.getAmount() != null ? expense.getAmount().toInteger() : 0)
+            .mapToInt(expense -> expense.getAmount() != null ? expense.getAmount().getAmount() : 0)
             .sum();
         int count = expenses.size();
         
@@ -83,7 +83,7 @@ public class MonthlySummary {
         Map<String, Integer> categoryAmountMap = expenses.stream()
             .collect(Collectors.groupingBy(
                 expense -> expense.getCategory() != null ? expense.getCategory().getDisplayName() : CategoryType.OTHER.getDisplayName(),
-                Collectors.summingInt(expense -> expense.getAmount() != null ? expense.getAmount().toInteger() : 0)
+                Collectors.summingInt(expense -> expense.getAmount() != null ? expense.getAmount().getAmount() : 0)
             ));
 
         // 3. CategorySummary値オブジェクトのリストを作成（金額の降順でソート）

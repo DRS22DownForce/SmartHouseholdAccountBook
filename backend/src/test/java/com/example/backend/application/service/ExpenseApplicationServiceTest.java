@@ -77,8 +77,8 @@ class ExpenseApplicationServiceTest {
 
         assertNotNull(result);
         assertEquals("テスト支出", result.getDescription());
-        assertEquals(1000, result.getAmount().toInteger());
-        assertEquals(LocalDate.of(2024, 1, 1), result.getDate().toLocalDate());
+        assertEquals(1000, result.getAmount().getAmount());
+        assertEquals(LocalDate.of(2024, 1, 1), result.getDate().getDate());
         assertEquals(CategoryType.FOOD, result.getCategory());
         verify(expenseRepository, times(1)).save(any(Expense.class));
     }
@@ -108,8 +108,8 @@ class ExpenseApplicationServiceTest {
 
         assertNotNull(result);
         assertEquals("更新された支出", result.getDescription());
-        assertEquals(1500, result.getAmount().toInteger());
-        assertEquals(LocalDate.of(2024, 1, 15), result.getDate().toLocalDate());
+        assertEquals(1500, result.getAmount().getAmount());
+        assertEquals(LocalDate.of(2024, 1, 15), result.getDate().getDate());
         assertEquals(CategoryType.ENTERTAINMENT, result.getCategory());
         verify(expenseRepository, times(1)).findByIdAndUser(expenseId, user);
         verify(expenseRepository, times(1)).save(existingExpense);

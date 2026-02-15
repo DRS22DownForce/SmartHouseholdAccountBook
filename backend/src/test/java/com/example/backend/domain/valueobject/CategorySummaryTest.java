@@ -54,12 +54,12 @@ class CategorySummaryTest {
         }
 
         @Test
-        @DisplayName("金額が0未満の場合は例外が発生する")
+        @DisplayName("金額が1未満の場合は例外が発生する")
         void validateAmountPositive() {
             // given, when, then
-            assertThatThrownBy(() -> new CategorySummary(CategoryType.FOOD, -1))
+            assertThatThrownBy(() -> new CategorySummary(CategoryType.FOOD, 0))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("金額は0以上でなければなりません。");
+                .hasMessage("金額は1以上でなければなりません。");
         }
     }
 }
