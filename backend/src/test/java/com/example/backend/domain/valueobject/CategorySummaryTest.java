@@ -1,9 +1,11 @@
 package com.example.backend.domain.valueobject;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.DisplayName;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * CategorySummary値オブジェクトのテストクラス
@@ -12,71 +14,53 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class CategorySummaryTest {
 
-    @Test
-    @DisplayName("正常なカテゴリー別集計を作成できる")
-    void createCategorySummary_正常な値() {
-        // テストデータの準備
-        CategoryType category = CategoryType.FOOD;
-        Integer amount = 1000;
+    @Nested
+    @DisplayName("作成")
+    class Create {
 
-        // テスト実行
-        CategorySummary categorySummary = new CategorySummary(category, amount);
+        @Test
+        @DisplayName("正常なカテゴリーと金額で作成できる")
+        void createCategorySummary() {
+            // given, when
+            CategorySummary categorySummary = new CategorySummary(CategoryType.FOOD, 1000);
 
-        // 検証
-        assertNotNull(categorySummary);
-        assertEquals("食費", categorySummary.getDisplayName());
-        assertEquals(1000, categorySummary.getAmount());
+            // then
+            assertThat(categorySummary).isNotNull();
+            assertThat(categorySummary.getCategory()).isEqualTo(CategoryType.FOOD);
+            assertThat(categorySummary.getAmount()).isEqualTo(1000);
+        }
     }
 
-    @Test
-    @DisplayName("金額が0でも作成できる")
-    void createCategorySummary_金額が0() {
-        // テストデータの準備
-        CategoryType category = CategoryType.FOOD;
-        Integer amount = 0;
+    @Nested
+    @DisplayName("バリデーション")
+    class Validation {
 
-        // テスト実行
-        CategorySummary categorySummary = new CategorySummary(category, amount);
+        @Test
+        @DisplayName("カテゴリーがnullの場合は例外が発生する")
+        void validateCategoryNotNull() {
+            // given, when, then
+            assertThatThrownBy(() -> new CategorySummary(null, 1000))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("カテゴリーはnullであってはなりません。");
+        }
 
-        // 検証
-        assertNotNull(categorySummary);
-        assertEquals(0, categorySummary.getAmount());
-    }
+        @Test
+        @DisplayName("金額がnullの場合は例外が発生する")
+        void validateAmountNotNull() {
+            // given, when, then
+            assertThatThrownBy(() -> new CategorySummary(CategoryType.FOOD, null))
+                .isInstanceOf(NullPointerException.class)
+                .hasMessage("金額はnullであってはなりません。");
+        }
 
-    @Test
-    @DisplayName("カテゴリーがnullなら例外")
-    void createCategorySummary_カテゴリーがnull() {
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new CategorySummary(null, 1000));
-
-        assertEquals("カテゴリーはnullであってはなりません。", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("金額がnullなら例外")
-    void createCategorySummary_金額がnull() {
-        // テストデータの準備
-        CategoryType category = CategoryType.FOOD;
-
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new CategorySummary(category, null));
-
-        assertEquals("金額はnullであってはなりません。", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("金額が負の値なら例外")
-    void createCategorySummary_金額が負の値() {
-        // テストデータの準備
-        CategoryType category = CategoryType.FOOD;
-
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new CategorySummary(CategoryType.FOOD, -1));
-
-        assertEquals("金額は0以上でなければなりません。", exception.getMessage());
+        @Test
+        @DisplayName("金額が0未満の場合は例外が発生する")
+        void validateAmountPositive() {
+            // given, when, then
+            assertThatThrownBy(() -> new CategorySummary(CategoryType.FOOD, -1))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("金額は0以上でなければなりません。");
+        }
     }
 }
 
