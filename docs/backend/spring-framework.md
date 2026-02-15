@@ -71,12 +71,6 @@ public class BackendApplication {
 
 **Entity（エンティティ）**: データベースのテーブルに対応するJavaクラスです。データベースの1行（レコード）をJavaオブジェクトとして表現します。
 
-**主な特徴**:
-- **`@Entity`アノテーション**: このクラスがエンティティであることを示す
-- **識別子（ID）を持つ**: `@Id`アノテーションで主キーを指定（例: `Long id`）
-- **状態が変わる（可変）**: エンティティは変更可能です（値オブジェクトとは異なる）
-- **データベースマッピング**: クラスのフィールドがデータベースのカラムに対応
-
 **Entityと値オブジェクトの違い**:
 
 | 特徴 | Entity（エンティティ） | 値オブジェクト |
@@ -91,52 +85,6 @@ public class BackendApplication {
 2. **状態管理**: データの変更を追跡し、データベースに反映する
 3. **リレーション管理**: 他のエンティティとの関係を定義（`@ManyToOne`, `@OneToMany`など）
 
-**実際のコード例**:
-
-`backend/src/main/java/com/example/backend/entity/Expense.java` (35-72行目):
-
-```java
-@Entity
-@Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "expenses")
-public class Expense {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // 主キー（識別子）
-
-    @Column(nullable = false)
-    private String description; // 支出の説明
-
-    /**
-     * 支出金額（値オブジェクト）
-     * 
-     * @Embeddedアノテーションにより、値オブジェクトがエンティティに埋め込まれます。
-     * データベースには値オブジェクトのフィールドが直接マッピングされます。
-     */
-    @Embedded
-    private ExpenseAmount amount; // 金額（値オブジェクト）
-
-    /**
-     * 支出日付（値オブジェクト）
-     */
-    @Embedded
-    private ExpenseDate date; // 日付（値オブジェクト）
-
-    /**
-     * 支出カテゴリ（値オブジェクト）
-     */
-    @Embedded
-    private Category category; // カテゴリー（値オブジェクト）
-
-    // UserEntityのidを外部キーとして参照
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-}
-```
-
 **主なアノテーション**:
 - `@Entity`: このクラスがエンティティであることを示す
 - `@Table(name = "expenses")`: データベースのテーブル名を指定（省略時はクラス名）
@@ -146,94 +94,16 @@ public class Expense {
 - `@ManyToOne`: 多対一の関係（複数の支出が1つのユーザーに属する）
 - `@Embedded`: 値オブジェクトをエンティティに埋め込む
 
+**ポイント**:
+ - DBのテーブルがEnittyに合わせて自動生成されるかはapplication.propertiesの`spring.jpa.hibernate.ddl-auto`の設定に依存する。
+ - JPAの仕様でEntityには`protected`か`public`な引数なしコンストラクタが必要。
+ - `@Embeddable`を付けたクラスにも同様に引数なしコンストラクタが必要
+
 ---
 
 #### @Embeddedアノテーション
-
-**`@Embedded`とは**: 値オブジェクトをエンティティに埋め込むアノテーションです。値オブジェクトのフィールドがエンティティのテーブルのカラムとして直接マッピングされます。
-
-**動作の仕組み**:
-
-1. **値オブジェクト側**: `@Embeddable`アノテーションを付ける
-   ```java
-   @Embeddable  // このクラスが埋め込み可能であることを示す
-   public class ExpenseAmount {
-       @Column(name = "amount", nullable = false)  // カラム名を指定
-       private final Integer value;
-   }
-   ```
-
-2. **エンティティ側**: `@Embedded`アノテーションを付ける
-   ```java
-   @Entity
-   public class Expense {
-       @Embedded  // 値オブジェクトを埋め込む
-       private ExpenseAmount amount;
-   }
-   ```
-
-3. **データベースの結果**: 値オブジェクトのフィールドがエンティティのテーブルのカラムになる
-   - `Expense`テーブルに`amount`カラムが作成される
-   - **別のテーブルは作成されない**
-
-**実際の例**:
-
-`backend/src/main/java/com/example/backend/domain/valueobject/ExpenseAmount.java` (16-23行目):
-
-```java
-@Embeddable
-@Getter
-@ToString
-@EqualsAndHashCode
-public class ExpenseAmount{
-
-    @Column(name = "amount", nullable = false)
-    private final Integer value;
-}
-```
-
-`backend/src/main/java/com/example/backend/entity/Expense.java` (54-55行目):
-
-```java
-    @Embedded
-    private ExpenseAmount amount; // 金額（値オブジェクト）
-```
-
-**データベーステーブルの構造**:
-
-`expenses`テーブル:
-- `id` (BIGINT) - 主キー
-- `description` (VARCHAR) - 説明
-- `amount` (INTEGER) - **値オブジェクト`ExpenseAmount`の`value`フィールドがこのカラムにマッピング**
-- `date` (DATE) - **値オブジェクト`ExpenseDate`のフィールドがこのカラムにマッピング**
-- `category` (VARCHAR) - **値オブジェクト`Category`の`value`フィールドがこのカラムにマッピング**
-- `user_id` (BIGINT) - 外部キー
-
-**`@Embedded`を使うメリット**:
-- **ドメインロジックの集約**: 値オブジェクトにビジネスロジックを集約できる
-- **テーブル構造の簡素化**: 別テーブルを作らずに済む
-- **型安全性**: プリミティブ型ではなく、意味のある型を使える（例: `ExpenseAmount` vs `Integer`）
-
-**比較例**:
-
-```java
-// @Embeddedを使わない場合（値オブジェクトを使わない）
-@Entity
-public class Expense {
-    @Column(name = "amount")
-    private Integer amount;  // 単なるInteger型
-}
-
-// @Embeddedを使う場合（値オブジェクトを使う）
-@Entity
-public class Expense {
-    @Embedded
-    private ExpenseAmount amount;  // 意味のある型、バリデーション付き
-}
-```
-
-どちらもデータベースには`amount`カラムが作成されますが、`@Embedded`を使うと値オブジェクトのバリデーションやビジネスロジックを活用できます。
-
+**`@Embedded`とは**: エンティティにテーブルに別オブジェクトを埋め込むアノテーションです。別オブジェクトのフィールドがエンティティのテーブルのカラムとして直接マッピングされる
+**`@Embeddable`とは**：エンティティのテーブルに埋め込み可能なクラスであることを宣言する
 ---
 
 #### リポジトリパターン

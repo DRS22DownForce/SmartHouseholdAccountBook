@@ -132,8 +132,8 @@ class ExpenseRepositoryTest {
         // 検証: 1月の支出のみが取得できることを確認（降順でソートされている）
         assertEquals(2, expenses.size());
         // 降順でソートされていることを確認（新しい日付が先頭）
-        assertTrue(expenses.get(0).getDate().toLocalDate().isAfter(expenses.get(1).getDate().toLocalDate()) ||
-                   expenses.get(0).getDate().toLocalDate().equals(expenses.get(1).getDate().toLocalDate()));
+        assertTrue(expenses.get(0).getDate().getDate().isAfter(expenses.get(1).getDate().getDate()) ||
+                   expenses.get(0).getDate().getDate().equals(expenses.get(1).getDate().getDate()));
     }
 
     @Test
@@ -191,10 +191,10 @@ class ExpenseRepositoryTest {
         assertEquals(2, expensePage.getContent().size()); // 現在のページの件数
         assertEquals(3, expensePage.getTotalPages()); // 総ページ数
         // 降順でソートされていることを確認
-        assertTrue(expensePage.getContent().get(0).getDate().toLocalDate()
-                .isAfter(expensePage.getContent().get(1).getDate().toLocalDate()) ||
-                expensePage.getContent().get(0).getDate().toLocalDate()
-                        .equals(expensePage.getContent().get(1).getDate().toLocalDate()));
+        assertTrue(expensePage.getContent().get(0).getDate().getDate()
+                .isAfter(expensePage.getContent().get(1).getDate().getDate()) ||
+                expensePage.getContent().get(0).getDate().getDate()
+                        .equals(expensePage.getContent().get(1).getDate().getDate()));
     }
 
     @Test

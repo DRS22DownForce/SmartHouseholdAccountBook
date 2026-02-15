@@ -54,13 +54,13 @@ public class ExpenseMapper {
         dto.setDescription(expense.getDescription());
 
         // 値オブジェクトからInteger値へ変換
-        dto.setAmount(expense.getAmount() != null ? expense.getAmount().toInteger() : null);
+        dto.setAmount(expense.getAmount().getAmount());
 
         // 値オブジェクトからLocalDate値へ変換
-        dto.setDate(expense.getDate() != null ? expense.getDate().toLocalDate() : null);
+        dto.setDate(expense.getDate().getDate());
 
         // CategoryTypeから表示名へ変換
-        dto.setCategory(expense.getCategory() != null ? expense.getCategory().getDisplayName() : null);
+        dto.setCategory(expense.getCategory().getDisplayName());
 
         return dto;
     }

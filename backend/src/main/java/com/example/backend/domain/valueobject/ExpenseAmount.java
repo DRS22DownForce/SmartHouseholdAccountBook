@@ -3,8 +3,11 @@ package com.example.backend.domain.valueobject;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;
 import lombok.EqualsAndHashCode;
-import lombok.Getter;
 import lombok.ToString;
+import lombok.NoArgsConstructor;
+import lombok.AccessLevel;
+import lombok.Getter;
+import java.util.Objects;
 
 /**
  * 支出金額を表現する値オブジェクト
@@ -14,20 +17,14 @@ import lombok.ToString;
  * - 金額に関するビジネスロジック（加算など）
  */
 @Embeddable
-@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA用のデフォルトコンストラクタ
 @ToString
+@Getter
 @EqualsAndHashCode
 public class ExpenseAmount{
 
     @Column(name = "amount", nullable = false)
-    private final Integer value;
-
-    /**
-     * JPA用のデフォルトコンストラクタ
-     */
-    protected ExpenseAmount() {
-        this.value = null;
-    }
+    private Integer amount;
 
     /**
      * コンストラクタ
@@ -37,20 +34,19 @@ public class ExpenseAmount{
      */
     public ExpenseAmount(Integer value) {
         validate(value);
-        this.value = value;
+        this.amount = value;
     }
 
     /**
      * バリデーション: 金額が有効かチェック
      * 
      * @param value 検証する金額
-     * @throws IllegalArgumentException 金額がnullまたは0以下の場合
+     * @throws IllegalArgumentException 金額が0以下の場合
+     * @throws NullPointerException 金額がnullの場合
      */
     private static void validate(Integer value) {
-        if (value == null) {
-            throw new IllegalArgumentException("金額はnullであってはなりません。");
-        }
-        if (value <= 0) {
+        Objects.requireNonNull(value, "金額はnullであってはなりません。");
+        if (value < 1) {
             throw new IllegalArgumentException("金額は1以上でなければなりません。");
         }
     }
@@ -62,30 +58,11 @@ public class ExpenseAmount{
      * 
      * @param other 加算する金額
      * @return 加算結果の新しいExpenseAmountインスタンス
+     * @throws NullPointerException 加算する金額がnullの場合
      */
     public ExpenseAmount add(ExpenseAmount other) {
-        if (other == null) {
-            throw new IllegalArgumentException("加算する金額はnullであってはなりません。");
-        }
-        return new ExpenseAmount(this.value + other.value);
-    }
-
-    /**
-     * 金額を減算する
-     * 
-     * @param other 減算する金額
-     * @return 減算結果の新しいExpenseAmountインスタンス
-     * @throws IllegalArgumentException 減算結果が0以下になる場合
-     */
-    public ExpenseAmount subtract(ExpenseAmount other) {
-        if (other == null) {
-            throw new IllegalArgumentException("減算する金額はnullであってはなりません。");
-        }
-        int result = this.value - other.value;
-        if (result <= 0) {
-            throw new IllegalArgumentException("減算結果は1以上でなければなりません。");
-        }
-        return new ExpenseAmount(result);
+        Objects.requireNonNull(other, "加算する金額はnullであってはなりません。");
+        return new ExpenseAmount(this.amount + other.amount);
     }
 
     /**
@@ -93,12 +70,11 @@ public class ExpenseAmount{
      * 
      * @param other 比較する金額
      * @return この金額がotherより大きい場合true
+     * @throws NullPointerException 比較する金額がnullの場合
      */
     public boolean isGreaterThan(ExpenseAmount other) {
-        if (other == null) {
-            throw new IllegalArgumentException("比較する金額はnullであってはなりません。");
-        }
-        return this.value > other.value;
+        Objects.requireNonNull(other, "比較する金額はnullであってはなりません。");
+        return this.amount > other.amount;
     }
 
     /**
@@ -106,21 +82,11 @@ public class ExpenseAmount{
      * 
      * @param other 比較する金額
      * @return この金額がotherより小さい場合true
+     * @throws NullPointerException 比較する金額がnullの場合
      */
     public boolean isLessThan(ExpenseAmount other) {
-        if (other == null) {
-            throw new IllegalArgumentException("比較する金額はnullであってはなりません。");
-        }
-        return this.value < other.value;
-    }
-
-    /**
-     * Integer値として取得（DTO変換などで使用）
-     * 
-     * @return 金額のInteger値
-     */
-    public Integer toInteger() {
-        return this.value;
+        Objects.requireNonNull(other, "比較する金額はnullであってはなりません。");
+        return this.amount < other.amount;
     }
 }
 
