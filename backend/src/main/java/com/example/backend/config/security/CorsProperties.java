@@ -13,8 +13,6 @@ import java.util.List;
 /**
  * CORS設定を管理するプロパティクラス
  * application.propertiesから設定値を読み込みます
- * 
- * このクラスにより、環境ごとに異なるCORS設定を簡単に管理できます
  */
 @Component
 @ConfigurationProperties(prefix = "cors")
@@ -25,7 +23,6 @@ public class CorsProperties {
 
     /**
      * 許可するオリジンのリスト
-     * 環境変数から読み込むことで、環境ごとに異なるオリジンを設定できます
      */
     @NotEmpty(message = "許可するオリジンは必須です")
     private List<String> allowedOrigins;
@@ -33,7 +30,7 @@ public class CorsProperties {
     /**
      * 許可するHTTPメソッドのリスト
      * デフォルト値: GET, POST, PUT, DELETE, OPTIONS
-     * OPTIONSはプリフライトリクエストに必要です
+     * OPTIONSはプリフライトリクエスト（本当のリクエストの前の疎通確認用の下見リクエスト）に必要。
      */
     @NotNull
     private List<String> allowedMethods = List.of("GET", "POST", "PUT", "DELETE", "OPTIONS");
@@ -56,16 +53,16 @@ public class CorsProperties {
     private List<String> exposedHeaders = List.of("Content-Type");
 
     /**
-     * 認証情報（Cookieなど）を送信可能にするか
-     * デフォルト値: true
+     * 認証情報（Cookie、HTTP認証、TLSクライアント証明書）を送信可能にするか。
+     * JWT認証を利用するため、falseにする。
      */
-    private boolean allowCredentials = true;
+    private boolean allowCredentials = false;
 
     /**
      * プリフライトリクエストの結果をキャッシュする時間（秒）
      * デフォルト値: 3600秒（1時間）
-     * これにより、同じオリジンからのリクエストは指定時間内は再チェックされません
-     * パフォーマンス向上に役立ちます
+     * ブラウザはこの時間内に同一のリクエストを送信する場合、プリフライトリクエストを送信しない。
+     * パフォーマンス向上に役立つ。
      */
     private long maxAge = 3600L;
 }

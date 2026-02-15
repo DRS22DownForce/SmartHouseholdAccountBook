@@ -11,8 +11,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import com.example.backend.auth.CustomAuthenticationEntryPoint;
 import com.example.backend.auth.filter.JwtAuthFilter;
-import com.example.backend.auth.filter.UserRegistrationFilter;
 
 /**
  * Spring Securityの設定クラス
@@ -28,16 +28,16 @@ import com.example.backend.auth.filter.UserRegistrationFilter;
 @Profile("!test") // test環境では無効化する
 public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
-    private final UserRegistrationFilter userRegistrationFilter;
     private final CorsProperties corsProperties;
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     public SecurityConfig(
             JwtAuthFilter jwtAuthFilter,
-            UserRegistrationFilter userRegistrationFilter,
-            CorsProperties corsProperties) {
+            CorsProperties corsProperties,
+            CustomAuthenticationEntryPoint customAuthenticationEntryPoint) {
         this.jwtAuthFilter = jwtAuthFilter;
-        this.userRegistrationFilter = userRegistrationFilter;
         this.corsProperties = corsProperties;
+        this.customAuthenticationEntryPoint = customAuthenticationEntryPoint;
     }
 
     @Bean
@@ -48,23 +48,22 @@ public class SecurityConfig {
                 })
 
                 // CSRF保護を無効化
-                // REST APIでJWTを使用する場合、CSRF保護は不要です
-                // CSRFは主にセッションクッキーを使用する場合に有効です
-                // Authorizationヘッダーはブラウザから自動送信されないため、CSRF保護は不要
+                // セッションクッキーではなくJWT認証を利用するためCSRF保護を無効化
                 .csrf(csrf -> csrf.disable())
 
                 // セッション管理の設定
-                // STATELESS: セッションを作成しない（JWT認証ではステートレスが推奨）
+                // STATELESS: JWT認証利用のためステートレスに設定
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 // 認可ルールの設定
                 .authorizeHttpRequests(authz -> authz
-                        // /api/** で始まるパスは認証が必要
-                        // authenticated()は認証済みユーザーのみアクセス可能にする
+                        .requestMatchers("/").permitAll()
                         .requestMatchers("/api/**").authenticated()
-                        .anyRequest().permitAll())
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(userRegistrationFilter, JwtAuthFilter.class);
+                        .anyRequest().denyAll())
+                // 認証エラー時のレスポンス処理(フィルターでAuthenticationExceptionが発生した場合や認可エラー時のハンドリングを行う)
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(customAuthenticationEntryPoint))
+                // JWT認証フィルター、ユーザー登録フィルターを登録
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

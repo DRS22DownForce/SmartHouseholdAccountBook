@@ -44,37 +44,28 @@ public class UserApplicationServiceTest {
         cognitoSub = "cognitoSub";
         email = "test@example.com";
         when(currentAuthProvider.getCurrentSub()).thenReturn(cognitoSub);
-        when(currentAuthProvider.getCurrentEmail()).thenReturn(email);
     }
 
     @Test
-    void createUserIfNotExists_ユーザーが存在しない場合はデータベースに保存() {
-        // モックの設定: findByCognitoSubが空を返すように設定
+    void getUser_ユーザーが存在しない場合は新規作成して返す() {
+        when(currentAuthProvider.getCurrentEmail()).thenReturn(email);
         when(userRepository.findByCognitoSub(cognitoSub)).thenReturn(Optional.empty());
-        
-        // モックの設定: saveが呼び出されたとき
         User savedUser = new User(cognitoSub, email);
         when(userRepository.save(any(User.class))).thenReturn(savedUser);
-        
-        // テスト実行: createUserIfNotExistsを呼び出す
-        User result = userApplicationService.createUserIfNotExists();
 
-        // 検証
+        User result = userApplicationService.getUser();
+
         assertEquals(savedUser, result);
+        verify(userRepository).save(any(User.class));
     }
 
     @Test
-    void createUserIfNotExists_ユーザーが存在する場合はデータベースに保存しない() {
-        // テストデータの準備
+    void getUser_ユーザーが存在する場合は既存ユーザーを返し保存しない() {
         User existingUser = new User(cognitoSub, email);
-        
-        // モックの設定
         when(userRepository.findByCognitoSub(cognitoSub)).thenReturn(Optional.of(existingUser));
 
-        // テスト実行
-        User result = userApplicationService.createUserIfNotExists();
+        User result = userApplicationService.getUser();
 
-        // 検証
         assertEquals(existingUser, result);
         verify(userRepository, times(1)).findByCognitoSub(cognitoSub);
         verify(userRepository, times(0)).save(any(User.class));

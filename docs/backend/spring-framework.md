@@ -601,7 +601,6 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 **このプロジェクトでの使用箇所**:
 - セキュリティ設定（`SecurityConfig.java`）
 - JWT認証フィルター（`JwtAuthFilter.java`）
-- ユーザー登録フィルター（`UserRegistrationFilter.java`）
 
 ---
 
@@ -611,74 +610,29 @@ public interface ExpenseRepository extends JpaRepository<Expense, Long> {
 セキュリティ設定は、アプリケーション全体のセキュリティポリシーを定義するクラスです。具体的には以下の設定を行います：
 
 1. **CORS設定**: 異なるオリジン（ドメイン）からのリクエストを許可する設定
-   - 例：フロントエンド（`http://localhost:3000`）からバックエンド（`http://localhost:8080`）へのリクエストを許可
+   - 例：フロントエンドサーバ（`http://localhost:3000`）で取得したJSからバックエンド（`http://localhost:8080`）へのリクエストを許可
+   - バックエンドがリプライ時に`Access-Control-Allow-Origin: http://localhost:3000`というヘッダーを付けて、このオリジン（フロントエンドサーバ）からリクエストは許可すると宣言する。
+   - ブラウザはこのヘッダーが確認されたときのみJSにデータを渡す。確認できない場合はCORエラーになる。
 
 2. **CSRF保護の無効化**: REST APIでJWT認証を使用する場合、CSRF保護は不要なため無効化
    - CSRF（Cross-Site Request Forgery）は、セッションクッキーを使用する場合に有効な保護機能
-   - JWT認証では`Authorization`ヘッダーを使用するため、CSRF攻撃の対象にならない
+   - ブラウザは同一オリジンへのリクエストにクッキーを自動付与するため、あるサイトにログインしてセッションクッキーを取得した後、悪意ある別サイトからそのオリジンにリクエストが送られるとセッションクッキーが付与されてしまう。
+   - フォームにサーバ発行のトークンを埋め込むなどして対策する。
+   - JWT認証では`Authorization`ヘッダーを使用するため、CSRF攻撃の対象にならない。`Authorization`ヘッダーはブラウザによって自動付与されないため。
 
 3. **セッション管理の設定**: ステートレス（セッションを作成しない）に設定
    - JWT認証では、サーバー側でセッションを管理する必要がない
    - 各リクエストにJWTトークンを含めることで認証を行う
+   - JWTトークンにはユーザ情報が含まれているので、サーバーは署名の検証だけで、ユーザを判別できる。
+   - ステートフルの場合、ログイン後セッションIDとユーザ情報のセッションストアがサーバ側で保存される。ログイン後のリクエストのクッキーヘッダーのセッションIDが付与される。
 
 4. **認可ルールの設定**: どのパスにアクセスするために認証が必要かを定義
+   - ウェルカムページ`/`は認証なしでアクセス可能。簡易的なヘルスチェックのため。将来的にAcutuatorに以移行する。(`permitALl()`)
    - `/api/**`で始まるパスは認証必須（`authenticated()`）
-   - それ以外のパスは誰でもアクセス可能（`permitAll()`）
+   - それ以外のパス全て拒否する（`denyAll()`）
 
 5. **認証フィルターの登録**: JWT認証フィルターとユーザー登録フィルターを登録
    - リクエストが来たときに、これらのフィルターが順番に実行される
-
-**コード例**:
-
-`backend/src/main/java/com/example/backend/config/security/SecurityConfig.java` (27-70行目):
-
-```java
-@Configuration
-@Profile("!test") // test環境では無効化する
-public class SecurityConfig {
-    private final JwtAuthFilter jwtAuthFilter;
-    private final UserRegistrationFilter userRegistrationFilter;
-    private final CorsProperties corsProperties;
-
-    public SecurityConfig(
-            JwtAuthFilter jwtAuthFilter,
-            UserRegistrationFilter userRegistrationFilter,
-            CorsProperties corsProperties) {
-        this.jwtAuthFilter = jwtAuthFilter;
-        this.userRegistrationFilter = userRegistrationFilter;
-        this.corsProperties = corsProperties;
-    }
-
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http
-                // CORS設定を有効化
-                .cors(cors -> {
-                })
-
-                // CSRF保護を無効化
-                // REST APIでJWTを使用する場合、CSRF保護は不要です
-                // CSRFは主にセッションクッキーを使用する場合に有効です
-                // Authorizationヘッダーはブラウザから自動送信されないため、CSRF保護は不要
-                .csrf(csrf -> csrf.disable())
-
-                // セッション管理の設定
-                // STATELESS: セッションを作成しない（JWT認証ではステートレスが推奨）
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                // 認可ルールの設定
-                .authorizeHttpRequests(authz -> authz
-                        // /api/** で始まるパスは認証が必要
-                        // authenticated()は認証済みユーザーのみアクセス可能にする
-                        .requestMatchers("/api/**").authenticated()
-                        .anyRequest().permitAll())
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterAfter(userRegistrationFilter, JwtAuthFilter.class);
-
-        return http.build();
-    }
-}
-```
 
 ---
 
@@ -688,25 +642,25 @@ public class SecurityConfig {
 
 Securityフィルターチェーンは、リクエストがコントローラーに到達する前に、複数のフィルターを順番に通過させる仕組みです。各フィルターが特定のセキュリティ処理を行い、リクエストを検証・加工します。
 
-**このプロジェクトでのフィルターチェーンの構成**:
+**このプロジェクトでのフィルターチェーンの構成（主要なもの）**:
 
 ```
 リクエスト
    ↓
-1. CORSフィルター（Spring Securityが自動的に追加）
-   - 異なるオリジンからのリクエストを許可するかチェック
+1. SecurityContextHolderFilte
+　 - 各リクエストの最初に、そのリクエスト用の SecurityContext を SecurityContextHolder に紐づけ、リクエスト終了後にクリアする。
    ↓
-2. JwtAuthFilter（JWT認証フィルター）
+2. CORSフィルター（Spring Securityが自動的に追加）
+   - プリフライトへの応答
+   - レスポンスにCORSヘッダーを付与する 
+   ↓
+3. JwtAuthFilter（JWT認証フィルター）
    - JWTトークンを取得・検証
    - 認証情報をセキュリティコンテキストに設定
    ↓
-3. UserRegistrationFilter（ユーザー登録フィルター）
-   - JWT認証が成功した後、認証済みユーザーがデータベースに登録されているか確認
-   - 未登録の場合は自動的にデータベースに登録（`/api/**`パスのみ動作）
-   - これにより、初回ログイン時に自動的にユーザー情報がデータベースに保存される
-   ↓
-4. 認可チェック（Spring Securityが自動的に実行）
-   - `/api/**`パスは認証必須かチェック
+4. AuthorizationFilter（認可チェック）（Spring Securityが自動的に追加）
+   - `http.authorizeHttpRequest()`のルールを検証
+   - `/api/**`パスは認証必須
    - 認証されていない場合は401 Unauthorizedを返す
    ↓
 5. コントローラー
@@ -743,12 +697,6 @@ Securityフィルターチェーンは、リクエストがコントローラー
     2. `UsernamePasswordAuthenticationFilter`は、セキュリティコンテキストに認証情報が既に設定されている場合、処理をスキップします
     3. これは、Spring Securityの「既に認証済みのリクエストに対しては再度認証を行わない」という仕組みによるものです
     4. 結果として、JWT認証が成功したリクエストでは、ユーザー名・パスワード認証は実行されません
-- `addFilterAfter(userRegistrationFilter, JwtAuthFilter.class)`: ユーザー登録フィルターをJWT認証フィルターの後に配置
-
-**なぜフィルターチェーンを使うのか**:
-- **責務の分離**: 各フィルターが特定のセキュリティ処理に専念できる
-- **再利用性**: フィルターを他のエンドポイントでも再利用できる
-- **拡張性**: 新しいセキュリティ要件が発生した場合、新しいフィルターを追加するだけで対応できる
 
 ---
 
@@ -780,25 +728,12 @@ AWS Cognitoが発行するJWTトークンには、以下のような情報が含
   - `exp`（Expiration Time）: トークンの有効期限（Unixタイムスタンプ）
   - `nbf`（Not Before）: トークンが有効になる時刻（Unixタイムスタンプ）
   - `iss`（Issuer）: トークンの発行者（AWS CognitoのURL）
-  - `aud`（Audience）: トークンの受信者（クライアントID）
+  - `aud`（Audience）: どのアプリ向けに発行されたか
 
 - **Cognito固有のクレーム**:
   - `cognito:username`: Cognitoのユーザー名
   - `token_use`: トークンの種類（`id`、`access`など）
 
-**このプロジェクトで使用しているクレーム**:
-- `sub`: ユーザーを識別するために使用（データベースの`cognitoSub`として保存）
-- `email`: ユーザーのメールアドレスを取得するために使用
-
-**クレームの取得方法**:
-```java
-// セキュリティコンテキストからJWTを取得
-Jwt jwt = (Jwt) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
-// クレームを取得
-String sub = jwt.getClaimAsString("sub");        // CognitoユーザーID
-String email = jwt.getClaimAsString("email");     // メールアドレス
-```
 
 2. **JWTトークンの署名検証**: AWS CognitoのJWKセット（公開鍵セット）を使用して、トークンの署名が正しいか検証
    - **署名検証の目的**: トークンが改ざんされていないことを確認
@@ -845,7 +780,7 @@ String email = jwt.getClaimAsString("email");     // メールアドレス
    ↓ Authorization: Bearer <JWTトークン> を送信
 4. JwtAuthFilter
    ↓ JWTトークンを取得
-5. AWS CognitoのJWKセットで署名を検証
+5. AWS CognitoのJWKソース（公開鍵）で署名を検証
    ↓ 検証成功
 6. Spring Securityのセキュリティコンテキストに認証情報を設定
    ↓
@@ -856,12 +791,8 @@ String email = jwt.getClaimAsString("email");     // メールアドレス
 - **ステートレス**: サーバー側でセッションを管理する必要がない
 - **スケーラブル**: 複数のサーバーで同じトークンを使用できる
 - **セキュア**: 署名検証により、トークンの改ざんを防げる
+- **SPA+REST APIの構成と相性がいい**：セッション方式だとオリジンが異なる場合、デフォルトではセッションクッキーが送られなくなるが、`Authorization`ヘッダーで送るJWT方式はその制約を受けない。
 
-
-**学習ポイント**:
-- **フィルターチェーン**: リクエストが複数のフィルターを通過する
-- **JWT認証**: トークンベースの認証方式（ステートレス）
-- **CORS**: 異なるオリジンからのリクエストを許可する設定
 
 ---
 ## Spring Boot DevTools
