@@ -183,8 +183,8 @@ public class ExpenseController implements ExpensesApi {
      */
     @Override
     public ResponseEntity<CsvUploadResponseDto> apiExpensesUploadCsvPost(
-            @RequestPart("file") MultipartFile file,
-            @RequestParam("csvFormat") String csvFormat) {
+            MultipartFile file,
+            String csvFormat) {
         validateCsvUploadRequest(file, csvFormat);
 
         CsvFormat format = CsvFormat.valueOf(csvFormat);
