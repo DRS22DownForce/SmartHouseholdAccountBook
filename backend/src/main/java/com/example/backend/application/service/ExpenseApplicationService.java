@@ -159,7 +159,7 @@ public class ExpenseApplicationService {
 
         List<Expense> expenses = expenseRepository.findByUserAndDateBetween(user, startDate, endDate);
 
-        return MonthlySummary.from(expenses);
+        return MonthlySummary.createMonthlySummaryFromExpenses(expenses);
     }
 
     /**
@@ -190,7 +190,7 @@ public class ExpenseApplicationService {
 
             List<Expense> expenses = expenseRepository.findByUserAndDateBetween(user, monthStart, monthEnd);
 
-            MonthlySummary summary = MonthlySummary.from(expenses);
+            MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses);
             summaries.add(summary);
 
             current = current.plusMonths(1);
