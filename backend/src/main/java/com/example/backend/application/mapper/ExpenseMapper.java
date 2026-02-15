@@ -152,8 +152,8 @@ public class ExpenseMapper {
 
         // CategorySummaryのリストをDTOのリストに変換
         List<com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner> byCategoryList = new ArrayList<>();
-        if (monthlySummary.getByCategory() != null) {
-            for (CategorySummary categorySummary : monthlySummary.getByCategory()) {
+        if (monthlySummary.getCategorySummaries() != null) {
+            for (CategorySummary categorySummary : monthlySummary.getCategorySummaries()) {
                 com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner categoryDto = new com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner();
                 categoryDto.setCategory(categorySummary.getDisplayName());
                 categoryDto.setAmount(categorySummary.getAmount());

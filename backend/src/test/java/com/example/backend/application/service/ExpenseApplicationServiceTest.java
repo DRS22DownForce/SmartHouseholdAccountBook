@@ -167,10 +167,10 @@ class ExpenseApplicationServiceTest {
         assertNotNull(result);
         assertEquals(3000, result.getTotal());
         assertEquals(2, result.getCount());
-        assertEquals(2, result.getByCategory().size());
+        assertEquals(2, result.getCategorySummaries().size());
         // 金額の降順でソートされていることを確認
-        assertTrue(result.getByCategory().get(0).getAmount() >= 
-                   result.getByCategory().get(1).getAmount());
+        assertTrue(result.getCategorySummaries().get(0).getAmount() >= 
+                   result.getCategorySummaries().get(1).getAmount());
     }
 
     @Test
