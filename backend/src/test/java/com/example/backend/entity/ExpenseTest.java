@@ -3,301 +3,255 @@ package com.example.backend.entity;
 import com.example.backend.domain.valueobject.CategoryType;
 import com.example.backend.domain.valueobject.ExpenseAmount;
 import com.example.backend.domain.valueobject.ExpenseDate;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Expenseエンティティのテストクラス
- * 
+ *
  * 支出エンティティのバリデーションと変更メソッドをテストします。
- * エンティティは識別子（ID）を持ち、状態が変更可能です。
  */
 class ExpenseTest {
 
-    @Test
-    @DisplayName("正常な支出エンティティを作成できる")
-    void createExpense_正常な値() {
-        // テストデータの準備: 必要な値オブジェクトとユーザーを作成
-        User user = new User("cognitoSub", "test@example.com");
-        ExpenseAmount amount = new ExpenseAmount(1000);
-        ExpenseDate date = new ExpenseDate(LocalDate.now());
-        CategoryType category = CategoryType.FOOD;
-        String description = "テスト支出";
+    /** テスト用の固定日付（実行日に依存しない再現可能なテストのため） */
+    private static final LocalDate TEST_DATE = LocalDate.of(2025, 1, 15);
 
-        // テスト実行: Expenseエンティティを作成
-        Expense expense = new Expense(description, amount, date, category, user);
-
-        // 検証: 正常に作成され、値が正しく設定されていることを確認
-        assertNotNull(expense);
-        assertEquals("テスト支出", expense.getDescription());
-        assertEquals(1000, expense.getAmount().getAmount());
-        assertEquals(LocalDate.now(), expense.getDate().getDate());
-        assertEquals("食費", expense.getCategory().getDisplayName());
-        assertEquals(user, expense.getUser());
+    private static User defaultUser() {
+        return new User("cognitoSub", "test@example.com");
     }
 
-    @Test
-    @DisplayName("説明がnullなら例外")
-    void createExpense_説明がnullなら例外() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-        ExpenseAmount amount = new ExpenseAmount(1000);
-        ExpenseDate date = new ExpenseDate(LocalDate.now());
-        CategoryType category = CategoryType.FOOD;
-
-        // テスト実行と検証: nullの説明を渡すと例外が発生することを確認
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new Expense(null, amount, date, category, user));
-
-        assertEquals("説明は必須です。", exception.getMessage());
+    private static ExpenseAmount defaultAmount() {
+        return new ExpenseAmount(1000);
     }
 
-    @Test
-    @DisplayName("説明が空文字列なら例外")
-    void createExpense_説明が空文字列なら例外() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-        ExpenseAmount amount = new ExpenseAmount(1000);
-        ExpenseDate date = new ExpenseDate(LocalDate.now());
-        CategoryType category = CategoryType.FOOD;
-
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new Expense("", amount, date, category, user));
-
-        assertEquals("説明は必須です。", exception.getMessage());
+    private static ExpenseDate defaultDate() {
+        return new ExpenseDate(TEST_DATE);
     }
 
-    @Test
-    @DisplayName("説明が空白のみなら例外")
-    void createExpense_説明が空白のみなら例外() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-        ExpenseAmount amount = new ExpenseAmount(1000);
-        ExpenseDate date = new ExpenseDate(LocalDate.now());
-        CategoryType category = CategoryType.FOOD;
-
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new Expense("   ", amount, date, category, user));
-
-        assertEquals("説明は必須です。", exception.getMessage());
+    private static CategoryType defaultCategory() {
+        return CategoryType.FOOD;
     }
 
-    @Test
-    @DisplayName("金額がnullなら例外")
-    void createExpense_金額がnullなら例外() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-        ExpenseDate date = new ExpenseDate(LocalDate.now());
-        CategoryType category = CategoryType.FOOD;
-
-        // テスト実行と検証（Objects.requireNonNullはNullPointerExceptionをスロー）
-        NullPointerException exception = assertThrows(NullPointerException.class,
-                () -> new Expense("テスト支出", null, date, category, user));
-
-        assertEquals("金額は必須です。", exception.getMessage());
+    private static Expense defaultExpense() {
+        return new Expense("テスト支出", defaultAmount(), defaultDate(), defaultCategory(), defaultUser());
     }
 
-    @Test
-    @DisplayName("日付がnullなら例外")
-    void createExpense_日付がnullなら例外() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-        ExpenseAmount amount = new ExpenseAmount(1000);
-        CategoryType category = CategoryType.FOOD;
-
-        // テスト実行と検証（Objects.requireNonNullはNullPointerExceptionをスロー）
-        NullPointerException exception = assertThrows(NullPointerException.class,
-                () -> new Expense("テスト支出", amount, null, category, user));
-
-        assertEquals("日付は必須です。", exception.getMessage());
+    private static void assertExpenseConstructorThrows(
+            String description, ExpenseAmount amount, ExpenseDate date,
+            CategoryType category, User user,
+            Class<? extends Throwable> exceptionClass, String message) {
+        assertThatThrownBy(() -> new Expense(description, amount, date, category, user))
+                .isInstanceOf(exceptionClass)
+                .hasMessage(message);
     }
 
-    @Test
-    @DisplayName("カテゴリーがnullなら例外")
-    void createExpense_カテゴリーがnullなら例外() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-        ExpenseAmount amount = new ExpenseAmount(1000);
-        ExpenseDate date = new ExpenseDate(LocalDate.now());
-
-        // テスト実行と検証（Objects.requireNonNullはNullPointerExceptionをスロー）
-        NullPointerException exception = assertThrows(NullPointerException.class,
-                () -> new Expense("テスト支出", amount, date, null, user));
-
-        assertEquals("カテゴリーは必須です。", exception.getMessage());
+    private static void assertExpenseUpdateThrows(
+            String description, ExpenseAmount amount, ExpenseDate date, CategoryType category,
+            Class<? extends Throwable> exceptionClass, String message) {
+        assertThatThrownBy(() -> new Expense.ExpenseUpdate(description, amount, date, category))
+                .isInstanceOf(exceptionClass)
+                .hasMessage(message);
     }
 
-    @Test
-    @DisplayName("ユーザーがnullなら例外")
-    void createExpense_ユーザーがnullなら例外() {
-        // テストデータの準備
-        ExpenseAmount amount = new ExpenseAmount(1000);
-        ExpenseDate date = new ExpenseDate(LocalDate.now());
-        CategoryType category = CategoryType.FOOD;
+    @Nested
+    @DisplayName("コンストラクタ（正常系）")
+    class ConstructorSuccess {
+        @Test
+        @DisplayName("正常な支出エンティティを作成できる")
+        void createWithValidValues() {
+            User user = defaultUser();
+            Expense expense = new Expense(
+                    "テスト支出", defaultAmount(), defaultDate(), defaultCategory(), user);
 
-        // テスト実行と検証（Objects.requireNonNullはNullPointerExceptionをスロー）
-        NullPointerException exception = assertThrows(NullPointerException.class,
-                () -> new Expense("テスト支出", amount, date, category, null));
-
-        assertEquals("ユーザーは必須です。", exception.getMessage());
+            assertThat(expense).isNotNull();
+            assertThat(expense.getDescription()).isEqualTo("テスト支出");
+            assertThat(expense.getAmount().getAmount()).isEqualTo(1000);
+            assertThat(expense.getDate().getDate()).isEqualTo(TEST_DATE);
+            assertThat(expense.getCategory().getDisplayName()).isEqualTo("食費");
+            assertThat(expense.getUser()).isEqualTo(user);
+        }
     }
 
-    @Test
-    @DisplayName("説明を変更できる")
-    void update_説明のみ変更() {
-        // テストデータの準備: 支出エンティティを作成
-        User user = new User("cognitoSub", "test@example.com");
-        ExpenseAmount amount = new ExpenseAmount(1000);
-        ExpenseDate date = new ExpenseDate(LocalDate.now());
-        CategoryType category = CategoryType.FOOD;
-        Expense expense = new Expense("元の説明", amount, date, category, user);
+    @Nested
+    @DisplayName("コンストラクタ（異常系・説明）")
+    class ConstructorFailureDescription {
+        @Test
+        @DisplayName("説明がnullの場合は例外が発生する")
+        void createWithNullDescription() {
+            assertExpenseConstructorThrows(
+                    null, defaultAmount(), defaultDate(), defaultCategory(), defaultUser(),
+                    NullPointerException.class, "説明はnullであってはなりません。");
+        }
 
-        // テスト実行: ExpenseUpdateレコードを作成して説明を変更
-        Expense.ExpenseUpdate update = new Expense.ExpenseUpdate(
-                "新しい説明",
-                amount,
-                date,
-                category
-        );
-        expense.update(update);
+        @Test
+        @DisplayName("説明が空文字列の場合は例外が発生する")
+        void createWithEmptyDescription() {
+            assertExpenseConstructorThrows(
+                    "", defaultAmount(), defaultDate(), defaultCategory(), defaultUser(),
+                    IllegalArgumentException.class, "説明は空文字列であってはなりません。");
+        }
 
-        // 検証: 説明が正しく変更されていることを確認
-        assertEquals("新しい説明", expense.getDescription());
-        assertEquals(1000, expense.getAmount().getAmount());
-        assertEquals(LocalDate.now(), expense.getDate().getDate());
-        assertEquals("食費", expense.getCategory().getDisplayName());
+        @Test
+        @DisplayName("説明が空白のみの場合は例外が発生する")
+        void createWithBlankDescription() {
+            assertExpenseConstructorThrows(
+                    "   ", defaultAmount(), defaultDate(), defaultCategory(), defaultUser(),
+                    IllegalArgumentException.class, "説明は空文字列であってはなりません。");
+        }
     }
 
-    @Test
-    @DisplayName("金額を変更できる")
-    void update_金額のみ変更() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-        ExpenseAmount originalAmount = new ExpenseAmount(1000);
-        ExpenseDate date = new ExpenseDate(LocalDate.now());
-        CategoryType category = CategoryType.FOOD;
-        Expense expense = new Expense("テスト支出", originalAmount, date, category, user);
+    @Nested
+    @DisplayName("コンストラクタ（異常系・必須項目がnull）")
+    class ConstructorFailureNullRequired {
+        @Test
+        @DisplayName("金額がnullの場合は例外が発生する")
+        void createWithNullAmount() {
+            assertExpenseConstructorThrows(
+                    "テスト支出", null, defaultDate(), defaultCategory(), defaultUser(),
+                    NullPointerException.class, "金額はnullであってはなりません。");
+        }
 
-        // テスト実行: ExpenseUpdateレコードを作成して金額を変更
-        ExpenseAmount newAmount = new ExpenseAmount(2000);
-        Expense.ExpenseUpdate update = new Expense.ExpenseUpdate(
-                "テスト支出",
-                newAmount,
-                date,
-                category
-        );
-        expense.update(update);
+        @Test
+        @DisplayName("日付がnullの場合は例外が発生する")
+        void createWithNullDate() {
+            assertExpenseConstructorThrows(
+                    "テスト支出", defaultAmount(), null, defaultCategory(), defaultUser(),
+                    NullPointerException.class, "日付はnullであってはなりません。");
+        }
 
-        // 検証: 金額が正しく変更されていることを確認
-        assertEquals(2000, expense.getAmount().getAmount());
+        @Test
+        @DisplayName("カテゴリーがnullの場合は例外が発生する")
+        void createWithNullCategory() {
+            assertExpenseConstructorThrows(
+                    "テスト支出", defaultAmount(), defaultDate(), null, defaultUser(),
+                    NullPointerException.class, "カテゴリーはnullであってはなりません。");
+        }
+
+        @Test
+        @DisplayName("ユーザーがnullの場合は例外が発生する")
+        void createWithNullUser() {
+            assertExpenseConstructorThrows(
+                    "テスト支出", defaultAmount(), defaultDate(), defaultCategory(), null,
+                    NullPointerException.class, "ユーザーはnullであってはなりません。");
+        }
     }
 
-    @Test
-    @DisplayName("日付を変更できる")
-    void update_日付のみ変更() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-        ExpenseAmount amount = new ExpenseAmount(1000);
-        ExpenseDate originalDate = new ExpenseDate(LocalDate.now().minusDays(5));
-        CategoryType category = CategoryType.FOOD;
-        Expense expense = new Expense("テスト支出", amount, originalDate, category, user);
+    @Nested
+    @DisplayName("update（正常系）")
+    class UpdateSuccess {
+        @Test
+        @DisplayName("説明を変更できる")
+        void updateDescription() {
+            Expense expense = new Expense(
+                    "元の説明", defaultAmount(), defaultDate(), defaultCategory(), defaultUser());
+            Expense.ExpenseUpdate update = new Expense.ExpenseUpdate(
+                    "新しい説明", defaultAmount(), defaultDate(), defaultCategory());
 
-        // テスト実行: ExpenseUpdateレコードを作成して日付を変更
-        ExpenseDate newDate = new ExpenseDate(LocalDate.now().minusDays(1));
-        Expense.ExpenseUpdate update = new Expense.ExpenseUpdate(
-                "テスト支出",
-                amount,
-                newDate,
-                category
-        );
-        expense.update(update);
+            expense.update(update);
 
-        // 検証: 日付が正しく変更されていることを確認
-        assertEquals(LocalDate.now().minusDays(1), expense.getDate().getDate());
+            assertThat(expense.getDescription()).isEqualTo("新しい説明");
+            assertThat(expense.getAmount().getAmount()).isEqualTo(1000);
+            assertThat(expense.getDate().getDate()).isEqualTo(TEST_DATE);
+            assertThat(expense.getCategory().getDisplayName()).isEqualTo("食費");
+        }
+
+        @Test
+        @DisplayName("金額を変更できる")
+        void updateAmount() {
+            Expense expense = defaultExpense();
+            Expense.ExpenseUpdate update = new Expense.ExpenseUpdate(
+                    "テスト支出", new ExpenseAmount(2000), defaultDate(), defaultCategory());
+
+            expense.update(update);
+
+            assertThat(expense.getAmount().getAmount()).isEqualTo(2000);
+        }
+
+        @Test
+        @DisplayName("日付を変更できる")
+        void updateDate() {
+            LocalDate originalDate = TEST_DATE.minusDays(5);
+            LocalDate newDate = TEST_DATE.minusDays(1);
+            Expense expense = new Expense(
+                    "テスト支出", defaultAmount(),
+                    new ExpenseDate(originalDate), defaultCategory(), defaultUser());
+            Expense.ExpenseUpdate update = new Expense.ExpenseUpdate(
+                    "テスト支出", defaultAmount(), new ExpenseDate(newDate), defaultCategory());
+
+            expense.update(update);
+
+            assertThat(expense.getDate().getDate()).isEqualTo(newDate);
+        }
+
+        @Test
+        @DisplayName("カテゴリーを変更できる")
+        void updateCategory() {
+            Expense expense = defaultExpense();
+            Expense.ExpenseUpdate update = new Expense.ExpenseUpdate(
+                    "テスト支出", defaultAmount(), defaultDate(), CategoryType.TRANSPORT);
+
+            expense.update(update);
+
+            assertThat(expense.getCategory().getDisplayName()).isEqualTo("交通費");
+        }
+
+        @Test
+        @DisplayName("複数のフィールドを一度に更新できる")
+        void updateMultipleFields() {
+            LocalDate originalDate = TEST_DATE.minusDays(5);
+            LocalDate newDate = TEST_DATE.minusDays(1);
+            Expense expense = new Expense(
+                    "元の説明",
+                    defaultAmount(),
+                    new ExpenseDate(originalDate),
+                    defaultCategory(),
+                    defaultUser());
+            Expense.ExpenseUpdate update = new Expense.ExpenseUpdate(
+                    "新しい説明",
+                    new ExpenseAmount(2000),
+                    new ExpenseDate(newDate),
+                    CategoryType.TRANSPORT);
+
+            expense.update(update);
+
+            assertThat(expense.getDescription()).isEqualTo("新しい説明");
+            assertThat(expense.getAmount().getAmount()).isEqualTo(2000);
+            assertThat(expense.getDate().getDate()).isEqualTo(newDate);
+            assertThat(expense.getCategory().getDisplayName()).isEqualTo("交通費");
+        }
     }
 
-    @Test
-    @DisplayName("カテゴリーを変更できる")
-    void update_カテゴリーのみ変更() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-        ExpenseAmount amount = new ExpenseAmount(1000);
-        ExpenseDate date = new ExpenseDate(LocalDate.now());
-        CategoryType originalCategory = CategoryType.FOOD;
-        Expense expense = new Expense("テスト支出", amount, date, originalCategory, user);
+    @Nested
+    @DisplayName("ExpenseUpdate（異常系・説明）")
+    class ExpenseUpdateFailureDescription {
+        @Test
+        @DisplayName("説明が空文字列の場合は例外が発生する")
+        void createWithEmptyDescription() {
+            assertExpenseUpdateThrows(
+                    "", defaultAmount(), defaultDate(), defaultCategory(),
+                    IllegalArgumentException.class, "説明は空文字列であってはなりません。");
+        }
 
-        // テスト実行: ExpenseUpdateレコードを作成してカテゴリーを変更
-        CategoryType newCategory = CategoryType.TRANSPORT;
-        Expense.ExpenseUpdate update = new Expense.ExpenseUpdate(
-                "テスト支出",
-                amount,
-                date,
-                newCategory
-        );
-        expense.update(update);
+        @Test
+        @DisplayName("説明が空白のみの場合は例外が発生する")
+        void createWithBlankDescription() {
+            assertExpenseUpdateThrows(
+                    "   ", defaultAmount(), defaultDate(), defaultCategory(),
+                    IllegalArgumentException.class, "説明は空文字列であってはなりません。");
+        }
 
-        // 検証: カテゴリーが正しく変更されていることを確認
-        assertEquals("交通費", expense.getCategory().getDisplayName());
-    }
-
-    @Test
-    @DisplayName("複数のフィールドを一度に更新できる")
-    void update_正常に更新() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-        ExpenseAmount originalAmount = new ExpenseAmount(1000);
-        ExpenseDate originalDate = new ExpenseDate(LocalDate.now().minusDays(5));
-        CategoryType originalCategory = CategoryType.FOOD;
-        Expense expense = new Expense("元の説明", originalAmount, originalDate, originalCategory, user);
-
-        // テスト実行: ExpenseUpdateレコードを作成して複数のフィールドを一度に更新
-        ExpenseAmount newAmount = new ExpenseAmount(2000);
-        ExpenseDate newDate = new ExpenseDate(LocalDate.now().minusDays(1));
-        CategoryType newCategory = CategoryType.TRANSPORT;
-        Expense.ExpenseUpdate update = new Expense.ExpenseUpdate(
-                "新しい説明",
-                newAmount,
-                newDate,
-                newCategory
-        );
-        expense.update(update);
-
-        // 検証: すべてのフィールドが正しく更新されていることを確認
-        assertEquals("新しい説明", expense.getDescription());
-        assertEquals(2000, expense.getAmount().getAmount());
-        assertEquals(LocalDate.now().minusDays(1), expense.getDate().getDate());
-        assertEquals("交通費", expense.getCategory().getDisplayName());
-    }
-
-    @Test
-    @DisplayName("updateメソッドで説明が空文字列でも更新される")
-    void update_空文字列でも更新される() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-        ExpenseAmount amount = new ExpenseAmount(1000);
-        ExpenseDate date = new ExpenseDate(LocalDate.now());
-        CategoryType category = CategoryType.FOOD;
-        Expense expense = new Expense("元の説明", amount, date, category, user);
-
-        // テスト実行: ExpenseUpdateレコードを作成して空文字列で更新
-        // ExpenseUpdateレコードはnullチェックを行わないため、空文字列もそのまま更新される
-        Expense.ExpenseUpdate update = new Expense.ExpenseUpdate(
-                "",
-                amount,
-                date,
-                category
-        );
-        expense.update(update);
-
-        // 検証: 説明が空文字列に更新されていることを確認
-        // 注意: 実際のアプリケーションでは、ExpenseMapper.toExpenseUpdateでバリデーションが行われる
-        assertEquals("", expense.getDescription());
+        @Test
+        @DisplayName("金額がnullの場合は例外が発生する")
+        void createWithNullAmount() {
+            assertExpenseUpdateThrows(
+                    "テスト支出", null, defaultDate(), defaultCategory(),
+                    NullPointerException.class, "金額はnullであってはなりません。");
+        }
     }
 }
-
