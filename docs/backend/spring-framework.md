@@ -89,15 +89,19 @@ public class BackendApplication {
 - `@Entity`: このクラスがエンティティであることを示す
 - `@Table(name = "expenses")`: データベースのテーブル名を指定（省略時はクラス名）
 - `@Id`: 主キー（識別子）を指定
-- `@GeneratedValue`: IDの自動生成方法を指定（`IDENTITY`はデータベースに任せる）
+- `@GeneratedValue`: IDの自動生成方法を指定（`@GeneratedValue(strategy = GenerationType.IDENTITY)`はDBの自動採番機能によって主キーを生成する方式）
 - `@Column`: カラムの詳細設定（`nullable = false`は必須項目）
-- `@ManyToOne`: 多対一の関係（複数の支出が1つのユーザーに属する）
+- `@ManyToOne`: 多対一の関係（複数の支出が1つのユーザーに属する）。`@ManyToOne(fetch = FetchType.LAZY)`とすると、関連のEnittyのフィールドに実際にアクセスするまで、そのEntityへのSELECTは発行されない。
 - `@Embedded`: 値オブジェクトをエンティティに埋め込む
+- `@Enumerated`:EnumをDBにどう保存するかの指定。`@Enumerated(EnumType.STRING)`は列挙子の名前を文字列で保存する設定。
 
 **ポイント**:
  - DBのテーブルがEnittyに合わせて自動生成されるかはapplication.propertiesの`spring.jpa.hibernate.ddl-auto`の設定に依存する。
  - JPAの仕様でEntityには`protected`か`public`な引数なしコンストラクタが必要。
  - `@Embeddable`を付けたクラスにも同様に引数なしコンストラクタが必要
+ - `@ManyToOne(fetch = FetchType.LAZY)`とするとN+1問題が発生する可能性がある
+   - 例えばExpenseをリストで複数個取得し、それぞれにExpense.getUser()をするとそれぞれにUserを取得するクエリが実行される。
+   - この対策として、Expenseと一緒に関連のUserも取得する`JOIN FETCH`や`@EntityGraph`を利用する。
 
 ---
 
