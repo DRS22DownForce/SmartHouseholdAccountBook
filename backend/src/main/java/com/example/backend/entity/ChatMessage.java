@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 /**
  * チャットメッセージエンティティ
@@ -25,32 +26,22 @@ public class ChatMessage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id; // 主キー（識別子）
+    private Long id;
 
-    /**
-     * メッセージのロール
-     */
+    //メッセージのロール
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role;
 
-    /**
-     * メッセージの内容
-     * TEXT型を使用することで、長いメッセージも保存可能
-     */
+    //メッセージの内容
     @Column(nullable = false, columnDefinition = "TEXT")
-    private String content; // メッセージの内容
+    private String content;
 
-    /**
-     * メッセージの作成日時
-     * 自動的に現在時刻が設定されます
-     */
+    //メッセージの作成日時
     @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt; // 作成日時
+    private LocalDateTime createdAt;
 
-    /**
-     * ユーザーエンティティの外部キー
-     */
+    //ユーザーエンティティの外部キー
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -61,6 +52,8 @@ public class ChatMessage {
      * @param role メッセージのロール（"user"、"assistant"、"system"）
      * @param content メッセージの内容
      * @param user ユーザーエンティティ
+     * @throws NullPointerException ロール、メッセージ内容、ユーザーがnullの場合
+     * @throws IllegalArgumentException メッセージ内容が空文字列の場合
      */
     public ChatMessage(Role role, String content, User user) {
         validate(role, content, user);
@@ -70,22 +63,16 @@ public class ChatMessage {
         this.createdAt = LocalDateTime.now(); // 作成日時を自動設定
     }
 
-    /**
-     * バリデーションロジック
-     * 
-     * エンティティレベルでの整合性チェックを行います。
-     */
+    
     private static void validate(Role role, String content, User user) {
-        if (role == null) {
-            throw new IllegalArgumentException("ロールは必須です。");
+        Objects.requireNonNull(role, "ロールはnullであってはなりません。");
+        Objects.requireNonNull(content, "メッセージ内容はnullであってはなりません。");
+        if (content.trim().isEmpty()) {
+            throw new IllegalArgumentException("メッセージ内容は空文字列であってはなりません。");
         }
-        if (content == null || content.trim().isEmpty()) {
-            throw new IllegalArgumentException("メッセージ内容は必須です。");
-        }
-        if (user == null) {
-            throw new IllegalArgumentException("ユーザーは必須です。");
-        }
+        Objects.requireNonNull(user, "ユーザーはnullであってはなりません。");
     }
+    
     /**
      * ChatMessageのロール
      * 

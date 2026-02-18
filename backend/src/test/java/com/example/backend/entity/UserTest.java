@@ -1,145 +1,116 @@
 package com.example.backend.entity;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * Userエンティティのテストクラス
- * 
+ *
  * ユーザーエンティティのバリデーションをテストします。
- * ユーザーはCognitoのsubとメールアドレスを持ちます。
  */
 class UserTest {
 
-    @Test
-    @DisplayName("正常なユーザーエンティティを作成できる")
-    void createUser_正常な値() {
-        // テストデータの準備: 有効なcognitoSubとemail
-        String cognitoSub = "cognitoSub123";
-        String email = "test@example.com";
+    private static final String DEFAULT_COGNITO_SUB = "cognitoSub123";
+    private static final String DEFAULT_EMAIL = "test@example.com";
 
-        // テスト実行: Userエンティティを作成
-        User user = new User(cognitoSub, email);
-
-        // 検証: 正常に作成され、値が正しく設定されていることを確認
-        assertNotNull(user);
-        assertEquals("cognitoSub123", user.getCognitoSub());
-        assertEquals("test@example.com", user.getEmail());
+    private static void assertUserConstructorThrows(
+            String cognitoSub, String email,
+            Class<? extends Throwable> exceptionClass, String message) {
+        assertThatThrownBy(() -> new User(cognitoSub, email))
+                .isInstanceOf(exceptionClass)
+                .hasMessage(message);
     }
 
-    @Test
-    @DisplayName("cognitoSubがnullなら例外")
-    void createUser_cognitoSubがnullなら例外() {
-        // テストデータの準備
-        String email = "test@example.com";
+    @Nested
+    @DisplayName("コンストラクタ（正常系）")
+    class ConstructorSuccess {
+        @Test
+        @DisplayName("正常なユーザーエンティティを作成できる")
+        void createWithValidValues() {
+            User user = new User(DEFAULT_COGNITO_SUB, DEFAULT_EMAIL);
 
-        // テスト実行と検証: nullのcognitoSubを渡すと例外が発生することを確認
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new User(null, email));
+            assertThat(user).isNotNull();
+            assertThat(user.getCognitoSub()).isEqualTo(DEFAULT_COGNITO_SUB);
+            assertThat(user.getEmail()).isEqualTo(DEFAULT_EMAIL);
+        }
 
-        // 例外メッセージが正しいことを確認
-        assertEquals("cognitoSubは必須です。", exception.getMessage());
+        @Test
+        @DisplayName("様々な有効なメールアドレス形式で作成できる")
+        void createWithVariousValidEmailFormats() {
+            assertThat(new User(DEFAULT_COGNITO_SUB, "test@example.com").getEmail())
+                    .isEqualTo("test@example.com");
+            assertThat(new User(DEFAULT_COGNITO_SUB, "user.name@example.co.jp").getEmail())
+                    .isEqualTo("user.name@example.co.jp");
+            assertThat(new User(DEFAULT_COGNITO_SUB, "test+tag@example.com").getEmail())
+                    .isEqualTo("test+tag@example.com");
+        }
     }
 
-    @Test
-    @DisplayName("cognitoSubが空文字列なら例外")
-    void createUser_cognitoSubが空文字列なら例外() {
-        // テストデータの準備
-        String email = "test@example.com";
+    @Nested
+    @DisplayName("コンストラクタ（異常系・cognitoSub）")
+    class ConstructorFailureCognitoSub {
+        @Test
+        @DisplayName("cognitoSubがnullの場合は例外が発生する")
+        void createWithNullCognitoSub() {
+            assertUserConstructorThrows(
+                    null, DEFAULT_EMAIL,
+                    NullPointerException.class, "cognitoSubはnullであってはなりません。");
+        }
 
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new User("", email));
+        @Test
+        @DisplayName("cognitoSubが空文字列の場合は例外が発生する")
+        void createWithEmptyCognitoSub() {
+            assertUserConstructorThrows(
+                    "", DEFAULT_EMAIL,
+                    IllegalArgumentException.class, "cognitoSubは空文字列であってはなりません。");
+        }
 
-        assertEquals("cognitoSubは必須です。", exception.getMessage());
+        @Test
+        @DisplayName("cognitoSubが空白のみの場合は例外が発生する")
+        void createWithBlankCognitoSub() {
+            assertUserConstructorThrows(
+                    "   ", DEFAULT_EMAIL,
+                    IllegalArgumentException.class, "cognitoSubは空文字列であってはなりません。");
+        }
     }
 
-    @Test
-    @DisplayName("cognitoSubが空白のみなら例外")
-    void createUser_cognitoSubが空白のみなら例外() {
-        // テストデータの準備
-        String email = "test@example.com";
+    @Nested
+    @DisplayName("コンストラクタ（異常系・email）")
+    class ConstructorFailureEmail {
+        @Test
+        @DisplayName("emailがnullの場合は例外が発生する")
+        void createWithNullEmail() {
+            assertUserConstructorThrows(
+                    DEFAULT_COGNITO_SUB, null,
+                    NullPointerException.class, "emailはnullであってはなりません。");
+        }
 
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new User("   ", email));
+        @Test
+        @DisplayName("emailが空文字列の場合は例外が発生する")
+        void createWithEmptyEmail() {
+            assertUserConstructorThrows(
+                    DEFAULT_COGNITO_SUB, "",
+                    IllegalArgumentException.class, "emailは空文字列であってはなりません。");
+        }
 
-        assertEquals("cognitoSubは必須です。", exception.getMessage());
-    }
+        @Test
+        @DisplayName("emailが空白のみの場合は例外が発生する")
+        void createWithBlankEmail() {
+            assertUserConstructorThrows(
+                    DEFAULT_COGNITO_SUB, "   ",
+                    IllegalArgumentException.class, "emailは空文字列であってはなりません。");
+        }
 
-    @Test
-    @DisplayName("emailがnullなら例外")
-    void createUser_emailがnullなら例外() {
-        // テストデータの準備
-        String cognitoSub = "cognitoSub123";
-
-        // テスト実行と検証: nullのemailを渡すと例外が発生することを確認
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new User(cognitoSub, null));
-
-        assertEquals("emailは必須です。", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("emailが空文字列なら例外")
-    void createUser_emailが空文字列なら例外() {
-        // テストデータの準備
-        String cognitoSub = "cognitoSub123";
-
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new User(cognitoSub, ""));
-
-        assertEquals("emailは必須です。", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("emailが空白のみなら例外")
-    void createUser_emailが空白のみなら例外() {
-        // テストデータの準備
-        String cognitoSub = "cognitoSub123";
-
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new User(cognitoSub, "   "));
-
-        assertEquals("emailは必須です。", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("emailに@が含まれていない場合は例外")
-    void createUser_emailにアットマークが含まれていないなら例外() {
-        // テストデータの準備: @が含まれていない無効なメールアドレス
-        String cognitoSub = "cognitoSub123";
-        String invalidEmail = "invalidemail.com";
-
-        // テスト実行と検証: @が含まれていないメールアドレスを渡すと例外が発生することを確認
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new User(cognitoSub, invalidEmail));
-
-        assertEquals("メールアドレスの形式が正しくありません。", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("正常なメールアドレス形式なら作成できる")
-    void createUser_正常なメールアドレス形式() {
-        // テストデータの準備: 様々な有効なメールアドレス形式
-        String cognitoSub = "cognitoSub123";
-
-        // テスト実行と検証: 様々な有効なメールアドレス形式で作成できることを確認
-        User user1 = new User(cognitoSub, "test@example.com");
-        assertNotNull(user1);
-        assertEquals("test@example.com", user1.getEmail());
-
-        User user2 = new User(cognitoSub, "user.name@example.co.jp");
-        assertNotNull(user2);
-        assertEquals("user.name@example.co.jp", user2.getEmail());
-
-        User user3 = new User(cognitoSub, "test+tag@example.com");
-        assertNotNull(user3);
-        assertEquals("test+tag@example.com", user3.getEmail());
+        @Test
+        @DisplayName("emailに@が含まれていない場合は例外が発生する")
+        void createWithInvalidEmailFormat() {
+            assertUserConstructorThrows(
+                    DEFAULT_COGNITO_SUB, "invalidemail.com",
+                    IllegalArgumentException.class, "メールアドレスの形式が正しくありません。");
+        }
     }
 }
-
