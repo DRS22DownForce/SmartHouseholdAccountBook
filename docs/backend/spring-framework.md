@@ -73,41 +73,48 @@ public class BackendApplication {
 
 **Entityと値オブジェクトの違い**:
 
-| 特徴 | Entity（エンティティ） | 値オブジェクト |
-|------|---------------------|--------------|
-| **識別子** | IDを持つ（`@Id`） | IDを持たない |
-| **可変性** | 状態が変わる（可変） | 不変（immutable） |
-| **等価性** | IDで比較 | 値で比較 |
-| **例** | `Expense`, `User` | `ExpenseAmount`, `Category` |
+| 特徴       | Entity（エンティティ） | 値オブジェクト   |
+|------------|------------------------|------------------|
+| **識別子** | IDを持つ（`@Id`）      | IDを持たない     |
+| **可変性** | 状態が変わる（可変）   | 不変（immutable）|
+| **等価性** | IDで比較               | 値で比較         |
+| **例**     | `Expense`, `User`      | `ExpenseAmount`, `Category` |
 
 **Entityの役割**:
+
 1. **データベースとのマッピング**: Javaオブジェクトとデータベースのテーブルを対応付ける
 2. **状態管理**: データの変更を追跡し、データベースに反映する
 3. **リレーション管理**: 他のエンティティとの関係を定義（`@ManyToOne`, `@OneToMany`など）
 
 **主なアノテーション**:
+
 - `@Entity`: このクラスがエンティティであることを示す
-- `@Table(name = "expenses")`: データベースのテーブル名を指定（省略時はクラス名）
+- `@Table(name = "テーブル名")`: データベースのテーブル名を指定（省略時はクラス名）
+- `@Table(name="テーブル名", indexes ={@Index(name = "インデックスの列名", columnList = "インデックスを作成する列")})`で特定にカラムに対するインデックス列を作成できる
 - `@Id`: 主キー（識別子）を指定
 - `@GeneratedValue`: IDの自動生成方法を指定（`@GeneratedValue(strategy = GenerationType.IDENTITY)`はDBの自動採番機能によって主キーを生成する方式）
-- `@Column`: カラムの詳細設定（`nullable = false`は必須項目）
+- `@Column`: カラムの詳細設定（`nullable = false`：NULLを強要しない。`columnDefinition = "TEXT"`：DB上の型をテキストにする。`updatable = false` INSERT時だけ値が設定されUPDATEでは変更されない）
 - `@ManyToOne`: 多対一の関係（複数の支出が1つのユーザーに属する）。`@ManyToOne(fetch = FetchType.LAZY)`とすると、関連のEnittyのフィールドに実際にアクセスするまで、そのEntityへのSELECTは発行されない。
 - `@Embedded`: 値オブジェクトをエンティティに埋め込む
-- `@Enumerated`:EnumをDBにどう保存するかの指定。`@Enumerated(EnumType.STRING)`は列挙子の名前を文字列で保存する設定。
+- `@Enumerated`: EnumをDBにどう保存するかの指定。`@Enumerated(EnumType.STRING)`は列挙子の名前を文字列で保存する設定。
 
 **ポイント**:
- - DBのテーブルがEnittyに合わせて自動生成されるかはapplication.propertiesの`spring.jpa.hibernate.ddl-auto`の設定に依存する。
- - JPAの仕様でEntityには`protected`か`public`な引数なしコンストラクタが必要。
- - `@Embeddable`を付けたクラスにも同様に引数なしコンストラクタが必要
- - `@ManyToOne(fetch = FetchType.LAZY)`とするとN+1問題が発生する可能性がある
-   - 例えばExpenseをリストで複数個取得し、それぞれにExpense.getUser()をするとそれぞれにUserを取得するクエリが実行される。
-   - この対策として、Expenseと一緒に関連のUserも取得する`JOIN FETCH`や`@EntityGraph`を利用する。
+
+- DBのテーブルがEnittyに合わせて自動生成されるかはapplication.propertiesの`spring.jpa.hibernate.ddl-auto`の設定に依存する。
+- JPAの仕様でEntityには`protected`か`public`な引数なしコンストラクタが必要。
+- `@Embeddable`を付けたクラスにも同様に引数なしコンストラクタが必要
+- `@ManyToOne(fetch = FetchType.LAZY)`とするとN+1問題が発生する可能性がある
+  - 例えばExpenseをリストで複数個取得し、それぞれにExpense.getUser()をするとそれぞれにUserを取得するクエリが実行される。
+  - この対策として、Expenseと一緒に関連のUserも取得する`JOIN FETCH`や`@EntityGraph`を利用する。
+- インデックスをつけると検索が速くなるので、WHERE句やOREDER BYをよく利用する列につけると効果的。ただし更新系の処理は遅くなるのでやり過ぎは注意。
 
 ---
 
 #### @Embeddedアノテーション
-**`@Embedded`とは**: エンティティにテーブルに別オブジェクトを埋め込むアノテーションです。別オブジェクトのフィールドがエンティティのテーブルのカラムとして直接マッピングされる
-**`@Embeddable`とは**：エンティティのテーブルに埋め込み可能なクラスであることを宣言する
+
+- **`@Embedded`とは**: エンティティにテーブルに別オブジェクトを埋め込むアノテーションです。別オブジェクトのフィールドがエンティティのテーブルのカラムとして直接マッピングされる
+- **`@Embeddable`とは**：エンティティのテーブルに埋め込み可能なクラスであることを宣言する
+
 ---
 
 #### リポジトリパターン
