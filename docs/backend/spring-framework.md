@@ -90,7 +90,7 @@ public class BackendApplication {
 
 - `@Entity`: このクラスがエンティティであることを示す
 - `@Table(name = "テーブル名")`: データベースのテーブル名を指定（省略時はクラス名）
-- `@Table(name="テーブル名", indexes ={@Index(name = "インデックスの列名", columnList = "インデックスを作成する列")})`で特定にカラムに対するインデックス列を作成できる
+- `@Table(name="テーブル名", indexes ={@Index(name = "インデックス名", columnList = "インデックスを作成する列")})`で特定にカラムに対するインデックスを作成できる
 - `@Id`: 主キー（識別子）を指定
 - `@GeneratedValue`: IDの自動生成方法を指定（`@GeneratedValue(strategy = GenerationType.IDENTITY)`はDBの自動採番機能によって主キーを生成する方式）
 - `@Column`: カラムの詳細設定（`nullable = false`：NULLを強要しない。`columnDefinition = "TEXT"`：DB上の型をテキストにする。`updatable = false` INSERT時だけ値が設定されUPDATEでは変更されない）
