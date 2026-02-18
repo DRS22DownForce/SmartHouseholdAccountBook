@@ -15,6 +15,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Index;
 import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -37,7 +38,8 @@ import java.util.Objects;
 @Entity
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Table(name = "expenses")
+// user_idとdateの複合インデックス。user_idで等価検索を行った後、dateで範囲検索やソートを行う際に効率化できる。
+@Table(name = "expenses", indexes = { @Index(name = "idx_expenses_user_id_and_date", columnList = "user_id, date") })
 public class Expense {
 
     @Id
@@ -47,32 +49,33 @@ public class Expense {
     @Column(nullable = false)
     private String description;
 
-    //支出金額
+    // 支出金額
     @Embedded
     private ExpenseAmount amount;
 
-    //支出日付
+    // 支出日付
     @Embedded
     private ExpenseDate date;
 
-    //支出カテゴリ
+    // 支出カテゴリ
     @Enumerated(EnumType.STRING)
     @Column(name = "category", nullable = false, length = 50)
     private CategoryType category;
 
-    //ユーザー
+    // ユーザー
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     /**
      * 支出を作成する
+     * 
      * @param description 説明
-     * @param amount 金額
-     * @param date 日付
-     * @param category カテゴリ
-     * @param user ユーザ
-     * @throws NullPointerException 説明、金額、日付、カテゴリ、ユーザがnullの場合
+     * @param amount      金額
+     * @param date        日付
+     * @param category    カテゴリ
+     * @param user        ユーザ
+     * @throws NullPointerException     説明、金額、日付、カテゴリ、ユーザがnullの場合
      * @throws IllegalArgumentException 説明が空文字列の場合
      */
     public Expense(String description, ExpenseAmount amount, ExpenseDate date, CategoryType category, User user) {
@@ -86,8 +89,10 @@ public class Expense {
         this.category = Objects.requireNonNull(category, "カテゴリーはnullであってはなりません。");
         this.user = Objects.requireNonNull(user, "ユーザーはnullであってはなりません。");
     }
+
     /**
      * 支出を更新する
+     * 
      * @param update 更新用の値オブジェクト（ExpenseUpdateのコンストラクタで検証済みであること）
      */
     public void update(ExpenseUpdate update) {
@@ -102,11 +107,11 @@ public class Expense {
      * 作成時に説明のバリデーションを行うため、存在するインスタンスは常に有効。
      *
      * @param description 説明
-     * @param amount 金額
-     * @param date 日付
-     * @param category カテゴリ
+     * @param amount      金額
+     * @param date        日付
+     * @param category    カテゴリ
      * @throws IllegalArgumentException 説明が空文字列の場合
-     * @throws NullPointerException 説明、金額、日付、カテゴリがnullの場合
+     * @throws NullPointerException     説明、金額、日付、カテゴリがnullの場合
      */
     public record ExpenseUpdate(
             String description,
