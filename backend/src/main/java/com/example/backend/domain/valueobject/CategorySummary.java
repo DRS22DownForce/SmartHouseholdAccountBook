@@ -4,6 +4,8 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
 
+import java.util.Objects;
+
 /**
  * カテゴリー別集計を表現する値オブジェクト
  */
@@ -27,7 +29,8 @@ public class CategorySummary {
      *
      * @param category カテゴリー（CategoryType Enum、nullであってはならない）
      * @param amount  金額（0以上でなければならない）
-     * @throws IllegalArgumentException カテゴリーがnull、または金額が0未満の場合
+     * @throws NullPointerException カテゴリーまたは金額がnullの場合
+     * @throws IllegalArgumentException 金額が1未満の場合
      */
     public CategorySummary(CategoryType category, Integer amount) {
         validate(category, amount);
@@ -35,18 +38,11 @@ public class CategorySummary {
         this.amount = amount;
     }
 
-    /**
-     * バリデーション: カテゴリー別集計が有効かチェック
-     */
     private static void validate(CategoryType category, Integer amount) {
-        if (category == null) {
-            throw new IllegalArgumentException("カテゴリーはnullであってはなりません。");
-        }
-        if (amount == null) {
-            throw new IllegalArgumentException("金額はnullであってはなりません。");
-        }
-        if (amount < 0) {
-            throw new IllegalArgumentException("金額は0以上でなければなりません。");
+        Objects.requireNonNull(category, "カテゴリーはnullであってはなりません。");
+        Objects.requireNonNull(amount, "金額はnullであってはなりません。");
+        if (amount < 1) {
+            throw new IllegalArgumentException("金額は1以上でなければなりません。");
         }
     }
 

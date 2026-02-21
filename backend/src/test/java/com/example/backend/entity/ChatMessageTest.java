@@ -1,141 +1,132 @@
 package com.example.backend.entity;
 
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * ChatMessageエンティティのテストクラス
- * 
+ *
  * チャットメッセージエンティティのバリデーションをテストします。
- * エンティティは識別子（ID）を持ち、状態が変更可能です。
  */
 class ChatMessageTest {
 
-    @Test
-    @DisplayName("正常なチャットメッセージエンティティを作成できる（userロール）")
-    void createChatMessage_正常な値_userロール() {
-        // テストデータの準備: ユーザーを作成
-        User user = new User("cognitoSub", "test@example.com");
-        String content = "こんにちは";
-
-        // テスト実行: ChatMessageエンティティを作成
-        ChatMessage message = new ChatMessage(ChatMessage.Role.USER, content, user);
-
-        // 検証: 正常に作成され、値が正しく設定されていることを確認
-        assertNotNull(message);
-        assertEquals(ChatMessage.Role.USER, message.getRole());
-        assertEquals("こんにちは", message.getContent());
-        assertEquals(user, message.getUser());
-        assertNotNull(message.getCreatedAt());
-        // 作成日時が現在時刻に近いことを確認（1秒以内）
-        assertTrue(message.getCreatedAt().isBefore(LocalDateTime.now().plusSeconds(1)));
-        assertTrue(message.getCreatedAt().isAfter(LocalDateTime.now().minusSeconds(1)));
+    private static User defaultUser() {
+        return new User("cognitoSub", "test@example.com");
     }
 
-    @Test
-    @DisplayName("正常なチャットメッセージエンティティを作成できる（assistantロール）")
-    void createChatMessage_正常な値_assistantロール() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-        String content = "こんにちは！何かお手伝いできることはありますか？";
-
-        // テスト実行
-        ChatMessage message = new ChatMessage(ChatMessage.Role.ASSISTANT, content, user);
-
-        // 検証
-        assertNotNull(message);
-        assertEquals(ChatMessage.Role.ASSISTANT, message.getRole());
-        assertEquals("こんにちは！何かお手伝いできることはありますか？", message.getContent());
-        assertEquals(user, message.getUser());
+    private static void assertChatMessageConstructorThrows(
+            ChatMessage.Role role, String content, User user,
+            Class<? extends Throwable> exceptionClass, String message) {
+        assertThatThrownBy(() -> new ChatMessage(role, content, user))
+                .isInstanceOf(exceptionClass)
+                .hasMessage(message);
     }
 
-    @Test
-    @DisplayName("正常なチャットメッセージエンティティを作成できる（systemロール）")
-    void createChatMessage_正常な値_systemロール() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-        String content = "システムメッセージ";
+    @Nested
+    @DisplayName("コンストラクタ（正常系）")
+    class ConstructorSuccess {
+        @Test
+        @DisplayName("正常なチャットメッセージを作成できる（USERロール）")
+        void createWithValidValuesUserRole() {
+            User user = defaultUser();
+            String content = "こんにちは";
 
-        // テスト実行
-        ChatMessage message = new ChatMessage(ChatMessage.Role.SYSTEM, content, user);
+            ChatMessage message = new ChatMessage(ChatMessage.Role.USER, content, user);
 
-        // 検証
-        assertNotNull(message);
-        assertEquals(ChatMessage.Role.SYSTEM, message.getRole());
-        assertEquals("システムメッセージ", message.getContent());
-        assertEquals(user, message.getUser());
+            assertThat(message).isNotNull();
+            assertThat(message.getRole()).isEqualTo(ChatMessage.Role.USER);
+            assertThat(message.getContent()).isEqualTo("こんにちは");
+            assertThat(message.getUser()).isEqualTo(user);
+            assertThat(message.getCreatedAt()).isNotNull();
+            assertThat(message.getCreatedAt())
+                    .isBefore(LocalDateTime.now().plusSeconds(1))
+                    .isAfter(LocalDateTime.now().minusSeconds(1));
+        }
+
+        @Test
+        @DisplayName("正常なチャットメッセージを作成できる（ASSISTANTロール）")
+        void createWithValidValuesAssistantRole() {
+            User user = defaultUser();
+            String content = "こんにちは！何かお手伝いできることはありますか？";
+
+            ChatMessage message = new ChatMessage(ChatMessage.Role.ASSISTANT, content, user);
+
+            assertThat(message).isNotNull();
+            assertThat(message.getRole()).isEqualTo(ChatMessage.Role.ASSISTANT);
+            assertThat(message.getContent()).isEqualTo(content);
+            assertThat(message.getUser()).isEqualTo(user);
+        }
+
+        @Test
+        @DisplayName("正常なチャットメッセージを作成できる（SYSTEMロール）")
+        void createWithValidValuesSystemRole() {
+            User user = defaultUser();
+            String content = "システムメッセージ";
+
+            ChatMessage message = new ChatMessage(ChatMessage.Role.SYSTEM, content, user);
+
+            assertThat(message).isNotNull();
+            assertThat(message.getRole()).isEqualTo(ChatMessage.Role.SYSTEM);
+            assertThat(message.getContent()).isEqualTo("システムメッセージ");
+            assertThat(message.getUser()).isEqualTo(user);
+        }
     }
 
-    @Test
-    @DisplayName("ロールがnullなら例外")
-    void createChatMessage_ロールがnullなら例外() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-        String content = "テストメッセージ";
-
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new ChatMessage(null, content, user));
-
-        assertEquals("ロールは必須です。", exception.getMessage());
+    @Nested
+    @DisplayName("コンストラクタ（異常系・ロール）")
+    class ConstructorFailureRole {
+        @Test
+        @DisplayName("ロールがnullの場合は例外が発生する")
+        void createWithNullRole() {
+            assertChatMessageConstructorThrows(
+                    null, "テストメッセージ", defaultUser(),
+                    NullPointerException.class, "ロールはnullであってはなりません。");
+        }
     }
 
-    @Test
-    @DisplayName("メッセージ内容がnullなら例外")
-    void createChatMessage_メッセージ内容がnullなら例外() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
+    @Nested
+    @DisplayName("コンストラクタ（異常系・メッセージ内容）")
+    class ConstructorFailureContent {
+        @Test
+        @DisplayName("メッセージ内容がnullの場合は例外が発生する")
+        void createWithNullContent() {
+            assertChatMessageConstructorThrows(
+                    ChatMessage.Role.USER, null, defaultUser(),
+                    NullPointerException.class, "メッセージ内容はnullであってはなりません。");
+        }
 
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new ChatMessage(ChatMessage.Role.USER, null, user));
+        @Test
+        @DisplayName("メッセージ内容が空文字列の場合は例外が発生する")
+        void createWithEmptyContent() {
+            assertChatMessageConstructorThrows(
+                    ChatMessage.Role.USER, "", defaultUser(),
+                    IllegalArgumentException.class, "メッセージ内容は空文字列であってはなりません。");
+        }
 
-        assertEquals("メッセージ内容は必須です。", exception.getMessage());
+        @Test
+        @DisplayName("メッセージ内容が空白のみの場合は例外が発生する")
+        void createWithBlankContent() {
+            assertChatMessageConstructorThrows(
+                    ChatMessage.Role.USER, "   ", defaultUser(),
+                    IllegalArgumentException.class, "メッセージ内容は空文字列であってはなりません。");
+        }
     }
 
-    @Test
-    @DisplayName("メッセージ内容が空文字列なら例外")
-    void createChatMessage_メッセージ内容が空文字列なら例外() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new ChatMessage(ChatMessage.Role.USER, "", user));
-
-        assertEquals("メッセージ内容は必須です。", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("メッセージ内容が空白のみなら例外")
-    void createChatMessage_メッセージ内容が空白のみなら例外() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new ChatMessage(ChatMessage.Role.USER, "   ", user));
-
-        assertEquals("メッセージ内容は必須です。", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("ユーザーがnullなら例外")
-    void createChatMessage_ユーザーがnullなら例外() {
-        // テストデータの準備
-        String content = "テストメッセージ";
-
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new ChatMessage(ChatMessage.Role.USER, content, null));
-
-        assertEquals("ユーザーは必須です。", exception.getMessage());
+    @Nested
+    @DisplayName("コンストラクタ（異常系・ユーザー）")
+    class ConstructorFailureUser {
+        @Test
+        @DisplayName("ユーザーがnullの場合は例外が発生する")
+        void createWithNullUser() {
+            assertChatMessageConstructorThrows(
+                    ChatMessage.Role.USER, "テストメッセージ", null,
+                    NullPointerException.class, "ユーザーはnullであってはなりません。");
+        }
     }
 }
-
-
-

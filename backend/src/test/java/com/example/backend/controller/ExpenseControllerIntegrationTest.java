@@ -142,9 +142,9 @@ class ExpenseControllerIntegrationTest {
         Expense updated = expenseRepository.findById(expense.getId()).orElse(null);
         assertThat(updated).isNotNull();
         assertThat(updated.getCategory().getDisplayName()).isEqualTo("食費");
-        assertThat(updated.getAmount().toInteger()).isEqualTo(1000);
+        assertThat(updated.getAmount().getAmount()).isEqualTo(1000);
         assertThat(updated.getDescription()).isEqualTo("テスト");
-        assertThat(updated.getDate().toLocalDate()).isEqualTo(LocalDate.now());
+        assertThat(updated.getDate().getDate()).isEqualTo(LocalDate.now());
     }
 
     @Test

@@ -5,8 +5,11 @@ import jakarta.persistence.Embeddable;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.ToString;
+import lombok.NoArgsConstructor;
+import lombok.AccessLevel;
 
 import java.time.LocalDate;
+import java.util.Objects;
 
 /**
  * 支出日付を表現する値オブジェクト
@@ -16,42 +19,29 @@ import java.time.LocalDate;
  * - 日付に関するビジネスロジック
  */
 @Embeddable
-@Getter
+@NoArgsConstructor(access = AccessLevel.PROTECTED) // JPA用のデフォルトコンストラクタ
 @ToString
+@Getter
 @EqualsAndHashCode
 public class ExpenseDate{
 
     @Column(name = "date", nullable = false)
-    private final LocalDate value;
-
-    /**
-     * JPA用のデフォルトコンストラクタ
-     */
-    protected ExpenseDate() {
-        this.value = null;
-    }
+    private LocalDate date;
 
     /**
      * コンストラクタ
      * 
-     * @param value 支出日付（nullまたは未来日付であってはならない）
-     * @throws IllegalArgumentException 日付がnullまたは未来日付の場合
+     * @param date 支出日付（nullまたは未来日付であってはならない）
+     * @throws IllegalArgumentException 日付が未来日付の場合
+     * @throws NullPointerException 日付がnullの場合
      */
-    public ExpenseDate(LocalDate value) {
-        validate(value);
-        this.value = value;
+    public ExpenseDate(LocalDate date) {
+        validate(date);
+        this.date = date;
     }
 
-    /**
-     * バリデーション: 日付が有効かチェック
-     * 
-     * @param value 検証する日付
-     * @throws IllegalArgumentException 日付がnullまたは未来日付の場合
-     */
     private static void validate(LocalDate value) {
-        if (value == null) {
-            throw new IllegalArgumentException("日付はnullであってはなりません。");
-        }
+        Objects.requireNonNull(value, "日付はnullであってはなりません。");
         LocalDate today = LocalDate.now();
         if (value.isAfter(today)) {
             throw new IllegalArgumentException("日付は今日以前でなければなりません。");
@@ -59,52 +49,15 @@ public class ExpenseDate{
     }
 
     /**
-     * LocalDate値として取得（DTO変換などで使用）
-     * 
-     * @return 日付のLocalDate値
-     */
-    public LocalDate toLocalDate() {
-        return this.value;
-    }
-
-    /**
-     * 年を取得
-     * 
-     * @return 年
-     */
-    public int getYear() {
-        return this.value.getYear();
-    }
-
-    /**
-     * 月を取得
-     * 
-     * @return 月（1-12）
-     */
-    public int getMonthValue() {
-        return this.value.getMonthValue();
-    }
-
-    /**
-     * 日を取得
-     * 
-     * @return 日（1-31）
-     */
-    public int getDayOfMonth() {
-        return this.value.getDayOfMonth();
-    }
-
-    /**
      * 日付を比較する（より後か）
      * 
      * @param other 比較する日付
      * @return この日付がotherより後の場合true
+     * @throws NullPointerException 比較する日付がnullの場合
      */
     public boolean isAfter(ExpenseDate other) {
-        if (other == null) {
-            throw new IllegalArgumentException("比較する日付はnullであってはなりません。");
-        }
-        return this.value.isAfter(other.value);
+        Objects.requireNonNull(other, "比較する日付はnullであってはなりません。");
+        return this.date.isAfter(other.date);
     }
 
     /**
@@ -112,12 +65,11 @@ public class ExpenseDate{
      * 
      * @param other 比較する日付
      * @return この日付がotherより前の場合true
+     * @throws NullPointerException 比較する日付がnullの場合
      */
     public boolean isBefore(ExpenseDate other) {
-        if (other == null) {
-            throw new IllegalArgumentException("比較する日付はnullであってはなりません。");
-        }
-        return this.value.isBefore(other.value);
+        Objects.requireNonNull(other, "比較する日付はnullであってはなりません。");
+        return this.date.isBefore(other.date);
     }
 
     /**
@@ -125,13 +77,12 @@ public class ExpenseDate{
      * 
      * @param other 比較する日付
      * @return 同じ月の場合true
+     * @throws NullPointerException 比較する日付がnullの場合
      */
     public boolean isSameMonth(ExpenseDate other) {
-        if (other == null) {
-            return false;
-        }
-        return this.value.getYear() == other.value.getYear() &&
-               this.value.getMonthValue() == other.value.getMonthValue();
+        Objects.requireNonNull(other, "比較する日付はnullであってはなりません。");
+        return this.date.getYear() == other.date.getYear() &&
+               this.date.getMonthValue() == other.date.getMonthValue();
     }
 }
 

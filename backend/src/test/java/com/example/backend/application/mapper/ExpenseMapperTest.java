@@ -65,8 +65,8 @@ class ExpenseMapperTest {
         // 検証
         assertNotNull(entity);
         assertEquals("テスト", entity.getDescription());
-        assertEquals(500, entity.getAmount().toInteger());
-        assertEquals(LocalDate.of(2024, 5, 1), entity.getDate().toLocalDate());
+        assertEquals(500, entity.getAmount().getAmount());
+        assertEquals(LocalDate.of(2024, 5, 1), entity.getDate().getDate());
         assertEquals("交通費", entity.getCategory().getDisplayName());
     }
 
@@ -95,8 +95,8 @@ class ExpenseMapperTest {
         // 検証
         assertNotNull(entity);
         assertEquals("リクエスト", entity.getDescription());
-        assertEquals(999, entity.getAmount().toInteger());
-        assertEquals(LocalDate.of(2024, 4, 1), entity.getDate().toLocalDate());
+        assertEquals(999, entity.getAmount().getAmount());
+        assertEquals(LocalDate.of(2024, 4, 1), entity.getDate().getDate());
         assertEquals("日用品", entity.getCategory().getDisplayName());
     }
 

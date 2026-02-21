@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import jakarta.persistence.Column;
 import lombok.AccessLevel;
+import java.util.Objects;
 
 @Entity
 @Getter
@@ -28,18 +29,27 @@ public class User {
     @Column(nullable = false)
     private String email;
 
+    /**
+     * ユーザーを作成する
+     * @param cognitoSub CognitoのユーザーID
+     * @param email メールアドレス
+     * @throws NullPointerException cognitoSubまたはemailがnullの場合
+     * @throws IllegalArgumentException cognitoSubが空文字列の場合、emailが空文字列の場合、emailに@が含まれていない場合
+     */
     public User(String cognitoSub, String email) {
         validate(cognitoSub, email);
         this.cognitoSub = cognitoSub;
         this.email = email;
     }
 
-    private static void validate(String cognitoSub, String email) {
-        if (cognitoSub == null || cognitoSub.trim().isEmpty()) {
-            throw new IllegalArgumentException("cognitoSubは必須です。");
+    private void validate(String cognitoSub, String email) {
+        Objects.requireNonNull(cognitoSub, "cognitoSubはnullであってはなりません。");
+        if (cognitoSub.trim().isEmpty()) {
+            throw new IllegalArgumentException("cognitoSubは空文字列であってはなりません。");
         }
-        if (email == null || email.trim().isEmpty()) {
-            throw new IllegalArgumentException("emailは必須です。");
+        Objects.requireNonNull(email, "emailはnullであってはなりません。");
+        if (email.trim().isEmpty()) {
+            throw new IllegalArgumentException("emailは空文字列であってはなりません。");
         }
         if (!email.contains("@")) {
             throw new IllegalArgumentException("メールアドレスの形式が正しくありません。");

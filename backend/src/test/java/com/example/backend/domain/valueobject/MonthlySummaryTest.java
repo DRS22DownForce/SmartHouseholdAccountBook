@@ -1,133 +1,134 @@
 package com.example.backend.domain.valueobject;
 
-import org.junit.jupiter.api.Test;
+import com.example.backend.entity.Expense;
+import com.example.backend.entity.User;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.time.LocalDate;
+import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * MonthlySummary値オブジェクトのテストクラス
- * 
- * 値オブジェクトのバリデーションと不変性をテストします。
+ *
+ * createMonthlySummaryFromExpenses の振る舞いと、月別サマリーの不変性をテストします。
  */
 class MonthlySummaryTest {
 
-    @Test
-    @DisplayName("正常な月別サマリーを作成できる")
-    void createMonthlySummary_正常な値() {
-        // テストデータの準備
-        Integer total = 5000;
-        Integer count = 3;
-        CategoryType category1 = CategoryType.FOOD;
-        CategoryType category2 = CategoryType.TRANSPORT;
-        CategorySummary categorySummary1 = new CategorySummary(category1, 3000);
-        CategorySummary categorySummary2 = new CategorySummary(category2, 2000);
-        List<CategorySummary> byCategory = Arrays.asList(categorySummary1, categorySummary2);
-
-        // テスト実行
-        MonthlySummary monthlySummary = new MonthlySummary(total, count, byCategory);
-
-        // 検証
-        assertNotNull(monthlySummary);
-        assertEquals(5000, monthlySummary.getTotal());
-        assertEquals(3, monthlySummary.getCount());
-        assertEquals(2, monthlySummary.getByCategory().size());
+    private static User testUser() {
+        return new User("cognitoSub", "test@example.com");
     }
 
-    @Test
-    @DisplayName("合計金額と件数が0でも作成できる")
-    void createMonthlySummary_合計金額と件数が0() {
-        // テストデータの準備
-        Integer total = 0;
-        Integer count = 0;
-        List<CategorySummary> byCategory = new ArrayList<>();
-
-        // テスト実行
-        MonthlySummary monthlySummary = new MonthlySummary(total, count, byCategory);
-
-        // 検証
-        assertNotNull(monthlySummary);
-        assertEquals(0, monthlySummary.getTotal());
-        assertEquals(0, monthlySummary.getCount());
-        assertTrue(monthlySummary.getByCategory().isEmpty());
+    private static Expense expense(String description, int amount, CategoryType category) {
+        return new Expense(
+                description,
+                new ExpenseAmount(amount),
+                new ExpenseDate(LocalDate.now()),
+                category,
+                testUser());
     }
 
-    @Test
-    @DisplayName("byCategoryがnullの場合は空リストとして扱われる")
-    void createMonthlySummary_byCategoryがnull() {
-        // テストデータの準備
-        Integer total = 1000;
-        Integer count = 1;
+    @Nested
+    @DisplayName("createMonthlySummaryFromExpenses（正常系）")
+    class CreateFromExpensesSuccess {
 
-        // テスト実行
-        MonthlySummary monthlySummary = new MonthlySummary(total, count, null);
+        @Test
+        @DisplayName("支出リストから月別サマリーを作成できる")
+        void createWithExpenses() {
+            // given
+            List<Expense> expenses = List.of(
+                    expense("食費1", 3000, CategoryType.FOOD),
+                    expense("食費2", 2000, CategoryType.FOOD),
+                    expense("交通費", 2000, CategoryType.TRANSPORT));
 
-        // 検証
-        assertNotNull(monthlySummary);
-        assertTrue(monthlySummary.getByCategory().isEmpty());
+            // when
+            MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses);
+
+            // then
+            assertThat(summary).isNotNull();
+            assertThat(summary.getTotal()).isEqualTo(7000);
+            assertThat(summary.getCount()).isEqualTo(3);
+            assertThat(summary.getCategorySummaries()).hasSize(2);
+            assertThat(summary.getCategorySummaries().get(0).getCategory()).isEqualTo(CategoryType.FOOD);
+            assertThat(summary.getCategorySummaries().get(0).getAmount()).isEqualTo(5000);
+            assertThat(summary.getCategorySummaries().get(1).getCategory()).isEqualTo(CategoryType.TRANSPORT);
+            assertThat(summary.getCategorySummaries().get(1).getAmount()).isEqualTo(2000);
+        }
+
+        @Test
+        @DisplayName("カテゴリ別集計は金額の降順でソートされる")
+        void categorySummariesIsSortedByAmountDesc() {
+            // given
+            List<Expense> expenses = List.of(
+                    expense("小", 1000, CategoryType.FOOD),
+                    expense("大", 5000, CategoryType.TRANSPORT),
+                    expense("中", 3000, CategoryType.UTILITIES));
+
+            // when
+            MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses);
+
+            // then
+            assertThat(summary.getCategorySummaries())
+                    .extracting(CategorySummary::getAmount)
+                    .containsExactly(5000, 3000, 1000);
+        }
+
     }
 
-    @Test
-    @DisplayName("合計金額がnullなら例外")
-    void createMonthlySummary_合計金額がnull() {
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new MonthlySummary(null, 1, new ArrayList<>()));
+    @Nested
+    @DisplayName("createMonthlySummaryFromExpenses（境界・空リスト）")
+    class CreateFromExpensesEdge {
 
-        assertEquals("合計金額はnullであってはなりません。", exception.getMessage());
+        @Test
+        @DisplayName("空リストの場合は合計0・件数0・カテゴリ空で作成される")
+        void createWithEmptyList() {
+            // given
+            List<Expense> expenses = Collections.emptyList();
+
+            // when
+            MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses);
+
+            // then
+            assertThat(summary).isNotNull();
+            assertThat(summary.getTotal()).isZero();
+            assertThat(summary.getCount()).isZero();
+            assertThat(summary.getCategorySummaries()).isEmpty();
+        }
     }
 
-    @Test
-    @DisplayName("件数がnullなら例外")
-    void createMonthlySummary_件数がnull() {
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new MonthlySummary(1000, null, new ArrayList<>()));
+    @Nested
+    @DisplayName("createMonthlySummaryFromExpenses（異常系）")
+    class CreateFromExpensesFailure {
 
-        assertEquals("件数はnullであってはなりません。", exception.getMessage());
+        @Test
+        @DisplayName("支出リストがnullの場合はNullPointerExceptionが発生する")
+        void createWithNull() {
+            // given, when, then
+            assertThatThrownBy(() -> MonthlySummary.createMonthlySummaryFromExpenses(null))
+                    .isInstanceOf(NullPointerException.class);
+        }
     }
 
-    @Test
-    @DisplayName("合計金額が負の値なら例外")
-    void createMonthlySummary_合計金額が負の値() {
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new MonthlySummary(-1, 1, new ArrayList<>()));
+    @Nested
+    @DisplayName("不変性")
+    class Immutability {
 
-        assertEquals("合計金額は0以上でなければなりません。", exception.getMessage());
-    }
+        @Test
+        @DisplayName("byCategoryは不変リストであり変更すると例外が発生する")
+        void byCategoryIsUnmodifiable() {
+            // given
+            List<Expense> expenses = List.of(expense("テスト", 1000, CategoryType.FOOD));
+            MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses);
 
-    @Test
-    @DisplayName("件数が負の値なら例外")
-    void createMonthlySummary_件数が負の値() {
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> new MonthlySummary(1000, -1, new ArrayList<>()));
-
-        assertEquals("件数は0以上でなければなりません。", exception.getMessage());
-    }
-
-    @Test
-    @DisplayName("byCategoryは不変リストとして返される")
-    void createMonthlySummary_byCategoryは不変リスト() {
-        // テストデータの準備
-        Integer total = 1000;
-        Integer count = 1;
-        CategoryType category = CategoryType.FOOD;
-        CategorySummary categorySummary = new CategorySummary(category, 1000);
-        List<CategorySummary> byCategory = new ArrayList<>();
-        byCategory.add(categorySummary);
-
-        // テスト実行
-        MonthlySummary monthlySummary = new MonthlySummary(total, count, byCategory);
-
-        // 検証: 不変リストなので、変更しようとすると例外が発生する
-        assertThrows(UnsupportedOperationException.class,
-                () -> monthlySummary.getByCategory().add(new CategorySummary(CategoryType.FOOD, 2000)));
+            // when, then
+            assertThatThrownBy(() ->
+                    summary.getCategorySummaries().add(new CategorySummary(CategoryType.FOOD, 2000)))
+                    .isInstanceOf(UnsupportedOperationException.class);
+        }
     }
 }
-
