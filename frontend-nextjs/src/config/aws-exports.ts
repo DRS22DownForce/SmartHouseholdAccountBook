@@ -25,9 +25,6 @@ const awsConfig = {
     // AWSプロジェクトの基本設定
     aws_project_region: process.env.NEXT_PUBLIC_AWS_REGION || "ap-northeast-1",
 
-    // Cognito Identity Pool（フェデレーテッドIDを管理）
-    aws_cognito_identity_pool_id: process.env.NEXT_PUBLIC_COGNITO_IDENTITY_POOL_ID || "your-identity-pool-id",
-
     // Cognito User Poolの設定（ユーザー認証を管理）
     aws_cognito_region: process.env.NEXT_PUBLIC_AWS_REGION || "ap-northeast-1",
     aws_user_pools_id: process.env.NEXT_PUBLIC_COGNITO_USER_POOL_ID || "your-user-pool-id",
