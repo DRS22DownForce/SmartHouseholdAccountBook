@@ -1,4 +1,4 @@
-package com.example.backend.domain.repository;
+package com.example.backend.repository;
 
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.User;

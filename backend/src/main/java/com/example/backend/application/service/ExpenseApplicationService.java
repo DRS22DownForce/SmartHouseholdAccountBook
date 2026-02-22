@@ -1,8 +1,7 @@
 package com.example.backend.application.service;
 
-import com.example.backend.domain.repository.ExpenseRepository;
-import com.example.backend.domain.valueobject.MonthlySummary;
 import com.example.backend.entity.Expense;
+import com.example.backend.entity.ExpenseUpdate;
 import com.example.backend.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +9,9 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.example.backend.exception.ExpenseNotFoundException;
+import com.example.backend.repository.ExpenseRepository;
+import com.example.backend.valueobject.MonthlySummary;
+
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -76,7 +78,7 @@ public class ExpenseApplicationService {
      * @param creation 支出の作成内容（説明・金額・日付・カテゴリ）
      * @return 保存後の支出エンティティ
      */
-    public Expense addExpense(Expense.ExpenseUpdate creation) {
+    public Expense addExpense(ExpenseUpdate creation) {
         User user = userApplicationService.getUser();
         Expense expense = new Expense(
                 creation.description(),
@@ -110,7 +112,7 @@ public class ExpenseApplicationService {
      * @param update 更新内容（説明・金額・日付・カテゴリ）
      * @return 更新後の支出エンティティ
      */
-    public Expense updateExpense(Long id, Expense.ExpenseUpdate update) {
+    public Expense updateExpense(Long id, ExpenseUpdate update) {
         User user = userApplicationService.getUser();
         Expense existingExpense = expenseRepository.findByIdAndUser(id, user)
                 .orElseThrow(() -> new ExpenseNotFoundException(id));

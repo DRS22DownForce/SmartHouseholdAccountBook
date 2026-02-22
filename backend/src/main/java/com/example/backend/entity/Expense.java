@@ -1,8 +1,5 @@
 package com.example.backend.entity;
 
-import com.example.backend.domain.valueobject.CategoryType;
-import com.example.backend.domain.valueobject.ExpenseAmount;
-import com.example.backend.domain.valueobject.ExpenseDate;
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
@@ -21,6 +18,10 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.util.Objects;
+
+import com.example.backend.valueobject.CategoryType;
+import com.example.backend.valueobject.ExpenseAmount;
+import com.example.backend.valueobject.ExpenseDate;
 
 /**
  * 支出エンティティ
@@ -100,33 +101,5 @@ public class Expense {
         this.amount = update.amount();
         this.date = update.date();
         this.category = update.category();
-    }
-
-    /**
-     * 支出の更新内容を表すレコード。
-     * 作成時に説明のバリデーションを行うため、存在するインスタンスは常に有効。
-     *
-     * @param description 説明
-     * @param amount      金額
-     * @param date        日付
-     * @param category    カテゴリ
-     * @throws IllegalArgumentException 説明が空文字列の場合
-     * @throws NullPointerException     説明、金額、日付、カテゴリがnullの場合
-     */
-    public record ExpenseUpdate(
-            String description,
-            ExpenseAmount amount,
-            ExpenseDate date,
-            CategoryType category) {
-
-        public ExpenseUpdate {
-            Objects.requireNonNull(description, "説明はnullであってはなりません。");
-            if (description.trim().isEmpty()) {
-                throw new IllegalArgumentException("説明は空文字列であってはなりません。");
-            }
-            Objects.requireNonNull(amount, "金額はnullであってはなりません。");
-            Objects.requireNonNull(date, "日付はnullであってはなりません。");
-            Objects.requireNonNull(category, "カテゴリーはnullであってはなりません。");
-        }
     }
 }
