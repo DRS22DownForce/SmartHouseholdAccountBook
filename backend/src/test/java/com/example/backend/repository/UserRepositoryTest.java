@@ -1,6 +1,8 @@
-package com.example.backend.domain.repository;
+package com.example.backend.repository;
 
 import com.example.backend.entity.User;
+import com.example.backend.repository.UserRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;

@@ -1,11 +1,12 @@
 package com.example.backend.entity;
 
-import com.example.backend.domain.valueobject.CategoryType;
-import com.example.backend.domain.valueobject.ExpenseAmount;
-import com.example.backend.domain.valueobject.ExpenseDate;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+
+import com.example.backend.valueobject.CategoryType;
+import com.example.backend.valueobject.ExpenseAmount;
+import com.example.backend.valueobject.ExpenseDate;
 
 import java.time.LocalDate;
 
@@ -54,7 +55,7 @@ class ExpenseTest {
     private static void assertExpenseUpdateThrows(
             String description, ExpenseAmount amount, ExpenseDate date, CategoryType category,
             Class<? extends Throwable> exceptionClass, String message) {
-        assertThatThrownBy(() -> new Expense.ExpenseUpdate(description, amount, date, category))
+        assertThatThrownBy(() -> new ExpenseUpdate(description, amount, date, category))
                 .isInstanceOf(exceptionClass)
                 .hasMessage(message);
     }
@@ -150,7 +151,7 @@ class ExpenseTest {
         void updateDescription() {
             Expense expense = new Expense(
                     "元の説明", defaultAmount(), defaultDate(), defaultCategory(), defaultUser());
-            Expense.ExpenseUpdate update = new Expense.ExpenseUpdate(
+            ExpenseUpdate update = new ExpenseUpdate(
                     "新しい説明", defaultAmount(), defaultDate(), defaultCategory());
 
             expense.update(update);
@@ -165,7 +166,7 @@ class ExpenseTest {
         @DisplayName("金額を変更できる")
         void updateAmount() {
             Expense expense = defaultExpense();
-            Expense.ExpenseUpdate update = new Expense.ExpenseUpdate(
+            ExpenseUpdate update = new ExpenseUpdate(
                     "テスト支出", new ExpenseAmount(2000), defaultDate(), defaultCategory());
 
             expense.update(update);
@@ -181,7 +182,7 @@ class ExpenseTest {
             Expense expense = new Expense(
                     "テスト支出", defaultAmount(),
                     new ExpenseDate(originalDate), defaultCategory(), defaultUser());
-            Expense.ExpenseUpdate update = new Expense.ExpenseUpdate(
+            ExpenseUpdate update = new ExpenseUpdate(
                     "テスト支出", defaultAmount(), new ExpenseDate(newDate), defaultCategory());
 
             expense.update(update);
@@ -193,7 +194,7 @@ class ExpenseTest {
         @DisplayName("カテゴリーを変更できる")
         void updateCategory() {
             Expense expense = defaultExpense();
-            Expense.ExpenseUpdate update = new Expense.ExpenseUpdate(
+            ExpenseUpdate update = new ExpenseUpdate(
                     "テスト支出", defaultAmount(), defaultDate(), CategoryType.TRANSPORT);
 
             expense.update(update);
@@ -212,7 +213,7 @@ class ExpenseTest {
                     new ExpenseDate(originalDate),
                     defaultCategory(),
                     defaultUser());
-            Expense.ExpenseUpdate update = new Expense.ExpenseUpdate(
+            ExpenseUpdate update = new ExpenseUpdate(
                     "新しい説明",
                     new ExpenseAmount(2000),
                     new ExpenseDate(newDate),

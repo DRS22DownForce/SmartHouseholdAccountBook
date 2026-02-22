@@ -2,13 +2,14 @@ package com.example.backend.controller;
 
 import com.example.backend.application.service.UserApplicationService;
 import com.example.backend.config.TestSecurityConfig;
-import com.example.backend.domain.repository.ExpenseRepository;
-import com.example.backend.domain.repository.UserRepository;
-import com.example.backend.domain.valueobject.CategoryType;
-import com.example.backend.domain.valueobject.ExpenseAmount;
-import com.example.backend.domain.valueobject.ExpenseDate;
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.User;
+import com.example.backend.repository.ExpenseRepository;
+import com.example.backend.repository.UserRepository;
+import com.example.backend.valueobject.CategoryType;
+import com.example.backend.valueobject.ExpenseAmount;
+import com.example.backend.valueobject.ExpenseDate;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

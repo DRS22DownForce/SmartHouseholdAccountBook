@@ -4,13 +4,15 @@ import com.example.backend.application.mapper.ExpenseMapper;
 import com.example.backend.application.service.CsvExpenseService;
 import com.example.backend.application.service.ExpenseApplicationService;
 import com.example.backend.application.service.csv.CsvFormat;
-import com.example.backend.domain.valueobject.MonthlySummary;
 import com.example.backend.entity.Expense;
+import com.example.backend.entity.ExpenseUpdate;
 import com.example.backend.generated.api.ExpensesApi;
 import com.example.backend.generated.model.CsvUploadResponseDto;
 import com.example.backend.generated.model.ExpenseDto;
 import com.example.backend.generated.model.ExpenseRequestDto;
 import com.example.backend.generated.model.MonthlySummaryDto;
+import com.example.backend.valueobject.MonthlySummary;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -85,7 +87,7 @@ public class ExpenseController implements ExpensesApi {
      */
     @Override
     public ResponseEntity<ExpenseDto> apiExpensesPost(ExpenseRequestDto expenseRequestDto) {
-        Expense.ExpenseUpdate creation = expenseMapper.toExpenseUpdate(expenseRequestDto);
+        ExpenseUpdate creation = expenseMapper.toExpenseUpdate(expenseRequestDto);
         Expense expense = expenseApplicationService.addExpense(creation);
         return ResponseEntity.status(HttpStatus.CREATED).body(expenseMapper.toDto(expense));
     }
@@ -111,7 +113,7 @@ public class ExpenseController implements ExpensesApi {
      */
     @Override
     public ResponseEntity<ExpenseDto> apiExpensesIdPut(Long id, ExpenseRequestDto expenseRequestDto) {
-        Expense.ExpenseUpdate update = expenseMapper.toExpenseUpdate(expenseRequestDto);
+        ExpenseUpdate update = expenseMapper.toExpenseUpdate(expenseRequestDto);
         Expense expense = expenseApplicationService.updateExpense(id, update);
         return ResponseEntity.ok(expenseMapper.toDto(expense));
     }

@@ -1,6 +1,9 @@
-package com.example.backend.domain.valueobject;
+package com.example.backend.valueobject;
 
 import org.junit.jupiter.api.Test;
+
+import com.example.backend.valueobject.ExpenseDate;
+
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.DisplayName;
 

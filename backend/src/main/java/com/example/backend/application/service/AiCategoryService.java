@@ -1,7 +1,7 @@
 package com.example.backend.application.service;
 
-import com.example.backend.domain.valueobject.CategoryType;
 import com.example.backend.exception.QuotaExceededException;
+import com.example.backend.valueobject.CategoryType;
 import com.example.backend.exception.AiServiceException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
