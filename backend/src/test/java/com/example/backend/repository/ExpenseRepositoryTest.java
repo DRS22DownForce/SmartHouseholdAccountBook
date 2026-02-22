@@ -2,8 +2,6 @@ package com.example.backend.repository;
 
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.User;
-import com.example.backend.repository.ExpenseRepository;
-import com.example.backend.repository.UserRepository;
 import com.example.backend.valueobject.CategoryType;
 import com.example.backend.valueobject.ExpenseAmount;
 import com.example.backend.valueobject.ExpenseDate;

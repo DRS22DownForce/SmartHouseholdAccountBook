@@ -57,9 +57,16 @@ verify(リポジトリ, times(1)).save(any());  // 呼び出し回数
 
 ## AssertJ
 
-`assertThat(実際の値).isEqualTo(期待値)` の形式。JUnit より読みやすく、失敗メッセージも分かりやすい。
-
-例: `assertThat(list).hasSize(2);`, `assertThat(s).contains("費");`, `assertThat(n).isGreaterThan(0);`
+- JUnit の `assertEquals` などより読みやすく、失敗時のメッセージも分かりやすいアサーションライブラリ。
+- 基本形は **`assertThat(実際の値).isEqualTo(期待値)`**。メソッドチェーンで「何を期待しているか」が自然な日本語のように読める。
+- 使用時は **`import static org.assertj.core.api.Assertions.assertThat;`** で static インポートするとよい。
+- よく使う例:
+  - コレクション: `assertThat(list).hasSize(2);`, `assertThat(list).containsExactly(a, b);`
+  - 文字列: `assertThat(s).contains("費");`, `assertThat(s).isNotBlank();`
+  - 数値: `assertThat(n).isGreaterThan(0);`, `assertThat(n).isBetween(1, 10);`
+  - Optional: `assertThat(opt).isPresent();`, `assertThat(opt).hasValue(期待値);`
+- 例外の検証は `assertThatThrownBy(() -> 処理).isInstanceOf(例外クラス.class).hasMessage("メッセージ");` のように書ける。このプロジェクトではリポジトリ・統合テストで主に利用する。
+- リストの要素の変換とリストの並び順の検証 `assertThat(messages).extracting(ChatMessage::getCreatedAt).isSortedAccordingTo(Comparator.reverseOrder());`
 
 ---
 

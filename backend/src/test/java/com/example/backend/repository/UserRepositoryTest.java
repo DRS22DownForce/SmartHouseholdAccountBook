@@ -1,139 +1,136 @@
 package com.example.backend.repository;
 
 import com.example.backend.entity.User;
-import com.example.backend.repository.UserRepository;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * UserRepositoryのテストクラス
- * 
- * ユーザーリポジトリのクエリメソッドをテストします。
- * @DataJpaTestアノテーションにより、JPAレイヤーのみをテストします（実際のデータベースを使用）。
  */
 @DataJpaTest
 @ActiveProfiles("test")
 class UserRepositoryTest {
 
-    // @Autowired: Springの依存性注入により、リポジトリの実装が自動的に注入されます
     @Autowired
     private UserRepository userRepository;
 
-    @BeforeEach
-    void setUp() {
-        // テスト前にデータベースをクリア（各テストが独立して実行されるように）
-        userRepository.deleteAll();
+    private User createUser(String cognitoSub, String email) {
+        return userRepository.save(new User(cognitoSub, email));
     }
 
-    @Test
-    @DisplayName("Cognitoのsubを指定してユーザーを取得できる")
-    void findByCognitoSub_正常に取得() {
-        // テストデータの準備: ユーザーを作成して保存
-        String cognitoSub = "cognitoSub123";
-        String email = "test@example.com";
-        User user = new User(cognitoSub, email);
-        user = userRepository.save(user);
+    @Nested
+    @DisplayName("findByCognitoSub - Cognitoのsubでユーザー取得")
+    class FindByCognitoSub {
 
-        // テスト実行: Cognitoのsubを指定してユーザーを取得
-        Optional<User> foundUser = userRepository.findByCognitoSub(cognitoSub);
+        @Test
+        @DisplayName("Cognitoのsubを指定してユーザーを取得できる")
+        void returnsUserWhenSubExists() {
+            // given
+            String cognitoSub = "cognitoSub123";
+            String email = "test@example.com";
+            createUser(cognitoSub, email);
 
-        // 検証: ユーザーが正しく取得できることを確認
-        assertTrue(foundUser.isPresent());
-        assertEquals(cognitoSub, foundUser.get().getCognitoSub());
-        assertEquals(email, foundUser.get().getEmail());
+            // when
+            Optional<User> foundUser = userRepository.findByCognitoSub(cognitoSub);
+
+            // then
+            assertThat(foundUser).isPresent();
+            assertThat(foundUser.get().getCognitoSub()).isEqualTo(cognitoSub);
+            assertThat(foundUser.get().getEmail()).isEqualTo(email);
+        }
+
+        @Test
+        @DisplayName("存在しないCognitoのsubを指定した場合は空のOptionalが返される")
+        void returnsEmptyWhenSubNotExists() {
+            // when
+            Optional<User> foundUser = userRepository.findByCognitoSub("nonExistentSub");
+
+            // then
+            assertThat(foundUser).isEmpty();
+        }
+
+        @Test
+        @DisplayName("複数のユーザーが存在する場合でも正しいユーザーを取得できる")
+        void returnsCorrectUserWhenMultipleUsersExist() {
+            // given
+            createUser("cognitoSub1", "user1@example.com");
+            createUser("cognitoSub2", "user2@example.com");
+            createUser("cognitoSub3", "user3@example.com");
+
+            // when
+            Optional<User> foundUser = userRepository.findByCognitoSub("cognitoSub2");
+
+            // then
+            assertThat(foundUser).isPresent();
+            assertThat(foundUser.get().getCognitoSub()).isEqualTo("cognitoSub2");
+            assertThat(foundUser.get().getEmail()).isEqualTo("user2@example.com");
+        }
     }
 
-    @Test
-    @DisplayName("存在しないCognitoのsubを指定した場合は空のOptionalが返される")
-    void findByCognitoSub_存在しない場合() {
-        // テスト実行: 存在しないCognitoのsubで取得
-        Optional<User> foundUser = userRepository.findByCognitoSub("nonExistentSub");
+    @Nested
+    @DisplayName("save - ユーザー保存")
+    class Save {
 
-        // 検証: 空のOptionalが返されることを確認
-        assertFalse(foundUser.isPresent());
+        @Test
+        @DisplayName("ユーザーを保存できる")
+        void savesUserWithGeneratedId() {
+            // given
+            String cognitoSub = "cognitoSub123";
+            String email = "test@example.com";
+            User user = new User(cognitoSub, email);
+
+            // when
+            User savedUser = userRepository.save(user);
+
+            // then
+            assertThat(savedUser.getId()).isNotNull();
+            assertThat(savedUser.getCognitoSub()).isEqualTo(cognitoSub);
+            assertThat(savedUser.getEmail()).isEqualTo(email);
+        }
+
+        @Test
+        @DisplayName("保存したユーザーを取得できる")
+        void savedUserCanBeFoundById() {
+            // given
+            String cognitoSub = "cognitoSub123";
+            String email = "test@example.com";
+            User savedUser = createUser(cognitoSub, email);
+
+            // when
+            Optional<User> foundUser = userRepository.findById(savedUser.getId());
+
+            // then
+            assertThat(foundUser).isPresent();
+            assertThat(foundUser.get().getCognitoSub()).isEqualTo(cognitoSub);
+            assertThat(foundUser.get().getEmail()).isEqualTo(email);
+        }
     }
 
-    @Test
-    @DisplayName("複数のユーザーが存在する場合でも正しいユーザーを取得できる")
-    void findByCognitoSub_複数のユーザーが存在する場合() {
-        // テストデータの準備: 複数のユーザーを作成
-        User user1 = new User("cognitoSub1", "user1@example.com");
-        User user2 = new User("cognitoSub2", "user2@example.com");
-        User user3 = new User("cognitoSub3", "user3@example.com");
-        userRepository.save(user1);
-        userRepository.save(user2);
-        userRepository.save(user3);
+    @Nested
+    @DisplayName("delete - ユーザー削除")
+    class Delete {
 
-        // テスト実行: 特定のCognitoのsubで取得
-        Optional<User> foundUser = userRepository.findByCognitoSub("cognitoSub2");
+        @Test
+        @DisplayName("ユーザーを削除できる")
+        void deletesUser() {
+            // given
+            User savedUser = createUser("cognitoSub123", "test@example.com");
 
-        // 検証: 正しいユーザーが取得できることを確認
-        assertTrue(foundUser.isPresent());
-        assertEquals("cognitoSub2", foundUser.get().getCognitoSub());
-        assertEquals("user2@example.com", foundUser.get().getEmail());
-    }
+            // when
+            userRepository.delete(savedUser);
 
-    @Test
-    @DisplayName("ユーザーを保存できる")
-    void save_正常に保存() {
-        // テストデータの準備
-        String cognitoSub = "cognitoSub123";
-        String email = "test@example.com";
-        User user = new User(cognitoSub, email);
-
-        // テスト実行: ユーザーを保存
-        User savedUser = userRepository.save(user);
-
-        // 検証: 保存されたユーザーが正しいことを確認
-        assertNotNull(savedUser.getId()); // IDが自動生成されていることを確認
-        assertEquals(cognitoSub, savedUser.getCognitoSub());
-        assertEquals(email, savedUser.getEmail());
-    }
-
-    @Test
-    @DisplayName("保存したユーザーを取得できる")
-    void saveAndFind_正常に保存と取得() {
-        // テストデータの準備
-        String cognitoSub = "cognitoSub123";
-        String email = "test@example.com";
-        User user = new User(cognitoSub, email);
-
-        // テスト実行: ユーザーを保存
-        User savedUser = userRepository.save(user);
-
-        // テスト実行: 保存したユーザーを取得
-        Optional<User> foundUser = userRepository.findById(savedUser.getId());
-
-        // 検証: 保存したユーザーが正しく取得できることを確認
-        assertTrue(foundUser.isPresent());
-        assertEquals(cognitoSub, foundUser.get().getCognitoSub());
-        assertEquals(email, foundUser.get().getEmail());
-    }
-
-    @Test
-    @DisplayName("ユーザーを削除できる")
-    void delete_正常に削除() {
-        // テストデータの準備: ユーザーを作成して保存
-        String cognitoSub = "cognitoSub123";
-        String email = "test@example.com";
-        User user = new User(cognitoSub, email);
-        User savedUser = userRepository.save(user);
-
-        // テスト実行: ユーザーを削除
-        userRepository.delete(savedUser);
-
-        // 検証: 削除されたユーザーが取得できないことを確認
-        Optional<User> foundUser = userRepository.findById(savedUser.getId());
-        assertFalse(foundUser.isPresent());
+            // then
+            Optional<User> foundUser = userRepository.findById(savedUser.getId());
+            assertThat(foundUser).isEmpty();
+        }
     }
 }
-
