@@ -43,15 +43,25 @@
 ## Mockito
 
 - 依存を偽装し、DBや外部に頼らずサービス層などをテストするために使う。
-- **`@ExtendWith(MockitoExtension.class)`**: Mockito を有効化（必須）
+- **`@ExtendWith(MockitoExtension.class)`**: Mockito を有効化
 - **`@Mock`**: モックオブジェクトの宣言
-- **`@InjectMocks`**: テスト対象クラスにモックを注入（コンストラクタ → セッター → フィールドの順で試す）
+- **`@InjectMocks`**: テスト対象クラスにモックを注入（コンストラクタ → セッター → フィールドへの注入(リフレクション)の順で試す）
+- 使用時は **`import static org.mockito.Mockito.*;`** および **`import static org.mockito.ArgumentMatchers.*;`** で static インポートすると読みやすい。
 
-```java
-when(リポジトリ.findById(1L)).thenReturn(Optional.of(entity));  // 戻り値
-when(リポジトリ.findById(999L)).thenThrow(new NotFoundException());  // 例外
-verify(リポジトリ, times(1)).save(any());  // 呼び出し回数
-```
+**スタブ（when）の例**
+
+- 戻り値: `when(リポジトリ.findById(1L)).thenReturn(Optional.of(entity));`
+- 例外: `when(リポジトリ.findById(999L)).thenThrow(new NotFoundException());`
+- 引数に応じて返す: `when(リポジトリ.save(any(Expense.class))).thenAnswer(invocation -> invocation.getArgument(0));`（渡された引数をそのまま返すときなど）
+- 引数マッチャー: `any()`, `any(クラス.class)`, `eq(値)` で「どんな引数でも」「この型なら」「この値のときだけ」を指定できる。複数引数のうち一部だけ揃えたいときは `eq(値)` と `any()` を組み合わせる。
+
+**検証（verify）の例**
+
+- 呼び出し回数: `verify(リポジトリ, times(1)).save(any());`, `verify(リポジトリ, never()).save(any());`
+- 回数指定なし: `verify(リポジトリ).save(any());` は「1回呼ばれたこと」の検証になる。
+- 呼ばれた引数: `verify(csvExpenseService, times(1)).uploadCsvAndAddExpenses(eq(mockFile), eq(CsvFormat.MITSUISUMITOMO_OLD_FORMAT));` で、どの引数で呼ばれたかまで検証できる。
+
+
 
 ---
 
@@ -87,13 +97,11 @@ verify(リポジトリ, times(1)).save(any());  // 呼び出し回数
 
 | アノテーション | 用途 |
 |----------------|------|
-| **@SpringBootTest** | アプリ全体を起動。統合テスト用。`@ActiveProfiles("test")` で H2 使用。 |
+| **@SpringBootTest** | アプリ全体を起動し、Controller, Service, RepositoryなどをBeanとして登録する。統合テスト用。`@ActiveProfiles("test")` で H2 使用。 |
 | **@DataJpaTest** | JPAのリポジトリ、@Entityのクラス、テスト用のDataSource (+DIコンテナ)が起動する。各テストはトランザクションで実行され、終了後にロールバックされる。 |
-| **@AutoConfigureMockMvc** | `MockMvc` を有効化。HTTP リクエストをシミュレート。 |
-| **@ActiveProfiles("test")** | まず`application.properties`を読み込んだ後`application-test.properties` を読み込み、同じキーは上書きされる。 |
-
-- `@SpringBootTest` では本番に近い Bean が立ち上がるが、プロファイル・DB・セキュリティ（例: TestSecurityConfig）はテスト用になる。
-- MockMvc 例: `mockMvc.perform(get("/api/expenses")).andExpect(status().isOk());`
+| **@AutoConfigureMockMvc** | `MockMvc` を有効化。HTTP リクエストをシミュレートし、レスポンスを検証する。結合テストで利用する。 |
+| **@ActiveProfiles("test")** | プロファイルをtestにする。これにより`application.properties`を読み込んだ後`application-test.properties` を読み込み、同じキーは上書きされる。また@Profile("test")がついたBeanが有効になり@Profile("!test")がついたBeanは無効になる |
+| **@MockitoBean** | BeanをMockに差し替える|
 
 ---
 
