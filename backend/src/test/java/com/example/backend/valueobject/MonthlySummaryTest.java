@@ -1,7 +1,13 @@
-package com.example.backend.domain.valueobject;
+package com.example.backend.valueobject;
 
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.User;
+import com.example.backend.valueobject.CategorySummary;
+import com.example.backend.valueobject.CategoryType;
+import com.example.backend.valueobject.ExpenseAmount;
+import com.example.backend.valueobject.ExpenseDate;
+import com.example.backend.valueobject.MonthlySummary;
+
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

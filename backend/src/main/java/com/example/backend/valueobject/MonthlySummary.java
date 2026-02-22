@@ -1,4 +1,4 @@
-package com.example.backend.domain.valueobject;
+package com.example.backend.valueobject;
 
 import com.example.backend.entity.Expense;
 import lombok.EqualsAndHashCode;

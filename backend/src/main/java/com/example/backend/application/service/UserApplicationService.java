@@ -1,9 +1,10 @@
 package com.example.backend.application.service;
 
 import com.example.backend.auth.provider.CurrentAuthProvider;
-import com.example.backend.domain.repository.UserRepository;
 import com.example.backend.entity.User;
 import com.example.backend.exception.UserNotFoundException;
+import com.example.backend.repository.UserRepository;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

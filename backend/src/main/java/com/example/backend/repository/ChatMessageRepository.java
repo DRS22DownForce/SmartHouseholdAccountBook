@@ -1,4 +1,4 @@
-package com.example.backend.domain.repository;
+package com.example.backend.repository;
 
 import com.example.backend.entity.ChatMessage;
 import com.example.backend.entity.User;

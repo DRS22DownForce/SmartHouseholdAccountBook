@@ -1,11 +1,7 @@
 package com.example.backend.application.mapper;
 
-import com.example.backend.domain.valueobject.CategorySummary;
-import com.example.backend.domain.valueobject.CategoryType;
-import com.example.backend.domain.valueobject.ExpenseAmount;
-import com.example.backend.domain.valueobject.ExpenseDate;
-import com.example.backend.domain.valueobject.MonthlySummary;
 import com.example.backend.entity.Expense;
+import com.example.backend.entity.ExpenseUpdate;
 import com.example.backend.entity.User;
 import com.example.backend.application.service.CsvExpenseService;
 import com.example.backend.application.service.csv.model.CsvParseError;
@@ -14,6 +10,12 @@ import com.example.backend.generated.model.CsvUploadResponseDtoErrorsInner;
 import com.example.backend.generated.model.ExpenseDto;
 import com.example.backend.generated.model.ExpenseRequestDto;
 import com.example.backend.generated.model.MonthlySummaryDto;
+import com.example.backend.valueobject.CategorySummary;
+import com.example.backend.valueobject.CategoryType;
+import com.example.backend.valueobject.ExpenseAmount;
+import com.example.backend.valueobject.ExpenseDate;
+import com.example.backend.valueobject.MonthlySummary;
+
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -125,8 +127,8 @@ public class ExpenseMapper {
      * @param dto 支出リクエストDTO
      * @return 更新用の値オブジェクト
      */
-    public Expense.ExpenseUpdate toExpenseUpdate(ExpenseRequestDto dto) {
-        return new Expense.ExpenseUpdate(
+    public ExpenseUpdate toExpenseUpdate(ExpenseRequestDto dto) {
+        return new ExpenseUpdate(
                 dto.getDescription(),
                 new ExpenseAmount(dto.getAmount()), 
                 new ExpenseDate(dto.getDate()),

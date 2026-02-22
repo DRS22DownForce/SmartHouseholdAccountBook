@@ -1,10 +1,7 @@
 package com.example.backend.application.service;
 
-import com.example.backend.domain.repository.ExpenseRepository;
-import com.example.backend.domain.valueobject.CategoryType;
-import com.example.backend.domain.valueobject.ExpenseAmount;
-import com.example.backend.domain.valueobject.ExpenseDate;
 import com.example.backend.entity.Expense;
+import com.example.backend.entity.ExpenseUpdate;
 import com.example.backend.entity.User;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,6 +9,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import com.example.backend.exception.ExpenseNotFoundException;
+import com.example.backend.repository.ExpenseRepository;
+import com.example.backend.valueobject.CategoryType;
+import com.example.backend.valueobject.ExpenseAmount;
+import com.example.backend.valueobject.ExpenseDate;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -63,7 +64,7 @@ class ExpenseApplicationServiceTest {
 
     @Test
     void addExpense_支出追加() {
-        Expense.ExpenseUpdate creation = new Expense.ExpenseUpdate(
+        ExpenseUpdate creation = new ExpenseUpdate(
                 "テスト支出",
                 new ExpenseAmount(1000),
                 new ExpenseDate(LocalDate.of(2024, 1, 1)),
@@ -86,7 +87,7 @@ class ExpenseApplicationServiceTest {
     @Test
     void updateExpense_正常に更新できる() {
         Long expenseId = 1L;
-        Expense.ExpenseUpdate expenseUpdate = new Expense.ExpenseUpdate(
+        ExpenseUpdate expenseUpdate = new ExpenseUpdate(
                 "更新された支出",
                 new ExpenseAmount(1500),
                 new ExpenseDate(LocalDate.of(2024, 1, 15)),
@@ -118,7 +119,7 @@ class ExpenseApplicationServiceTest {
     @Test
     void updateExpense_存在しないIDなら例外() {
         Long nonExistentId = 999L;
-        Expense.ExpenseUpdate update = new Expense.ExpenseUpdate(
+        ExpenseUpdate update = new ExpenseUpdate(
                 "テスト支出",
                 new ExpenseAmount(1),
                 new ExpenseDate(LocalDate.EPOCH),
@@ -160,7 +161,7 @@ class ExpenseApplicationServiceTest {
         )).thenReturn(Arrays.asList(expense1, expense2));
 
         // テスト実行
-        com.example.backend.domain.valueobject.MonthlySummary result = 
+        com.example.backend.valueobject.MonthlySummary result = 
             expenseApplicationService.getMonthlySummary(month);
 
         // 検証

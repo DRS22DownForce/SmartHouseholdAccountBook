@@ -1,10 +1,11 @@
 package com.example.backend.application.service;
 
-import com.example.backend.domain.repository.ChatMessageRepository;
-import com.example.backend.domain.repository.ExpenseRepository;
 import com.example.backend.entity.ChatMessage;
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.User;
+import com.example.backend.repository.ChatMessageRepository;
+import com.example.backend.repository.ExpenseRepository;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

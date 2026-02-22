@@ -1,9 +1,10 @@
 package com.example.backend.application.service;
 
-import com.example.backend.domain.repository.ChatMessageRepository;
-import com.example.backend.domain.repository.ExpenseRepository;
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.User;
+import com.example.backend.repository.ChatMessageRepository;
+import com.example.backend.repository.ExpenseRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;
