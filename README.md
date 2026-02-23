@@ -131,7 +131,7 @@ npm run generate:api
 ### 主要エンドポイント
 
 #### 支出管理
-- `GET /api/expenses` - 支出一覧取得（オプション: `month` で月別フィルタ）
+- `GET /api/expenses` - 支出一覧取得（ページネーション対応、`month` 必須、`page`/`size` オプション）
 - `POST /api/expenses` - 支出追加
 - `PUT /api/expenses/{id}` - 支出更新
 - `DELETE /api/expenses/{id}` - 支出削除
