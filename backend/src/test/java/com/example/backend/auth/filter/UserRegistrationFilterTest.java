@@ -1,6 +1,7 @@
 // UserRegistrationIntegrationTest.java
 package com.example.backend.auth.filter;
 
+import com.example.backend.config.TestJwtAuthenticationFilter;
 import com.example.backend.config.TestSecurityConfig;
 import com.example.backend.entity.User;
 import com.example.backend.repository.UserRepository;
@@ -39,20 +40,18 @@ class UserRegistrationFilterTest {
 
     @Test
     void testUserIsRegisteredInDatabase() throws Exception {
-        // テスト用JWTを作成
+        // TestJwtAuthenticationFilter と同じ sub/email のJWTでリクエストし、フィルターがユーザー登録することを検証する
         Jwt jwt = new Jwt("token", null, null,
-                Map.of("sub", "none"), Map.of("sub", "integrationSub", "email", "integration@example.com"));
+                Map.of("sub", "none"), Map.of("sub", TestJwtAuthenticationFilter.TEST_SUB, "email", TestJwtAuthenticationFilter.TEST_EMAIL));
         JwtAuthenticationToken authentication = new JwtAuthenticationToken(
                 jwt, null, jwt.getClaimAsString("sub"));
 
-        // 適当なAPIエンドポイントにリクエスト（例: /api/expenses など）
-        mockMvc.perform(get("/api/expenses")
+        mockMvc.perform(get("/api/expenses/months")
                 .with(authentication(authentication)))
                 .andExpect(status().isOk());
 
-        // DBにユーザーが登録されたか確認
-        User user = userRepository.findByCognitoSub("integrationSub").orElse(null);
+        User user = userRepository.findByCognitoSub(TestJwtAuthenticationFilter.TEST_SUB).orElse(null);
         assertThat(user).isNotNull();
-        assertThat(user.getEmail()).isEqualTo("integration@example.com");
+        assertThat(user.getEmail()).isEqualTo(TestJwtAuthenticationFilter.TEST_EMAIL);
     }
 }
