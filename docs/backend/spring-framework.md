@@ -7,53 +7,20 @@
 1. [Spring Boot 3.5.0](#spring-boot-350)
 2. [Spring Data JPA](#spring-data-jpa)
 3. [Spring Security + OAuth2](#spring-security--oauth2)
-4. [SpringDoc OpenAPI](#springdoc-openapi)
-5. [Spring Boot DevTools](#spring-boot-devtools)
+4. [Spring Boot DevTools](#spring-boot-devtools)
 
 ---
 
 ## Spring Boot 3.5.0
 
-**役割**: Javaアプリケーション開発のためのフレームワーク。設定の自動化、依存性注入、アスペクト指向プログラミングなどの機能を提供します。
+**役割**: Javaアプリケーション開発のフレームワーク。設定の自動化・依存性注入（DI）・コンポーネントスキャンを提供。
 
 **主な機能**:
-- **自動設定（Auto Configuration）**: 必要な設定を自動で行う
-  - クラスパス上の依存関係を検出して、必要なBeanを自動的に作成・設定します
-  - 例：`spring-boot-starter-data-jpa`がクラスパスにあると、データソース、EntityManager、トランザクションマネージャーなどを自動設定
-  - 例：`application.properties`に`spring.datasource.url`を設定すると、その値を使ってデータソースBeanを自動生成
-  - 例：MySQLのJDBCドライバーがクラスパスにあると、MySQL用のDialect(データベースごとに異なるSQLの方言)を自動選択
-  - 手動で設定する必要がなくなり、開発効率が大幅に向上します
-- **依存性注入（DI）**: `@Autowired`やコンストラクタインジェクションで依存関係を管理
-- **プロファイル**: 環境ごとに異なる設定を管理（`application.properties`）
+- **自動設定**: クラスパス上の依存（例: JPA、JDBCドライバー）を検出し、データソース・EntityManager等を自動設定
+- **依存性注入**: `@Autowired`やコンストラクタインジェクションで依存関係を管理
+- **プロファイル**: `application.properties`で環境ごとの設定を切り替え
 
-**実際のコード例**:
-
-`backend/src/main/java/com/example/backend/BackendApplication.java` (1-13行目):
-
-```java
-package com.example.backend;
-
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-
-@SpringBootApplication
-public class BackendApplication {
-
-	public static void main(String[] args) {
-		SpringApplication.run(BackendApplication.class, args);
-	}
-
-}
-```
-
-**`@SpringBootApplication`アノテーションの意味**:
-- `@Configuration`: このクラスが設定クラスであることを示す
-- `@EnableAutoConfiguration`: Spring Bootの自動設定を有効化
-- `@ComponentScan`: コンポーネント（`@Service`, `@Repository`など）を自動検出
-
-**`@SpringBootApplication`と`main`関数の関係**:
-- `SpringApplication.run(BackendApplication.class, args)`の引数として、`@SpringBootApplication`が付いたクラスを指定する必要があります
-- そのため、`main`関数があるクラスに`@SpringBootApplication`を付けるのが一般的で推奨されます
+**`@SpringBootApplication`**: `@Configuration` + `@EnableAutoConfiguration` + `@ComponentScan`の複合。`main`から`SpringApplication.run(BackendApplication.class, args)`で起動し、このクラスを引数に渡すのが一般的。
 
 ---
 
@@ -61,9 +28,7 @@ public class BackendApplication {
 
 **役割**: データベースアクセスを簡単にするフレームワーク。リポジトリパターンを実装し、SQLを書かずにデータ操作が可能。
 
-**このプロジェクトでの使用箇所**:
-- リポジトリインターフェース（`ExpenseRepository`, `UserRepository`など）
-- エンティティクラス（`Expense`, `User`など）
+**使用箇所**: リポジトリ（`ExpenseRepository`, `UserRepository`等）、エンティティ（`Expense`, `User`等）。
 
 ---
 
@@ -119,359 +84,22 @@ public class BackendApplication {
 
 #### リポジトリパターン
 
-**リポジトリパターン**: `JpaRepository`を継承するだけでCRUD操作が可能です。
-
-**自動実装の仕組み**:
-- インターフェースを定義するだけで、Spring Data JPAが実行時に**動的プロキシ（Proxy）**を生成します
-- 実装クラスは不要です
-
-**動作の流れ**:
-1. アプリケーション起動時に、`JpaRepository`を継承したインターフェースを検出
-2. 実行時に動的プロキシを生成（メソッド呼び出しをインターセプト）
-3. メソッド名やアノテーションからSQLを生成して実行
-4. 結果を返す
-
-**使用例**: 
-```java
-// インターフェースのみ定義（実装クラスは不要）
-public interface ExpenseRepository extends JpaRepository<Expense, Long> {
-    List<Expense> findByUser(User user);
-}
-
-// サービスで使用（Springが自動的に実装を注入）
-@Service
-public class ExpenseApplicationService {
-    private final ExpenseRepository expenseRepository; // 実装クラスは不要
-    
-    public ExpenseApplicationService(ExpenseRepository expenseRepository) {
-        this.expenseRepository = expenseRepository; // 動的プロキシが注入される
-    }
-}
-```
+`JpaRepository`を継承するだけでCRUDが可能。実装クラスは不要で、Spring Data JPAが実行時に**動的プロキシ**を生成し、メソッド名からSQLを生成してHibernate経由で実行する。役割分担：動的プロキシ（メソッド解析）→ Hibernate（SQL生成）→ JDBCドライバー（DB接続）→ DB。動的プロキシの動作はH2/MySQLで同じ。
 
 ---
 
-#### 動的プロキシとJDBCドライバーの関係
+#### JDBCドライバー・H2とMySQL
 
-**動的プロキシとは**:
-
-動的プロキシは、実行時に生成される「代理オブジェクト」です。インターフェースの実装クラスを自動生成し、メソッド呼び出しを横取り（インターセプト）して独自の処理を実行します。
-
-**動作の流れ（詳細版）**:
-
-```
-1. コードでメソッドを呼び出す
-   expenseRepository.findByUser(user)
-   ↓
-2. 動的プロキシがメソッド呼び出しを「横取り（インターセプト）」
-   「findByUserというメソッドが呼ばれたな。メソッド名を解析しよう」
-   ↓
-3. Spring Data JPAがメソッド名を解析
-   「findByUser」→ 「Userで検索する」という意味だと理解
-   ↓
-4. Hibernate（JPA実装）がSQLを生成
-   SELECT * FROM expenses WHERE user_id = ?
-   ↓
-5. HibernateがJDBCドライバーを使用してデータベースに接続
-   ↓
-6. JDBCドライバーがSQLをデータベースに送信
-   ↓
-7. データベースがSQLを実行
-   ↓
-8. 結果をJDBCドライバーが受け取る
-   ↓
-9. Hibernateが結果をJavaオブジェクト（List<Expense>）に変換
-   ↓
-10. 動的プロキシが結果を返す
-    ↓
-11. 元のコードに結果が返る
-    List<Expense> expenses = ...（結果）
-```
-
-**役割分担**:
-
-| 役割 | 担当者 | 説明 |
-|------|--------|------|
-| **メソッド呼び出しの横取り** | 動的プロキシ（Spring Data JPA） | メソッド名を解析して、何をしたいのか理解する |
-| **SQLの生成** | Hibernate（JPA実装） | メソッド名から適切なSQLを生成 |
-| **データベース接続** | JDBCドライバー | 実際にデータベースに接続してSQLを送信 |
-| **SQLの実行** | データベース（MySQL/H2など） | SQLを実行して結果を返す |
-
-**重要なポイント**:
-- **動的プロキシの実装はJDBCドライバーの種類によって変化しない**: 動的プロキシの生成方法や動作は、H2でもMySQLでも同じです
-- **動的プロキシはHibernateに直接依頼するのではなく、内部実装の一部としてHibernateを使う**: 動的プロキシ（Spring Data JPAの実装）が、内部でHibernateを使ってSQLを生成・実行します
+- **JDBCドライバー**: JavaとDBの橋渡し。`pom.xml`で`mysql-connector-j`（本番）や`h2`（テスト）を依存追加。`spring.datasource.url`のプロトコル（`jdbc:mysql`等）からSpring Bootがドライバーを自動検出。
+- **H2とMySQLの違い**: Dialect（`H2Dialect` / `MySQLDialect`）と接続URL・保存先（メモリ/ディスク）が異なる。H2はインメモリのためサーバー不要でテスト終了後に自動削除。
+- **H2の起動**: テスト時は`application-test.properties`で`jdbc:h2:mem:testdb`を指定すると、Spring Boot起動時にインメモリDBが自動作成される。
 
 ---
 
-#### JDBCドライバーの設定
+#### クエリメソッド・引数の型
 
-**JDBCドライバーとは**:
-
-JDBCドライバーは、Javaアプリケーションとデータベースを接続するための橋渡し役です。データベースごとに専用のJDBCドライバーが必要です。
-
-**pom.xmlでの指定（必須）**:
-
-JDBCドライバーは、`pom.xml`で依存関係として指定する必要があります。
-
-```xml
-<!-- MySQL用のJDBCドライバー -->
-<dependency>
-    <groupId>com.mysql</groupId>
-    <artifactId>mysql-connector-j</artifactId>
-    <scope>runtime</scope>
-</dependency>
-
-<!-- H2用のJDBCドライバー（テスト用） -->
-<dependency>
-    <groupId>com.h2database</groupId>
-    <artifactId>h2</artifactId>
-    <scope>test</scope>
-</dependency>
-```
-
-**動作の仕組み**:
-
-1. **依存関係の追加**: `pom.xml`にJDBCドライバーの依存関係を追加
-2. **自動ダウンロード**: Mavenが初回ビルド時にJDBCドライバーのJARファイルを自動的にダウンロード（`~/.m2/repository/`に保存）
-3. **クラスパスに追加**: ビルド時にJDBCドライバーのJARファイルがクラスパスに自動的に追加される
-4. **自動検出**: Spring Bootがクラスパス上のJDBCドライバーを自動的に検出して使用
-
-**application.propertiesでの指定（オプション）**:
-
-通常は`spring.datasource.url`から自動検出されますが、明示的に指定することもできます：
-
-```properties
-# データベース接続URL（JDBCドライバーを自動検出）
-spring.datasource.url=jdbc:mysql://localhost:3306/mydb
-
-# または、明示的にJDBCドライバークラスを指定（通常は不要）
-spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
-```
-
-**自動検出の仕組み**:
-
-Spring Bootは、`spring.datasource.url`のプロトコル部分（`jdbc:mysql`、`jdbc:h2`など）からデータベースの種類を判断し、クラスパス上にある対応するJDBCドライバーを自動的に検出・使用します。
-
-```
-1. URLのプロトコル部分を解析
-   jdbc:mysql://... → MySQL用のJDBCドライバーが必要
-   jdbc:h2:... → H2用のJDBCドライバーが必要
-   ↓
-2. クラスパス上にあるJDBCドライバーを検索
-   → 対応するJDBCドライバーのJARファイルが見つかる
-   ↓
-3. 適切なJDBCドライバークラスを自動的に選択
-   → com.mysql.cj.jdbc.Driver や org.h2.Driver を使用
-```
-
-**重要なポイント**:
-- **pom.xmlで取得するJARファイルがJDBCドライバーに該当する**: `mysql-connector-j`や`h2`のJARファイルに、JDBCドライバークラスが含まれています
-- **どのJDBCドライバーを使うかはpom.xmlで指定する**: 依存関係として追加することで、JDBCドライバーのJARファイルがクラスパスに追加されます
-
----
-
-#### H2とMySQLの違い
-
-**動的プロキシの実装は変わらない**:
-
-動的プロキシの生成方法や動作は、H2でもMySQLでも同じです。違いは、その内部で使われる設定とコンポーネントです。
-
-**主な違い**:
-
-| 項目 | H2（テスト環境） | MySQL（本番環境） |
-|------|----------------|-----------------|
-| **JDBCドライバー** | `org.h2.Driver` | `com.mysql.cj.jdbc.Driver` |
-| **接続URL** | `jdbc:h2:mem:testdb` | `jdbc:mysql://localhost:3306/...` |
-| **Hibernate Dialect** | `H2Dialect` | `MySQLDialect` |
-| **データの保存場所** | メモリ内（揮発性） | ディスク（永続化） |
-| **用途** | テスト実行時のみ | 本番・開発環境 |
-
-**設定の違い**:
-
-**H2（テスト環境）**:
-```properties
-# JDBCドライバー
-spring.datasource.driverClassName=org.h2.Driver
-spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
-
-# HibernateのDialect（SQL方言）
-spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
-```
-
-**MySQL（本番環境）**:
-```properties
-# JDBCドライバー
-spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
-spring.datasource.url=${SPRING_DATASOURCE_URL_DEV}
-
-# HibernateのDialect（SQL方言）
-spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect
-
-# タイムゾーン設定（MySQL特有）
-spring.jpa.properties.hibernate.jdbc.time_zone=Asia/Tokyo
-```
-
-**重要なポイント**:
-- **動的プロキシの実装**: H2でもMySQLでも同じ
-- **HibernateのDialect**: データベースの種類に応じて異なるSQLが生成される
-- **JDBCドライバー**: データベースごとに異なるドライバーが必要
-
----
-
-#### データベースの起動方法
-
-**H2（テスト環境）: 自動起動（サーバー不要）**:
-
-H2はインメモリデータベースのため、別途サーバーを起動する必要はありません。
-
-**起動の仕組み**:
-```
-1. テストクラスが実行される
-   ↓
-2. Spring Bootが起動
-   ↓
-3. application-test.propertiesが読み込まれる
-   spring.datasource.url=jdbc:h2:mem:testdb
-   ↓
-4. H2のJDBCドライバーが検出される（クラスパス上にあるため）
-   ↓
-5. JDBCドライバーが自動的にインメモリデータベースを作成
-   → データベースサーバーを起動する必要がない！
-   ↓
-6. テストが実行される
-   ↓
-7. テスト終了後、メモリから自動的に削除される
-```
-
-**重要なポイント**:
-- **サーバー不要**: データベースサーバーを起動する必要がない
-- **自動起動**: Spring Bootが自動的にインメモリデータベースを作成
-- **自動削除**: テスト終了後に自動的にメモリから削除される
-
----
-
-#### クエリメソッド
-
-**クエリメソッド**: メソッド名から自動的にSQLを生成します。
-
-**主な機能**:
-- **メソッド名から自動生成**: `findByUser`のようにメソッド名から自動的にSQLを生成
-- **カスタムクエリ**: `@Query`アノテーションでJPQL（Java Persistence Query Language）を記述
-
-**実際のコード例**:
-
-`backend/src/main/java/com/example/backend/domain/repository/ExpenseRepository.java` (1-50行目):
-
-```java
-package com.example.backend.domain.repository;
-
-import com.example.backend.entity.Expense;
-import com.example.backend.entity.User;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-
-import java.time.LocalDate;
-import java.util.List;
-
-/**
- * 支出エンティティのリポジトリインターフェース
- * 
- * DDDの原則に従い、ドメイン層のリポジトリインターフェースとして定義します。
- * Spring Data JPAの命名規則に従ってメソッドを定義します。
- */
-public interface ExpenseRepository extends JpaRepository<Expense, Long> {
-    /**
-     * ユーザーを指定して支出を取得
-     * 
-     * @param user ユーザーエンティティ
-     * @return 該当ユーザーの支出リスト
-     */
-    List<Expense> findByUser(User user);
-
-    /**
-     * ユーザーと日付範囲を指定して支出を取得
-     * 
-     * @param user ユーザーエンティティ
-     * @param start 開始日（含む）
-     * @param end 終了日（含む）
-     * @return 該当ユーザーの指定期間内の支出リスト(降順でソート)
-     */
-    @Query("SELECT e FROM Expense e WHERE e.user = :user AND e.date.value >= :start AND e.date.value <= :end ORDER BY e.date.value DESC")
-    List<Expense> findByUserAndDateBetween(
-        @Param("user") User user,
-        @Param("start") LocalDate start,
-        @Param("end") LocalDate end
-    );
-
-    /**
-     * ユーザーを指定して、利用可能な月（YYYY-MM形式）のリストを取得
-     * 
-     * @param user ユーザーエンティティ
-     * @return 利用可能な月のリスト（YYYY-MM形式、降順でソート済み）
-     */
-    @Query("SELECT DISTINCT e.date.value FROM Expense e WHERE e.user = :user ORDER BY e.date.value DESC")
-    List<LocalDate> findDistinctDatesByUser(@Param("user") User user);
-}
-```
-
----
-
-#### リポジトリメソッドの引数の型
-
-リポジトリのメソッドの引数には、以下のような型を使用できます：
-
-1. **Entityクラス**: エンティティオブジェクトを引数として受け取る
-   ```java
-   List<Expense> findByUser(User user); // Userエンティティを引数に
-   ```
-
-2. **プリミティブ型とラッパークラス**: `String`, `Integer`, `Long`, `Boolean`など
-   ```java
-   Optional<User> findByCognitoSub(String cognitoSub); // String型
-   ```
-
-3. **日付・時刻型**: `LocalDate`, `LocalDateTime`, `Date`など
-   ```java
-   List<Expense> findByUserAndDateBetween(
-       User user,
-       LocalDate start,  // 日付型
-       LocalDate end
-   );
-   ```
-
-4. **Spring Data JPAの特殊型**: `Pageable`, `Sort`など（ページネーションやソート用）
-   ```java
-   Page<Expense> findByUserAndDateRange(
-       User user,
-       LocalDate startDate,
-       LocalDate endDate,
-       Pageable pageable  // ページネーション情報
-   );
-   ```
-
-5. **コレクション型**: `List`, `Set`など（IN句で使用）
-   ```java
-   List<Expense> findByIdIn(List<Long> ids); // 複数のIDで検索
-   ```
-
-**注意点**:
-- `@Query`アノテーションを使用する場合、引数に`@Param`アノテーションを付ける必要があります
-- メソッド名から自動生成する場合（`findByUser`など）は、`@Param`は不要です
-- Entityクラスを引数にすると、そのEntityのIDが自動的に使用されます
-
----
-
-#### 学習ポイント
-
-- **エンティティ**: `@Entity`アノテーションでデータベースのテーブルに対応
-- **リポジトリ**: `JpaRepository<Entity, ID>`を継承するだけで基本的な操作が可能
-- **クエリメソッド**: `findByUser`のようにメソッド名から自動的にSQLを生成
-- **JPQL**: Javaオブジェクトを対象としたクエリ言語
-- **引数の型**: Entityクラス、プリミティブ型、日付型、Spring Data JPAの特殊型など、様々な型が使用可能
-- **@Embedded**: 値オブジェクトのフィールドがエンティティのテーブルのカラムとして直接マッピングされる
+- **クエリメソッド**: メソッド名（例: `findByUser`）からSQLを自動生成。`@Query`でJPQLを直接記述可能。`@Query`を使う場合は引数に`@Param`を付ける。
+- **引数の型**: Entity、`String`/`Long`等、`LocalDate`、`Pageable`/`Sort`、`List`（IN句）などが使える。Entityを引数にするとそのIDが条件に使われる。
 
 ---
 
@@ -678,60 +306,6 @@ AWS Cognitoが発行するJWTトークンには、以下のような情報が含
 ---
 ## Spring Boot DevTools
 
-**役割**: 開発時の生産性を向上させるツール。コード変更を検知して自動的に再起動します。
+**役割**: コード変更を検知して自動再起動（ホットリロード）し、開発効率を上げる。
 
-**このプロジェクトでの使用箇所**:
-- 開発環境でのホットリロード
-
-**実際の設定例**:
-
-`backend/src/main/resources/application.properties` (42-51行目):
-
-```properties
-# ========================================
-# DevTools設定（開発環境のみ有効）
-# ========================================
-# DevToolsによる自動再起動を有効化
-spring.devtools.restart.enabled=true
-
-# ファイル変更の監視間隔（ミリ秒）
-# デフォルトは1秒。この間隔でクラスパスの変更をチェック
-spring.devtools.restart.poll-interval=1000
-
-# ファイル変更が検知された後、この時間変更がなければ再起動を実行
-spring.devtools.restart.quiet-period=400
-```
-
-**DevToolsが有効になる条件**:
-
-Spring Boot DevToolsは、以下の条件を満たす場合にのみ有効になります：
-
-1. **依存関係が含まれている**
-   - `pom.xml`に`spring-boot-devtools`の依存関係が定義されている必要があります
-   - このプロジェクトでは`backend/pom.xml`の139-145行目に定義されています
-
-2. **開発環境で実行している**
-   - IDE（Cursor/VS Code）から直接実行する場合 → ✅ **有効**
-   - `mvn spring-boot:run`で実行する場合（JARファイルを作成せずに起動） → ✅ **有効**
-   - ローカルでJARファイルを実行する場合（`java -jar app.jar`） → ❌ **無効**（通常のJARにはDevToolsが含まれない）
-
-3. **本番環境では自動的に無効化される**
-   - `pom.xml`で`<optional>true</optional>`が設定されているため、`mvn package`でJARファイルを作成する際にはDevToolsが除外されます
-   - Dockerコンテナで実行する場合 → ❌ **無効**（本番用JARには含まれない）
-   - パッケージ化されたJARファイルを実行する場合 → ❌ **無効**
-
-**なぜJARファイル実行時にDevToolsが無効になるのか？**
-
-`mvn package`コマンドでJARファイルを作成する際、Spring Boot Mavenプラグインは以下の処理を行います：
-
-1. **依存関係の収集**
-   - `pom.xml`に記載されているすべての依存関係を収集します
-   - **重要**: `<optional>true</optional>`が設定されている依存関係は**自動的に除外**されます
-
-2. **DevToolsの除外**
-   - DevTools（`spring-boot-devtools`）は`optional=true`が設定されているため、JARファイルに含まれません
-   - そのため、`java -jar app.jar`で実行してもDevToolsは動作しません
-
-3. **結果**
-   - 作成されたJARファイルにはDevToolsが含まれていない
-   - JARファイルを実行しても、DevToolsの機能（ホットリロードなど）は使用できない
+**有効条件**: `pom.xml`に`spring-boot-devtools`を追加し、IDEや`mvn spring-boot:run`で起動する場合。`mvn package`で作ったJARでは`<optional>true</optional>`によりDevToolsが除外されるため無効。

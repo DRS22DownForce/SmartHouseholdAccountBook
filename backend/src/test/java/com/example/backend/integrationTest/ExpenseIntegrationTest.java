@@ -4,7 +4,7 @@ import com.example.backend.config.TestJwtAuthenticationFilter;
 import com.example.backend.config.TestSecurityConfig;
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.User;
-import com.example.backend.generated.model.ExpenseDto;
+import com.example.backend.generated.model.ExpensePageDto;
 import com.example.backend.generated.model.ExpenseRequestDto;
 import com.example.backend.generated.model.MonthlySummaryDto;
 import com.example.backend.repository.ExpenseRepository;
@@ -264,12 +264,17 @@ class ExpenseIntegrationTest {
             String responseBody = mockMvc.perform(get("/api/expenses").param("month", "2024-01"))
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();
-            List<ExpenseDto> list = objectMapper.readValue(responseBody, new TypeReference<List<ExpenseDto>>() {});
+            ExpensePageDto page = objectMapper.readValue(
+                    responseBody, ExpensePageDto.class);
 
             // then
-            assertThat(list).hasSize(1);
-            assertThat(list.get(0).getCategory()).isEqualTo("食費");
-            assertThat(list.get(0).getAmount()).isEqualTo(1000);
+            assertThat(page.getContent()).hasSize(1);
+            assertThat(page.getContent().get(0).getCategory()).isEqualTo("食費");
+            assertThat(page.getContent().get(0).getAmount()).isEqualTo(1000);
+            assertThat(page.getTotalElements()).isEqualTo(1);
+            assertThat(page.getTotalPages()).isEqualTo(1);
+            assertThat(page.getNumber()).isEqualTo(0);
+            assertThat(page.getSize()).isEqualTo(10);
         }
     }
 }

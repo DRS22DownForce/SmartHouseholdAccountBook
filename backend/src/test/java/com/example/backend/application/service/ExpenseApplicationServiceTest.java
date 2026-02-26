@@ -40,29 +40,6 @@ class ExpenseApplicationServiceTest {
     private ExpenseApplicationService expenseApplicationService;
 
     @Test
-    void getAllExpenses_リポジトリに2件あれば2件返す() {
-        User user = new User("cognitoSub", "test@example.com");
-        ExpenseAmount amount1 = new ExpenseAmount(1000);
-        ExpenseDate date1 = new ExpenseDate(LocalDate.of(2024, 1, 1));
-        CategoryType category1 = CategoryType.FOOD;
-        Expense expense1 = new Expense("支出1", amount1, date1, category1, user);
-
-        ExpenseAmount amount2 = new ExpenseAmount(2000);
-        ExpenseDate date2 = new ExpenseDate(LocalDate.of(2024, 1, 2));
-        CategoryType category2 = CategoryType.TRANSPORT;
-        Expense expense2 = new Expense("支出2", amount2, date2, category2, user);
-
-        when(expenseRepository.findByUser(user)).thenReturn(Arrays.asList(expense1, expense2));
-        when(userApplicationService.getUser()).thenReturn(user);
-
-        List<Expense> result = expenseApplicationService.getExpenses();
-
-        assertEquals(2, result.size());
-        assertEquals("支出1", result.get(0).getDescription());
-        assertEquals("支出2", result.get(1).getDescription());
-    }
-
-    @Test
     void addExpense_支出追加() {
         ExpenseUpdate creation = new ExpenseUpdate(
                 "テスト支出",

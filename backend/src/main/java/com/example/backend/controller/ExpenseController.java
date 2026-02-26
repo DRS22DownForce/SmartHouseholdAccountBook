@@ -9,6 +9,7 @@ import com.example.backend.entity.ExpenseUpdate;
 import com.example.backend.generated.api.ExpensesApi;
 import com.example.backend.generated.model.CsvUploadResponseDto;
 import com.example.backend.generated.model.ExpenseDto;
+import com.example.backend.generated.model.ExpensePageDto;
 import com.example.backend.generated.model.ExpenseRequestDto;
 import com.example.backend.generated.model.MonthlySummaryDto;
 import com.example.backend.valueobject.MonthlySummary;
@@ -18,11 +19,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.lang.Nullable;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -57,26 +55,30 @@ public class ExpenseController implements ExpensesApi {
     }
 
     /**
-     * 支出一覧取得エンドポイント
-     * 
-     * @param month 対象月（YYYY-MM形式）
-     * @return 支出一覧DTO
+     * 支出一覧取得エンドポイント（ページネーション対応）
+     * OpenAPIはPage, Pageable型をサポートしていないので、変換処理が必要
+     *
+     * @param month 対象月（YYYY-MM形式、必須）
+     * @param page  ページ番号（0始まり）
+     * @param size  1ページあたりの件数（最大50）
+     * @return 支出のページDTO
      */
     @Override
-    public ResponseEntity<List<ExpenseDto>> apiExpensesGet(@Nullable String month) {
-        if (month != null) {
-            // TODO 現状ではページネーションに対応できていない。今後対応予定。
-            Pageable pageable = PageRequest.of(0, Integer.MAX_VALUE);
-            Page<Expense> expensePage = expenseApplicationService.getExpensesByMonth(month, pageable);
-            List<ExpenseDto> dtos = expensePage.map(expenseMapper::toDto).getContent();
-            return ResponseEntity.ok(dtos);
-        } else {
-            List<Expense> expenses = expenseApplicationService.getExpenses();
-            List<ExpenseDto> dtos = expenses.stream()
-                    .map(expenseMapper::toDto)
-                    .collect(Collectors.toList());
-            return ResponseEntity.ok(dtos);
-        }
+    public ResponseEntity<ExpensePageDto> apiExpensesGet(String month, Integer page, Integer size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Expense> expensePage = expenseApplicationService.getExpensesByMonth(month, pageable);
+
+        List<ExpenseDto> content = expensePage.getContent().stream()
+                .map(expenseMapper::toDto)
+                .collect(Collectors.toList());
+        
+        ExpensePageDto dto = new ExpensePageDto(
+                content,
+                expensePage.getTotalElements(), //全体の件数
+                expensePage.getTotalPages(), //総ページ数
+                expensePage.getNumber(), //現在のページ番号（0始まり）
+                expensePage.getSize()); //1ページあたりの件数
+        return ResponseEntity.ok(dto);
     }
 
     /**

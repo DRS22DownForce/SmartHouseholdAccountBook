@@ -12,6 +12,7 @@ import com.example.backend.entity.User;
 import com.example.backend.generated.model.CsvUploadResponseDto;
 import com.example.backend.generated.model.CsvUploadResponseDtoErrorsInner;
 import com.example.backend.generated.model.ExpenseDto;
+import com.example.backend.generated.model.ExpensePageDto;
 import com.example.backend.generated.model.ExpenseRequestDto;
 import com.example.backend.generated.model.MonthlySummaryDto;
 import com.example.backend.valueobject.CategoryType;
@@ -26,6 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.data.domain.PageImpl;
@@ -71,41 +73,26 @@ class ExpenseControllerTest {
     class ApiExpensesGet {
 
         @Test
-        @DisplayName("monthがnullのとき、全件取得して200で一覧を返す")
-        void returnsAllExpensesWhenMonthIsNull() {
-            Expense expense = createExpense("ダミー", 1000, LocalDate.of(2024, 1, 10), CategoryType.FOOD);
-            when(expenseApplicationService.getExpenses()).thenReturn(List.of(expense));
-            ExpenseDto expectedDto = new ExpenseDto();
-            expectedDto.setId(1L);
-            expectedDto.setDescription("テスト");
-            expectedDto.setAmount(1000);
-            expectedDto.setDate(LocalDate.of(2024, 1, 15));
-            expectedDto.setCategory("食費");
-            when(expenseMapper.toDto(any(Expense.class))).thenReturn(expectedDto);
-
-            ResponseEntity<List<ExpenseDto>> response = expenseController.apiExpensesGet(null);
-
-            assertOkWithBodyList(response, List.of(expectedDto));
-            verify(expenseApplicationService).getExpenses();
-            verify(expenseApplicationService, never()).getExpensesByMonth(any(), any(Pageable.class));
-        }
-
-        @Test
-        @DisplayName("monthを指定したとき、その月の一覧を200で返す")
-        void returnsExpensesByMonthWhenMonthGiven() {
+        @DisplayName("monthを指定したとき、その月のページを200で返す")
+        void returnsExpensePageByMonthWhenMonthGiven() {
             Expense expense = createExpense("月指定ダミー", 1200, LocalDate.of(2024, 1, 20), CategoryType.TRANSPORT);
-            PageImpl<Expense> page = new PageImpl<>(List.of(expense), PageRequest.of(0, Integer.MAX_VALUE), 1);
+            Page<Expense> page = new PageImpl<>(List.of(expense), PageRequest.of(0, 20), 1);
             when(expenseApplicationService.getExpensesByMonth(eq("2024-01"), any(Pageable.class))).thenReturn(page);
             ExpenseDto expectedDto = new ExpenseDto();
             expectedDto.setId(2L);
             expectedDto.setDescription("月指定");
             when(expenseMapper.toDto(any(Expense.class))).thenReturn(expectedDto);
 
-            ResponseEntity<List<ExpenseDto>> response = expenseController.apiExpensesGet("2024-01");
+            ResponseEntity<ExpensePageDto> response = expenseController.apiExpensesGet("2024-01", 0, 20);
 
-            assertOkWithBodyList(response, List.of(expectedDto));
-            verify(expenseApplicationService).getExpensesByMonth("2024-01", PageRequest.of(0, Integer.MAX_VALUE));
-            verify(expenseApplicationService, never()).getExpenses();
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).isNotNull();
+            assertThat(response.getBody().getContent()).containsExactly(expectedDto);
+            assertThat(response.getBody().getTotalElements()).isEqualTo(1L);
+            assertThat(response.getBody().getTotalPages()).isEqualTo(1);
+            assertThat(response.getBody().getNumber()).isEqualTo(0);
+            assertThat(response.getBody().getSize()).isEqualTo(20);
+            verify(expenseApplicationService).getExpensesByMonth("2024-01", PageRequest.of(0, 20));
         }
     }
 
