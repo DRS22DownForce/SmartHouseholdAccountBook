@@ -58,19 +58,6 @@ public class ExpenseApplicationService {
     }
 
     /**
-     * 全ての支出を取得するユースケース
-     *
-     * 現在のユーザーの支出エンティティのリストを返します。
-     *
-     * @return 支出エンティティのリスト
-     */
-    @Transactional(readOnly = true)
-    public List<Expense> getExpenses() {
-        User user = userApplicationService.getUser();
-        return expenseRepository.findByUser(user);
-    }
-
-    /**
      * 新しい支出を追加するユースケース
      *
      * 作成内容（ExpenseUpdate）と現在ユーザーからエンティティを生成し、保存して返します。

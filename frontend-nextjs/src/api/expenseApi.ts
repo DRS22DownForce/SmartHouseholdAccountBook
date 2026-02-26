@@ -14,24 +14,37 @@ import type { Expense, ExpenseFormData } from '@/lib/types';
 import type { ApiExpensesUploadCsvPostCsvFormatEnum } from './generated/api';
 
 
-/**
- * 全支出を取得
- */
-export async function fetchExpenses(): Promise<Expense[]> {
-    const api = getExpenseApiClient();
-    const options = await withAuthHeader();
-    const response = await api.apiExpensesGet(undefined, options);
-    return response.data.map(toExpense);
+/** 月別支出のページ結果 */
+export interface MonthlyExpensesPage {
+    content: Expense[];
+    totalElements: number;
+    totalPages: number;
+    number: number;
+    size: number;
 }
 
 /**
- * 月別支出を取得
+ * 月別支出を取得（ページネーション対応）
+ * @param month 対象月（YYYY-MM形式）
+ * @param page ページ番号（0始まり）。省略時は0
+ * @param size 1ページあたりの件数。省略時は10、最大50
  */
-export async function fetchMonthlyExpenses(month: string): Promise<Expense[]> {
+export async function fetchMonthlyExpenses(
+    month: string,
+    page?: number,
+    size?: number
+): Promise<MonthlyExpensesPage> {
     const api = getExpenseApiClient();
     const options = await withAuthHeader();
-    const response = await api.apiExpensesGet(month, options);
-    return response.data.map(toExpense);
+    const response = await api.apiExpensesGet(month, page, size, options);
+    const dto = response.data;
+    return {
+        content: (dto.content ?? []).map(toExpense),
+        totalElements: dto.totalElements ?? 0,
+        totalPages: dto.totalPages ?? 0,
+        number: dto.number ?? 0,
+        size: dto.size ?? 10,
+    };
 }
 
 /**
@@ -139,5 +152,14 @@ export async function uploadCsvFile(file: File, csvFormat: "MITSUISUMITOMO_OLD_F
     const csvFormatEnum = csvFormat as ApiExpensesUploadCsvPostCsvFormatEnum;
     
     const response = await api.apiExpensesUploadCsvPost(file, csvFormatEnum, options);
-    return response.data;
+    const d = response.data;
+    return {
+        successCount: d.successCount,
+        errorCount: d.errorCount,
+        errors: (d.errors ?? []).map((e) => ({
+            lineNumber: e.lineNumber,
+            lineContent: e.lineContent ?? "",
+            message: e.message,
+        })),
+    };
 }

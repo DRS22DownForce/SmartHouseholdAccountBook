@@ -1,3 +1,32 @@
+# 支出一覧のページネーション用レスポンス
+ExpensePageDto:
+  type: object
+  required:
+    - content
+    - totalElements
+    - totalPages
+    - number
+    - size
+  properties:
+    content:
+      type: array
+      items:
+        $ref: '#/ExpenseDto'
+      description: 当前ページの支出リスト
+    totalElements:
+      type: integer
+      format: int64
+      description: 全体の件数
+    totalPages:
+      type: integer
+      description: 総ページ数
+    number:
+      type: integer
+      description: 現在のページ番号（0始まり）
+    size:
+      type: integer
+      description: 1ページあたりの件数
+
 ExpenseDto:
     type: object
     required:
