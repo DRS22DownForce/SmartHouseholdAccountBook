@@ -163,18 +163,16 @@ public class ExpenseMapper {
         }
 
         MonthlySummaryDto dto = new MonthlySummaryDto();
-        dto.setTotal(monthlySummary.getTotal());
-        dto.setCount(monthlySummary.getCount());
+        dto.setTotal(monthlySummary.total());
+        dto.setCount(monthlySummary.count());
 
         // CategorySummaryのリストをDTOのリストに変換
         List<com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner> byCategoryList = new ArrayList<>();
-        if (monthlySummary.getCategorySummaries() != null) {
-            for (CategorySummary categorySummary : monthlySummary.getCategorySummaries()) {
-                com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner categoryDto = new com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner();
-                categoryDto.setCategory(categorySummary.getDisplayName());
-                categoryDto.setAmount(categorySummary.getAmount());
-                byCategoryList.add(categoryDto);
-            }
+        for (CategorySummary categorySummary : monthlySummary.categorySummaries()) {
+            com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner categoryDto = new com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner();
+            categoryDto.setCategory(categorySummary.getDisplayName());
+            categoryDto.setAmount(categorySummary.getAmount());
+            byCategoryList.add(categoryDto);
         }
         dto.setByCategory(byCategoryList);
 

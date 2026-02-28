@@ -2,17 +2,12 @@ package com.example.backend.valueobject;
 
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.User;
-import com.example.backend.valueobject.CategorySummary;
-import com.example.backend.valueobject.CategoryType;
-import com.example.backend.valueobject.ExpenseAmount;
-import com.example.backend.valueobject.ExpenseDate;
-import com.example.backend.valueobject.MonthlySummary;
-
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 
@@ -29,12 +24,15 @@ class MonthlySummaryTest {
     private static User testUser() {
         return new User("cognitoSub", "test@example.com");
     }
+    
+    private static final LocalDate TEST_DATE = LocalDate.of(2024, 1, 1);
+    private static final String TEST_MONTH = TEST_DATE.format(DateTimeFormatter.ofPattern("yyyy-MM"));
 
     private static Expense expense(String description, int amount, CategoryType category) {
         return new Expense(
                 description,
                 new ExpenseAmount(amount),
-                new ExpenseDate(LocalDate.now()),
+                new ExpenseDate(TEST_DATE),
                 category,
                 testUser());
     }
@@ -53,17 +51,17 @@ class MonthlySummaryTest {
                     expense("交通費", 2000, CategoryType.TRANSPORT));
 
             // when
-            MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses);
+            MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses, TEST_MONTH);
 
             // then
             assertThat(summary).isNotNull();
-            assertThat(summary.getTotal()).isEqualTo(7000);
-            assertThat(summary.getCount()).isEqualTo(3);
-            assertThat(summary.getCategorySummaries()).hasSize(2);
-            assertThat(summary.getCategorySummaries().get(0).getCategory()).isEqualTo(CategoryType.FOOD);
-            assertThat(summary.getCategorySummaries().get(0).getAmount()).isEqualTo(5000);
-            assertThat(summary.getCategorySummaries().get(1).getCategory()).isEqualTo(CategoryType.TRANSPORT);
-            assertThat(summary.getCategorySummaries().get(1).getAmount()).isEqualTo(2000);
+            assertThat(summary.total()).isEqualTo(7000);
+            assertThat(summary.count()).isEqualTo(3);
+            assertThat(summary.categorySummaries()).hasSize(2);
+            assertThat(summary.categorySummaries().get(0).getCategory()).isEqualTo(CategoryType.FOOD);
+            assertThat(summary.categorySummaries().get(0).getAmount()).isEqualTo(5000);
+            assertThat(summary.categorySummaries().get(1).getCategory()).isEqualTo(CategoryType.TRANSPORT);
+            assertThat(summary.categorySummaries().get(1).getAmount()).isEqualTo(2000);
         }
 
         @Test
@@ -76,10 +74,10 @@ class MonthlySummaryTest {
                     expense("中", 3000, CategoryType.UTILITIES));
 
             // when
-            MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses);
+            MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses, TEST_MONTH);
 
             // then
-            assertThat(summary.getCategorySummaries())
+            assertThat(summary.categorySummaries())
                     .extracting(CategorySummary::getAmount)
                     .containsExactly(5000, 3000, 1000);
         }
@@ -97,13 +95,13 @@ class MonthlySummaryTest {
             List<Expense> expenses = Collections.emptyList();
 
             // when
-            MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses);
+            MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses, TEST_MONTH);
 
             // then
             assertThat(summary).isNotNull();
-            assertThat(summary.getTotal()).isZero();
-            assertThat(summary.getCount()).isZero();
-            assertThat(summary.getCategorySummaries()).isEmpty();
+            assertThat(summary.total()).isZero();
+            assertThat(summary.count()).isZero();
+            assertThat(summary.categorySummaries()).isEmpty();
         }
     }
 
@@ -115,7 +113,7 @@ class MonthlySummaryTest {
         @DisplayName("支出リストがnullの場合はNullPointerExceptionが発生する")
         void createWithNull() {
             // given, when, then
-            assertThatThrownBy(() -> MonthlySummary.createMonthlySummaryFromExpenses(null))
+            assertThatThrownBy(() -> MonthlySummary.createMonthlySummaryFromExpenses(null, TEST_MONTH))
                     .isInstanceOf(NullPointerException.class);
         }
     }
@@ -129,11 +127,11 @@ class MonthlySummaryTest {
         void byCategoryIsUnmodifiable() {
             // given
             List<Expense> expenses = List.of(expense("テスト", 1000, CategoryType.FOOD));
-            MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses);
+            MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses, TEST_MONTH);
 
             // when, then
             assertThatThrownBy(() ->
-                    summary.getCategorySummaries().add(new CategorySummary(CategoryType.FOOD, 2000)))
+                    summary.categorySummaries().add(new CategorySummary(CategoryType.FOOD, 2000)))
                     .isInstanceOf(UnsupportedOperationException.class);
         }
     }

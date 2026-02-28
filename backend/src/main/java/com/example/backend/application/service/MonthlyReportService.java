@@ -7,6 +7,7 @@ import com.example.backend.exception.AiServiceException;
 import com.example.backend.exception.QuotaExceededException;
 import com.example.backend.repository.ExpenseRepository;
 import com.example.backend.repository.MonthlyReportRepository;
+import com.example.backend.valueobject.MonthlySummary;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -69,22 +70,19 @@ public class MonthlyReportService {
 
     /**
      * 指定された月のレポートを返す。
-     * regenerate=false のときはキャッシュがあればそれを返し、なければ空。OpenAI は呼ばない。
-     * regenerate=true のときはキャッシュを無視して再生成し、永続化して返す。
-     * 支出が0件で再生成する場合はレポート生成を想定していないため、IllegalArgumentException をスローする。
      *
-     * @param month      対象月（YYYY-MM形式）
-     * @param regenerate trueの場合、キャッシュを無視して再生成する。falseの場合はキャッシュのみ返す（なければ空）
+     * @param month    対象月（YYYY-MM形式）
+     * @param generate trueの場合、すでに生成済みのレポートを無視して再生成する。falseの場合はすでに生成済みのレポートを返す（なければ空）
      * @return 月次レポート（キャッシュなし・再生成しない場合は空）
      * @throws IllegalArgumentException 対象月の支出が0件で再生成する場合
      */
     @Transactional
-    public Optional<MonthlyReport> generateReport(String month, boolean regenerate) {
+    public Optional<MonthlyReport> generateReport(String month, boolean generate) {
         User user = userApplicationService.getUser();
-        Optional<MonthlyReport> cached = monthlyReportRepository.findByUserAndMonth(user, month);
+        Optional<MonthlyReport> existing = monthlyReportRepository.findByUserAndMonth(user, month);
 
-        if (!regenerate) {
-            return cached;
+        if (!generate) {
+            return existing;
         }
 
         YearMonth yearMonth = YearMonth.parse(month, DateTimeFormatter.ofPattern(MONTH_FORMAT));
@@ -97,15 +95,15 @@ public class MonthlyReportService {
             throw new IllegalArgumentException(
                     "この月の支出データがありません。レポートを生成するには支出を登録してください。");
         }
-        //TODO MonthlySummaryを使用するように修正する。
-        String prompt = buildPrompt(month, expenses);
+        MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses, month);
+        String prompt = buildPrompt(summary);
         String aiResponse = callOpenAI(prompt);
         ParsedAiResponse parsed = parseAiResponse(aiResponse);
 
         String suggestionsJson = serializeSuggestions(parsed.suggestions());
 
-        if (cached.isPresent()) {
-            MonthlyReport entity = cached.get();
+        if (existing.isPresent()) {
+            MonthlyReport entity = existing.get();
             entity.update(parsed.summary(), suggestionsJson);
             return Optional.of(entity);
         }
@@ -113,106 +111,101 @@ public class MonthlyReportService {
                 new MonthlyReport(user, month, parsed.summary(), suggestionsJson)));
     }
 
-    private String buildPrompt(String month, List<Expense> expenses) {
-        int total = expenses.stream().mapToInt(e -> e.getAmount().getAmount()).sum();
-        int count = expenses.size();
-        String categoryBreakdown = buildCategoryBreakdown(month, expenses, total);
-        String topItemsByCategory = buildTopItemsByCategory(expenses);
-        String topOverallItems = buildTopOverallItems(expenses);
-        int daysInMonth = YearMonth.parse(month, DateTimeFormatter.ofPattern(MONTH_FORMAT))
-                .lengthOfMonth();
-        int dailyAverage = total / daysInMonth;
+    private String buildPrompt(MonthlySummary summary) {
+        /**
+         * カテゴリ別集計を文字列化
+         * 
+         * 出力例
+         * - 食費: 150,000円（10件）
+         * - 交通費: 100,000円（5件）
+         * - 住居費: 80,000円（3件）
+         */
+
+        String categoryBreakdown = summary.categorySummaries().stream()
+                .map(cs -> String.format("- %s: %,d円（%d件）",
+                        cs.getCategory().getDisplayName(), cs.getAmount(), cs.getCount()))
+                .collect(Collectors.joining("\n"));
+
+        /**
+         * カテゴリ別Top支出品目リストを文字列化
+         * 
+         * 出力例
+         * [食費]
+         *   - スーパーで買い物: 15,000円（2025-02-15）
+         *   - コンビニ: 800円（2025-02-20）
+         *   - 昼食: 600円（2025-02-10）
+         * [交通費]
+         *   - 電車定期: 10,000円（2025-02-01）
+         *   - タクシー: 2,500円（2025-02-18）
+         * [住居費]
+         *   - 家賃: 80,000円（2025-02-01）
+         * 
+         */
+        String topItemsByCategory = summary.getTopExpensesByCategory(TOP_ITEMS_PER_CATEGORY).entrySet().stream()
+                .map(entry -> {
+                    return String.format("[%s]\n%s", entry.getKey().getDisplayName(), entry.getValue().stream()
+                            .map(e -> String.format("  - %s: %,d円（%s）",
+                                    e.getDescription(), e.getAmount().getAmount(),
+                                    e.getDate().getDate()))
+                            .collect(Collectors.joining("\n")));
+                })
+                .collect(Collectors.joining("\n"));
+
+        /**
+         * 全体の高額支出トップN件を作成する。降順でソートして上位N件を返す。
+         * 
+         * 出力例
+         * - スーパーで買い物: 15,000円（2025-02-15）
+         * - コンビニ: 800円（2025-02-20）
+         * - 昼食: 600円（2025-02-10）
+         */
+        String topOverallItems = summary.getTopExpenses(TOP_OVERALL_ITEMS).stream()
+                .map(e -> String.format("- %s: %,d円（%s）",
+                        e.getDescription(), e.getAmount().getAmount(),
+                        e.getDate().getDate()))
+                .collect(Collectors.joining("\n"));
 
         return String.format(
                 """
-                以下は%sの家計支出データです。このデータをもとに、具体的で実践的な分析と改善提案を行ってください。
+                        以下は%sの家計支出データです。このデータをもとに、具体的で実践的な分析と改善提案を行ってください。
 
-                【基本情報】
-                - 合計支出: %,d円（%d件）
-                - 1日あたり平均: %,d円
+                        【基本情報】
+                        - 合計支出: %,d円（%d件）
+                        - 1日あたり平均: %,d円
 
-                【カテゴリ別内訳（金額降順）】
-                %s
+                        【カテゴリ別内訳（金額降順）】
+                        %s
 
-                【カテゴリ別トップ支出品目（カテゴリごと上位%d件）】
-                %s
+                        【カテゴリ別トップ支出品目（カテゴリごと上位%d件）】
+                        %s
 
-                【全体の高額支出トップ%d件】
-                %s
+                        【全体の高額支出トップ%d件】
+                        %s
 
-                上記データを分析し、以下のJSON形式で返してください。
-                {
-                  "summary": "月全体の支出傾向の総評。特に支出が多いカテゴリや注目すべき支出パターンに言及し、具体的な金額を交えながら3〜4文で記述してください。",
-                  "suggestions": [
-                    "改善提案1（具体的な品目名・金額・代替案を含む実践的な提案）",
-                    "改善提案2",
-                    "改善提案3",
-                    "改善提案4",
-                    "改善提案5"
-                  ]
-                }
+                        上記データを分析し、以下のJSON形式で返してください。
+                        {
+                          "summary": "月全体の支出傾向の総評。特に支出が多いカテゴリや注目すべき支出パターンに言及し、具体的な金額を交えながら3〜4文で記述してください。",
+                          "suggestions": [
+                            "改善提案1（具体的な品目名・金額・代替案を含む実践的な提案）",
+                            "改善提案2",
+                            "改善提案3",
+                            "改善提案4",
+                            "改善提案5"
+                          ]
+                        }
 
-                suggestionsは以下の基準で5件作成してください：
-                - 具体的な支出品目や金額に言及する
-                - 実践可能な代替案や節約方法を提示する
-                - 優先度の高い改善から順に並べる
-                """,
-                month, total, count, dailyAverage,
+                        suggestionsは以下の基準で5件作成してください：
+                        - 具体的な支出品目や金額に言及する
+                        - 実践可能な代替案や節約方法を提示する
+                        - 優先度の高い改善から順に並べる
+                        """,
+                summary.month(), summary.total(), summary.count(), summary.getDailyAverage(),
                 categoryBreakdown,
                 TOP_ITEMS_PER_CATEGORY, topItemsByCategory,
                 TOP_OVERALL_ITEMS, topOverallItems);
     }
 
-    private String buildCategoryBreakdown(String month, List<Expense> expenses, int total) {
-        Map<String, List<Expense>> byCategory = expenses.stream()
-                .collect(Collectors.groupingBy(e -> e.getCategory().getDisplayName()));
-        return byCategory.entrySet().stream()
-                .map(entry -> {
-                    int catTotal = entry.getValue().stream()
-                            .mapToInt(e -> e.getAmount().getAmount()).sum();
-                    int catCount = entry.getValue().size();
-                    return Map.entry(entry.getKey(), new int[]{catTotal, catCount});
-                })
-                .sorted((a, b) -> b.getValue()[0] - a.getValue()[0])
-                .map(entry -> {
-                    int catTotal = entry.getValue()[0];
-                    int catCount = entry.getValue()[1];
-                    double percentage = total > 0 ? (catTotal * 100.0 / total) : 0;
-                    return String.format("  - %s: %,d円（%d件、%.1f%%）",
-                            entry.getKey(), catTotal, catCount, percentage);
-                })
-                .collect(Collectors.joining("\n"));
-    }
-
-    private String buildTopItemsByCategory(List<Expense> expenses) {
-        Map<String, List<Expense>> byCategory = expenses.stream()
-                .collect(Collectors.groupingBy(e -> e.getCategory().getDisplayName()));
-        return byCategory.entrySet().stream()
-                .map(entry -> {
-                    List<Expense> sorted = entry.getValue().stream()
-                            .sorted(Comparator.comparingInt((Expense e) -> e.getAmount().getAmount()).reversed())
-                            .limit(TOP_ITEMS_PER_CATEGORY)
-                            .toList();
-                    String items = sorted.stream()
-                            .map(e -> String.format("    * %s: %,d円（%s）",
-                                    e.getDescription(), e.getAmount().getAmount(),
-                                    e.getDate().getDate()))
-                            .collect(Collectors.joining("\n"));
-                    return String.format("  [%s]\n%s", entry.getKey(), items);
-                })
-                .collect(Collectors.joining("\n"));
-    }
-
-    private String buildTopOverallItems(List<Expense> expenses) {
-        return expenses.stream()
-                .sorted(Comparator.comparingInt((Expense e) -> e.getAmount().getAmount()).reversed())
-                .limit(TOP_OVERALL_ITEMS)
-                .map(e -> String.format("  - %s（%s）: %,d円",
-                        e.getDescription(), e.getCategory().getDisplayName(),
-                        e.getAmount().getAmount()))
-                .collect(Collectors.joining("\n"));
-    }
-    //TODO APIの呼び出し部分は他のAIサービスと共通化する。型の違いはジェネリクスで対応する。
+    // TODO APIの呼び出し部分は他のAIサービスと共通化する。型の違いはジェネリクスで対応する。
     private String callOpenAI(String prompt) {
         Map<String, Object> requestBody = buildOpenAiRequest(prompt);
         try {
@@ -255,7 +248,8 @@ public class MonthlyReportService {
     private ParsedAiResponse parseAiResponse(String aiResponse) {
         try {
             Map<String, Object> parsed = objectMapper.readValue(
-                    aiResponse, new TypeReference<Map<String, Object>>() {});
+                    aiResponse, new TypeReference<Map<String, Object>>() {
+                    });
 
             String summary = (String) parsed.get("summary");
             @SuppressWarnings("unchecked")
@@ -282,10 +276,16 @@ public class MonthlyReportService {
         }
     }
 
-    private record ParsedAiResponse(String summary, List<String> suggestions) {}
+    private record ParsedAiResponse(String summary, List<String> suggestions) {
+    }
 
     // OpenAI APIレスポンス用の型
-    private record OpenAiChatResponse(List<OpenAiChatChoice> choices) {}
-    private record OpenAiChatChoice(OpenAiChatMessage message) {}
-    private record OpenAiChatMessage(String content) {}
+    private record OpenAiChatResponse(List<OpenAiChatChoice> choices) {
+    }
+
+    private record OpenAiChatChoice(OpenAiChatMessage message) {
+    }
+
+    private record OpenAiChatMessage(String content) {
+    }
 }
