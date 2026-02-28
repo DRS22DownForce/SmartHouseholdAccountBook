@@ -121,6 +121,31 @@ MonthlySummaryDto:
               type: integer
               description: カテゴリー別の合計金額
               example: 20000
+MonthlyReportResponse:
+  type: object
+  description: AI生成の月次レポート
+  required:
+    - month
+    - summary
+    - suggestions
+    - generatedAt
+  properties:
+    month:
+      type: string
+      description: 対象月（YYYY-MM形式）
+      example: '2024-01'
+    summary:
+      type: string
+      description: AIが生成した月次総評
+    suggestions:
+      type: array
+      description: AIが生成した改善提案のリスト
+      items:
+        type: string
+    generatedAt:
+      type: string
+      format: date-time
+      description: レポートの生成日時
 CsvUploadResponseDto:
     type: object
     description: CSVアップロード結果用DTO
