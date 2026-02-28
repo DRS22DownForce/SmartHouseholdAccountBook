@@ -177,7 +177,7 @@ class ExpenseControllerTest {
         @DisplayName("指定月のサマリーを取得すると、200でサマリーを返す")
         void returnsMonthlySummary() {
             MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(List.of(
-                    createExpense("サマリー1", 1000, LocalDate.of(2024, 4, 1), CategoryType.FOOD)));
+                    createExpense("サマリー1", 1000, LocalDate.of(2024, 4, 1), CategoryType.FOOD)), "2024-04");
             when(expenseApplicationService.getMonthlySummary("2024-04")).thenReturn(summary);
             MonthlySummaryDto expectedDto = new MonthlySummaryDto();
             expectedDto.setTotal(50000);
@@ -200,9 +200,9 @@ class ExpenseControllerTest {
         @DisplayName("開始月〜終了月のサマリーを取得すると、200でサマリー一覧を返す")
         void returnsMonthlySummaryRange() {
             MonthlySummary s1 = MonthlySummary.createMonthlySummaryFromExpenses(List.of(
-                    createExpense("1月分", 30000, LocalDate.of(2024, 1, 1), CategoryType.FOOD)));
+                    createExpense("1月分", 30000, LocalDate.of(2024, 1, 1), CategoryType.FOOD)), "2024-01");
             MonthlySummary s2 = MonthlySummary.createMonthlySummaryFromExpenses(List.of(
-                    createExpense("2月分", 25000, LocalDate.of(2024, 2, 1), CategoryType.TRANSPORT)));
+                    createExpense("2月分", 25000, LocalDate.of(2024, 2, 1), CategoryType.TRANSPORT)), "2024-02");
             when(expenseApplicationService.getMonthlySummaryRange("2024-01", "2024-02"))
                     .thenReturn(List.of(s1, s2));
             MonthlySummaryDto expectedDto1 = new MonthlySummaryDto();
