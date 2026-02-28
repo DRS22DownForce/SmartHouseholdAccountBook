@@ -1,25 +1,19 @@
 package com.example.backend.application.service;
 
+import com.example.backend.application.service.openai.OpenAiClient;
 import com.example.backend.exception.QuotaExceededException;
 import com.example.backend.valueobject.CategoryType;
 import com.example.backend.exception.AiServiceException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClient;
-import org.springframework.http.MediaType;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.beans.factory.annotation.Qualifier;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.ArrayList;
 import java.util.concurrent.Executor;
 import java.util.concurrent.CompletableFuture;
@@ -36,27 +30,20 @@ import java.util.concurrent.CompletionException;
 public class AiCategoryService {
     private static final Logger logger = LoggerFactory.getLogger(AiCategoryService.class);
 
-    private final RestClient restClient;
-    private final String openAiApiKey;
-    private final String openAiApiUrl;
-    private final ObjectMapper objectMapper;
+    private final OpenAiClient openAiClient;
     private final Executor executor;
     private static final int BATCH_SIZE = 10; // 1リクエストあたりの最大件数（トークン制限を考慮）
 
     /**
      * コンストラクタ
      * 
-     * @param openAiApiKey OpenAI APIキー（application.propertiesから注入）
-     * @param openAiApiUrl OpenAI API URL（application.propertiesから注入、デフォルト値あり）
+     * @param openAiClient OpenAI API呼び出しを共通化したクライアント
+     * @param executor 並列バッチ処理に利用する実行基盤
      */
     public AiCategoryService(
-            @Value("${openai.api.key}") String openAiApiKey,
-            @Value("${openai.api.url}") String openAiApiUrl,
+            OpenAiClient openAiClient,
             @Qualifier("aiCategoryTaskExecutor") Executor executor) {
-        this.restClient = RestClient.builder().build();
-        this.openAiApiKey = openAiApiKey;
-        this.openAiApiUrl = openAiApiUrl;
-        this.objectMapper = new ObjectMapper();
+        this.openAiClient = openAiClient;
         this.executor = executor;
     }
 
@@ -88,38 +75,15 @@ public class AiCategoryService {
                         "例: 「コンビニでお弁当を購入」→「食費」",
                 categoriesList);
 
-        // OpenAI APIリクエストボディを作成
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", "gpt-4o-mini"); // コスト効率の良いモデルを使用
-        requestBody.put("messages", List.of(
-                Map.of("role", "system", "content", systemPrompt),
-                Map.of("role", "user", "content", description)));
-
         String predictedCategory = null;
         try {
-            // OpenAI APIを呼び出し
-            OpenAiChatResponse response = restClient.post()
-                    .uri(Objects.requireNonNull(openAiApiUrl))
-                    .header("Authorization", "Bearer " + openAiApiKey)
-                    .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
-                    .body(requestBody)
-                    .retrieve()
-                    .body(OpenAiChatResponse.class);
-
-            // レスポンスからカテゴリーを抽出
-            if (response != null && response.choices() != null && !response.choices().isEmpty()) {
-                OpenAiChatMessage message = response.choices().get(0).message();
-                if (message != null && message.content() != null) {
-                    // AIの応答から前後の空白を削除
-                    predictedCategory = message.content().trim();
-                }
-            }
-        } catch (HttpClientErrorException.TooManyRequests e) {
+            predictedCategory = openAiClient.callText(systemPrompt, description);
+        } catch (QuotaExceededException e) {
             logger.warn("OpenAI APIの利用枠（クォータ）を超過しました: 説明文={}", description, e);
-            throw new QuotaExceededException(e);
-        } catch (Exception e) {
+            throw e;
+        } catch (RuntimeException e) {
             logger.error("AIサービスとの通信でエラーが発生しました: 説明文={}", description, e);
-            throw new AiServiceException("AIサービスとの通信でエラーが発生しました。", e);
+            throw e;
         }
 
         // AI応答が取得できなかった場合
@@ -240,31 +204,10 @@ public class AiCategoryService {
         // ユーザープロンプトを構築
         String userPrompt = "以下の支出の説明文を分類してください:\n\n" + descriptionsList.toString();
 
-        // OpenAI APIリクエストボディを作成
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", "gpt-4o-mini");
-        requestBody.put("messages", List.of(
-                Map.of("role", "system", "content", systemPrompt),
-                Map.of("role", "user", "content", userPrompt)));
-        requestBody.put("response_format", Map.of("type", "json_object")); // JSON形式で返すよう指示
-
         try {
-            // OpenAI APIを呼び出し
-            OpenAiChatResponse response = restClient.post()
-                    .uri(openAiApiUrl)
-                    .header("Authorization", "Bearer " + openAiApiKey)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(requestBody)
-                    .retrieve()
-                    .body(OpenAiChatResponse.class);
-
-            // レスポンスからJSONを抽出
-            OpenAiChatMessage message = response.choices().get(0).message();
-            String jsonContent = message.content().trim();
-
-            // JSONをパース
-            Map<String, String> categoryMap = objectMapper.readValue(
-                    jsonContent,
+            Map<String, String> categoryMap = openAiClient.callJson(
+                    systemPrompt,
+                    userPrompt,
                     new TypeReference<Map<String, String>>() {
                     });
 
@@ -281,17 +224,17 @@ public class AiCategoryService {
             }
             return resultMap;
 
-        } catch (HttpClientErrorException.TooManyRequests e) {
+        } catch (QuotaExceededException e) {
             // レート制限エラーの場合、警告ログを出力
             // チャンクサイズを記録して、どのくらいのデータ量で問題が発生したかを把握できます
             logger.warn("OpenAI APIの利用枠（クォータ）を超過しました: チャンクサイズ={}", descriptions.size(), e);
-            throw new QuotaExceededException(e);
-        } catch (Exception e) {
+            throw e;
+        } catch (RuntimeException e) {
             // JSONパースエラーなど、その他のエラーの場合、エラーログを出力
             // チャンクサイズとエラーメッセージを記録します
             logger.error("AIサービスとの通信でエラーが発生しました: チャンクサイズ={}, エラー={}",
                     descriptions.size(), e.getMessage(), e);
-            throw new AiServiceException("AIサービスとの通信でエラーが発生しました: " + e.getMessage(), e);
+            throw e;
         }
     }
 
@@ -327,13 +270,4 @@ public class AiCategoryService {
         }
     }
 
-    // OpenAI APIのレスポンスをパースするためのレコードクラス
-    private record OpenAiChatResponse(List<OpenAiChatChoice> choices) {
-    }
-
-    private record OpenAiChatChoice(OpenAiChatMessage message) {
-    }
-
-    private record OpenAiChatMessage(String content) {
-    }
 }

@@ -3,32 +3,23 @@ package com.example.backend.application.service;
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.MonthlyReport;
 import com.example.backend.entity.User;
+import com.example.backend.application.service.openai.OpenAiClient;
 import com.example.backend.exception.AiServiceException;
-import com.example.backend.exception.QuotaExceededException;
 import com.example.backend.repository.ExpenseRepository;
 import com.example.backend.repository.MonthlyReportRepository;
 import com.example.backend.valueobject.MonthlySummary;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.client.HttpClientErrorException;
-import org.springframework.web.client.RestClient;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -40,32 +31,28 @@ import java.util.stream.Collectors;
  */
 @Service
 public class MonthlyReportService {
-    private static final Logger logger = LoggerFactory.getLogger(MonthlyReportService.class);
     private static final String MONTH_FORMAT = "yyyy-MM";
     private static final int TOP_ITEMS_PER_CATEGORY = 3;
     private static final int TOP_OVERALL_ITEMS = 5;
+    private static final String MONTHLY_REPORT_SYSTEM_PROMPT = "あなたは家計改善アドバイザーです。提供された支出データを詳細に分析し、具体的な品目・金額に基づいた実践的な改善提案を日本語で行ってください。";
 
     private final ExpenseRepository expenseRepository;
     private final MonthlyReportRepository monthlyReportRepository;
     private final UserApplicationService userApplicationService;
-    private final RestClient restClient;
-    private final String openAiApiKey;
-    private final String openAiApiUrl;
+    private final OpenAiClient openAiClient;
     private final ObjectMapper objectMapper;
 
     public MonthlyReportService(
             ExpenseRepository expenseRepository,
             MonthlyReportRepository monthlyReportRepository,
             UserApplicationService userApplicationService,
-            @Value("${openai.api.key}") String openAiApiKey,
-            @Value("${openai.api.url}") String openAiApiUrl) {
+            OpenAiClient openAiClient,
+            ObjectMapper objectMapper) {
         this.expenseRepository = expenseRepository;
         this.monthlyReportRepository = monthlyReportRepository;
         this.userApplicationService = userApplicationService;
-        this.restClient = RestClient.builder().build();
-        this.openAiApiKey = openAiApiKey;
-        this.openAiApiUrl = openAiApiUrl;
-        this.objectMapper = new ObjectMapper();
+        this.openAiClient = openAiClient;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -97,10 +84,16 @@ public class MonthlyReportService {
         }
         MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses, month);
         String prompt = buildPrompt(summary);
-        String aiResponse = callOpenAI(prompt);
-        ParsedAiResponse parsed = parseAiResponse(aiResponse);
+        ParsedAiResponse parsed = callOpenAI(prompt);
 
-        String suggestionsJson = serializeSuggestions(parsed.suggestions());
+        // 改善提案をJSON形式にシリアライズ
+        // TODO: JSON形式にする必要はなく、直接List<String>を保存するようにする。
+        String suggestionsJson;
+        try {
+            suggestionsJson = objectMapper.writeValueAsString(parsed.suggestions());
+        } catch (JsonProcessingException e) {
+            throw new AiServiceException("改善提案のシリアライズに失敗しました。", e);
+        }
 
         if (existing.isPresent()) {
             MonthlyReport entity = existing.get();
@@ -205,87 +198,22 @@ public class MonthlyReportService {
                 TOP_OVERALL_ITEMS, topOverallItems);
     }
 
-    // TODO APIの呼び出し部分は他のAIサービスと共通化する。型の違いはジェネリクスで対応する。
-    private String callOpenAI(String prompt) {
-        Map<String, Object> requestBody = buildOpenAiRequest(prompt);
-        try {
-            OpenAiChatResponse response = restClient.post()
-                    .uri(Objects.requireNonNull(openAiApiUrl))
-                    .header("Authorization", "Bearer " + openAiApiKey)
-                    .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
-                    .body(requestBody)
-                    .retrieve()
-                    .body(OpenAiChatResponse.class);
-
-            if (response != null && response.choices() != null && !response.choices().isEmpty()) {
-                OpenAiChatMessage message = response.choices().get(0).message();
-                if (message != null && message.content() != null) {
-                    return message.content().trim();
-                }
-            }
-        } catch (HttpClientErrorException.TooManyRequests e) {
-            logger.warn("OpenAI APIの利用枠を超過しました", e);
-            throw new QuotaExceededException(e);
-        } catch (Exception e) {
-            logger.error("AIサービスとの通信でエラーが発生しました", e);
-            throw new AiServiceException("AIサービスとの通信でエラーが発生しました。", e);
-        }
-
-        throw new AiServiceException("AIからの応答を取得できませんでした。");
+    private ParsedAiResponse callOpenAI(String prompt) {
+        ParsedAiResponse parsed = openAiClient.callJson(
+                MONTHLY_REPORT_SYSTEM_PROMPT,
+                prompt,
+                new TypeReference<ParsedAiResponse>() {
+                });
+        validateParsedAiResponse(parsed);
+        return parsed;
     }
 
-    private Map<String, Object> buildOpenAiRequest(String prompt) {
-        Map<String, Object> requestBody = new HashMap<>();
-        requestBody.put("model", "gpt-4o-mini");
-        requestBody.put("messages", List.of(
-                Map.of("role", "system", "content",
-                        "あなたは家計改善アドバイザーです。提供された支出データを詳細に分析し、具体的な品目・金額に基づいた実践的な改善提案を日本語で行ってください。"),
-                Map.of("role", "user", "content", prompt)));
-        requestBody.put("response_format", Map.of("type", "json_object"));
-        return requestBody;
-    }
-
-    private ParsedAiResponse parseAiResponse(String aiResponse) {
-        try {
-            Map<String, Object> parsed = objectMapper.readValue(
-                    aiResponse, new TypeReference<Map<String, Object>>() {
-                    });
-
-            String summary = (String) parsed.get("summary");
-            @SuppressWarnings("unchecked")
-            List<String> suggestions = (List<String>) parsed.get("suggestions");
-
-            if (summary == null || suggestions == null) {
-                throw new AiServiceException("AIのレスポンス形式が不正です。");
-            }
-
-            return new ParsedAiResponse(summary, suggestions);
-        } catch (AiServiceException e) {
-            throw e;
-        } catch (Exception e) {
-            logger.error("AIレスポンスのパースに失敗しました: {}", aiResponse, e);
-            throw new AiServiceException("AIレスポンスのパースに失敗しました。", e);
-        }
-    }
-
-    private String serializeSuggestions(List<String> suggestions) {
-        try {
-            return objectMapper.writeValueAsString(suggestions);
-        } catch (Exception e) {
-            throw new AiServiceException("改善提案のシリアライズに失敗しました。", e);
+    private void validateParsedAiResponse(ParsedAiResponse parsed) {
+        if (parsed == null || parsed.summary() == null || parsed.suggestions() == null) {
+            throw new AiServiceException("AIのレスポンス形式が不正です。");
         }
     }
 
     private record ParsedAiResponse(String summary, List<String> suggestions) {
-    }
-
-    // OpenAI APIレスポンス用の型
-    private record OpenAiChatResponse(List<OpenAiChatChoice> choices) {
-    }
-
-    private record OpenAiChatChoice(OpenAiChatMessage message) {
-    }
-
-    private record OpenAiChatMessage(String content) {
     }
 }
