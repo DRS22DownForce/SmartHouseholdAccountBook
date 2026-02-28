@@ -1,6 +1,8 @@
 package com.example.backend.entity;
 
+import com.example.backend.entity.converter.StringListJsonConverter;
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
@@ -15,6 +17,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -44,26 +47,27 @@ public class MonthlyReport {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String summary;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String suggestionsJson;
+    @Convert(converter = StringListJsonConverter.class) //JSON形式に変換して保存
+    @Column(name = "suggestions_json", nullable = false, columnDefinition = "TEXT")
+    private List<String> suggestions;
 
     @Column(nullable = false)
     private Instant generatedAt;
 
-    public MonthlyReport(User user, String month, String summary, String suggestionsJson) {
+    public MonthlyReport(User user, String month, String summary, List<String> suggestions) {
         this.user = Objects.requireNonNull(user, "ユーザーはnullであってはなりません。");
         this.month = Objects.requireNonNull(month, "対象月はnullであってはなりません。");
         this.summary = Objects.requireNonNull(summary, "総評はnullであってはなりません。");
-        this.suggestionsJson = Objects.requireNonNull(suggestionsJson, "改善提案はnullであってはなりません。");
+        this.suggestions = Objects.requireNonNull(suggestions, "改善提案はnullであってはなりません。");
         this.generatedAt = Instant.now();
     }
 
     /**
      * レポート内容を更新する（再生成時に使用）
      */
-    public void update(String summary, String suggestionsJson) {
+    public void update(String summary, List<String> suggestions) {
         this.summary = Objects.requireNonNull(summary, "総評はnullであってはなりません。");
-        this.suggestionsJson = Objects.requireNonNull(suggestionsJson, "改善提案はnullであってはなりません。");
+        this.suggestions = Objects.requireNonNull(suggestions, "改善提案はnullであってはなりません。");
         this.generatedAt = Instant.now();
     }
 }

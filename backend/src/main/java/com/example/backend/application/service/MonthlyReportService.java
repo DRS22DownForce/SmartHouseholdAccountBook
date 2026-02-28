@@ -9,9 +9,7 @@ import com.example.backend.repository.ExpenseRepository;
 import com.example.backend.repository.MonthlyReportRepository;
 import com.example.backend.valueobject.MonthlySummary;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,19 +38,16 @@ public class MonthlyReportService {
     private final MonthlyReportRepository monthlyReportRepository;
     private final UserApplicationService userApplicationService;
     private final OpenAiClient openAiClient;
-    private final ObjectMapper objectMapper;
 
     public MonthlyReportService(
             ExpenseRepository expenseRepository,
             MonthlyReportRepository monthlyReportRepository,
             UserApplicationService userApplicationService,
-            OpenAiClient openAiClient,
-            ObjectMapper objectMapper) {
+            OpenAiClient openAiClient) {
         this.expenseRepository = expenseRepository;
         this.monthlyReportRepository = monthlyReportRepository;
         this.userApplicationService = userApplicationService;
         this.openAiClient = openAiClient;
-        this.objectMapper = objectMapper;
     }
 
     /**
@@ -86,22 +81,13 @@ public class MonthlyReportService {
         String prompt = buildPrompt(summary);
         ParsedAiResponse parsed = callOpenAI(prompt);
 
-        // 改善提案をJSON形式にシリアライズ
-        // TODO: JSON形式にする必要はなく、直接List<String>を保存するようにする。
-        String suggestionsJson;
-        try {
-            suggestionsJson = objectMapper.writeValueAsString(parsed.suggestions());
-        } catch (JsonProcessingException e) {
-            throw new AiServiceException("改善提案のシリアライズに失敗しました。", e);
-        }
-
         if (existing.isPresent()) {
             MonthlyReport entity = existing.get();
-            entity.update(parsed.summary(), suggestionsJson);
+            entity.update(parsed.summary(), parsed.suggestions());
             return Optional.of(entity);
         }
         return Optional.of(monthlyReportRepository.save(
-                new MonthlyReport(user, month, parsed.summary(), suggestionsJson)));
+                new MonthlyReport(user, month, parsed.summary(), parsed.suggestions())));
     }
 
     private String buildPrompt(MonthlySummary summary) {

@@ -6,7 +6,6 @@ import com.example.backend.entity.MonthlyReport;
 import com.example.backend.entity.User;
 import com.example.backend.application.service.CsvExpenseService;
 import com.example.backend.application.service.csv.model.CsvParseError;
-import com.example.backend.exception.AiServiceException;
 import com.example.backend.generated.model.CsvUploadResponseDto;
 import com.example.backend.generated.model.CsvUploadResponseDtoErrorsInner;
 import com.example.backend.generated.model.ExpenseDto;
@@ -18,9 +17,6 @@ import com.example.backend.valueobject.CategoryType;
 import com.example.backend.valueobject.ExpenseAmount;
 import com.example.backend.valueobject.ExpenseDate;
 import com.example.backend.valueobject.MonthlySummary;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.springframework.stereotype.Component;
 
@@ -45,11 +41,7 @@ import java.util.stream.Collectors;
  */
 @Component
 public class ExpenseMapper {
-
-    private final ObjectMapper objectMapper;
-
-    public ExpenseMapper(ObjectMapper objectMapper) {
-        this.objectMapper = objectMapper;
+    public ExpenseMapper() {
     }
 
     /**
@@ -235,16 +227,8 @@ public class ExpenseMapper {
         MonthlyReportResponse response = new MonthlyReportResponse();
         response.setMonth(report.getMonth());
         response.setSummary(report.getSummary());
-        response.setSuggestions(parseSuggestionsJson(report.getSuggestionsJson()));
+        response.setSuggestions(report.getSuggestions());
         response.setGeneratedAt(report.getGeneratedAt().atOffset(ZoneOffset.UTC));
         return response;
-    }
-
-    private List<String> parseSuggestionsJson(String json) {
-        try {
-            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
-        } catch (Exception e) {
-            throw new AiServiceException("改善提案のデシリアライズに失敗しました。", e);
-        }
     }
 }

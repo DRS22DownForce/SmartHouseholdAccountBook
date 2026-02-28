@@ -8,8 +8,6 @@ import com.example.backend.valueobject.CategoryType;
 import com.example.backend.valueobject.ExpenseAmount;
 import com.example.backend.valueobject.ExpenseDate;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -23,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
  */
 class ExpenseMapperTest {
 
-    private final ExpenseMapper mapper = new ExpenseMapper(new ObjectMapper());
+    private final ExpenseMapper mapper = new ExpenseMapper();
 
     @Test
     void toDto_正常系() {
