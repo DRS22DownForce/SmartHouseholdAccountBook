@@ -1,7 +1,9 @@
 package com.example.backend.auth;
 
 import java.io.IOException;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -35,7 +37,7 @@ public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint 
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType("application/json; charset=UTF-8");
         ErrorResponse errorResponse = new ErrorResponse(
-                authException.getMessage(), OffsetDateTime.now());
+                authException.getMessage(), Instant.now().atOffset(ZoneOffset.UTC));
         objectMapper.writeValue(response.getOutputStream(), errorResponse);//ErrorResponseをJSON形式に変換して、レスポンスに書き込む
     }
 }

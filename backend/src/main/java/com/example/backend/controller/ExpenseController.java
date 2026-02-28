@@ -3,14 +3,17 @@ package com.example.backend.controller;
 import com.example.backend.application.mapper.ExpenseMapper;
 import com.example.backend.application.service.CsvExpenseService;
 import com.example.backend.application.service.ExpenseApplicationService;
+import com.example.backend.application.service.MonthlyReportService;
 import com.example.backend.application.service.csv.CsvFormat;
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.ExpenseUpdate;
+import com.example.backend.entity.MonthlyReport;
 import com.example.backend.generated.api.ExpensesApi;
 import com.example.backend.generated.model.CsvUploadResponseDto;
 import com.example.backend.generated.model.ExpenseDto;
 import com.example.backend.generated.model.ExpensePageDto;
 import com.example.backend.generated.model.ExpenseRequestDto;
+import com.example.backend.generated.model.MonthlyReportResponse;
 import com.example.backend.generated.model.MonthlySummaryDto;
 import com.example.backend.valueobject.MonthlySummary;
 
@@ -37,21 +40,25 @@ public class ExpenseController implements ExpensesApi {
     private final ExpenseApplicationService expenseApplicationService;
     private final CsvExpenseService csvExpenseService;
     private final ExpenseMapper expenseMapper;
+    private final MonthlyReportService monthlyReportService;
 
     /**
      * コンストラクタ
-     * 
+     *
      * @param expenseApplicationService 支出アプリケーションサービス
      * @param csvExpenseService         CSV支出処理サービス
      * @param expenseMapper             支出マッパー
+     * @param monthlyReportService      月次レポートサービス
      */
     public ExpenseController(
             ExpenseApplicationService expenseApplicationService,
             CsvExpenseService csvExpenseService,
-            ExpenseMapper expenseMapper) {
+            ExpenseMapper expenseMapper,
+            MonthlyReportService monthlyReportService) {
         this.expenseApplicationService = expenseApplicationService;
         this.csvExpenseService = csvExpenseService;
         this.expenseMapper = expenseMapper;
+        this.monthlyReportService = monthlyReportService;
     }
 
     /**
@@ -173,6 +180,26 @@ public class ExpenseController implements ExpensesApi {
 
         // 2. レスポンスを返す
         return ResponseEntity.ok(months);
+    }
+
+    /**
+     * 月次AIレポート取得エンドポイント
+     *
+     * @param month    対象月（YYYY-MM形式）
+     * @param generate trueのときはキャッシュを無視して再生成。falseのときはキャッシュのみ返し、なければ204。
+     * @return AIが生成した月次レポート（generate=falseでキャッシュなしの場合は204）
+     */
+    @Override
+    public ResponseEntity<MonthlyReportResponse> apiExpensesReportGet(String month, Boolean generate) {
+        if (Boolean.FALSE.equals(generate)) {
+            return monthlyReportService.generateReport(month, false)
+                    .map(expenseMapper::toMonthlyReportResponse)
+                    .map(ResponseEntity::ok)
+                    .orElse(ResponseEntity.noContent().build());
+        }
+        MonthlyReport report = monthlyReportService.generateReport(month, true)
+                .orElseThrow(() -> new IllegalStateException("月次レポートの生成に失敗しました"));
+        return ResponseEntity.ok(expenseMapper.toMonthlyReportResponse(report));
     }
 
     /**

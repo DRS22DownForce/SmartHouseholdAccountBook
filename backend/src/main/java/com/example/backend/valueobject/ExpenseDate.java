@@ -8,7 +8,9 @@ import lombok.ToString;
 import lombok.NoArgsConstructor;
 import lombok.AccessLevel;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.Objects;
 
 /**
@@ -42,7 +44,7 @@ public class ExpenseDate{
 
     private static void validate(LocalDate value) {
         Objects.requireNonNull(value, "日付はnullであってはなりません。");
-        LocalDate today = LocalDate.now();
+        LocalDate today = Instant.now().atOffset(ZoneOffset.UTC).toLocalDate();
         if (value.isAfter(today)) {
             throw new IllegalArgumentException("日付は今日以前でなければなりません。");
         }

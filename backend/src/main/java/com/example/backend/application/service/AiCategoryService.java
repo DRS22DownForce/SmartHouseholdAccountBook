@@ -51,7 +51,7 @@ public class AiCategoryService {
      */
     public AiCategoryService(
             @Value("${openai.api.key}") String openAiApiKey,
-            @Value("${openai.api.url:https://api.openai.com/v1/chat/completions}") String openAiApiUrl,
+            @Value("${openai.api.url}") String openAiApiUrl,
             @Qualifier("aiCategoryTaskExecutor") Executor executor) {
         this.restClient = RestClient.builder().build();
         this.openAiApiKey = openAiApiKey;
