@@ -18,7 +18,6 @@ import { usePathname } from "next/navigation"
 import {
   List,
   Wallet,
-  BotMessageSquare,
   User,
   Settings,
   LogOut,
@@ -231,27 +230,6 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCsv
                 />
               </div>
             )}
-            <div className="w-full">
-              <Link
-                href="/ai-chat"
-                className={cn(
-                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group relative",
-                  isActive("/ai-chat")
-                    ? "bg-muted/80 text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                )}
-                title="AIチャット"
-              >
-                {/* グラデーションアイコン */}
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-purple-400 to-pink-500 text-white shadow-lg shadow-purple-500/25 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300 flex-shrink-0">
-                  <BotMessageSquare className="h-5 w-5" />
-                </div>
-                <span className={cn(isActive("/ai-chat") && "font-bold")}>AIチャット</span>
-                {isActive("/ai-chat") && (
-                  <div className="absolute right-3 w-2 h-2 rounded-full bg-gradient-to-br from-purple-400 to-pink-500" />
-                )}
-              </Link>
-            </div>
             {onAddExpenses && (
               <div className="w-full">
                 <CsvUploadDialog onUpload={onCsvUploadComplete} />

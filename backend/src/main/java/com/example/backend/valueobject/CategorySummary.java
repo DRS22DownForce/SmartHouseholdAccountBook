@@ -25,24 +25,57 @@ public class CategorySummary {
     private final Integer amount;
 
     /**
-     * コンストラクタ
+     * 件数（カテゴリー別の支出件数、0以上でなければならない）
+     */
+    private final Integer count;
+
+    /**
+     * コンストラクタ（件数は1として扱う。後方互換用）
      *
      * @param category カテゴリー（CategoryType Enum、nullであってはならない）
-     * @param amount  金額（0以上でなければならない）
-     * @throws NullPointerException カテゴリーまたは金額がnullの場合
-     * @throws IllegalArgumentException 金額が1未満の場合
+     * @param amount  金額（1以上でなければならない）
      */
     public CategorySummary(CategoryType category, Integer amount) {
-        validate(category, amount);
+        validateTwoArg(category, amount);
         this.category = category;
         this.amount = amount;
+        this.count = 1;
     }
 
-    private static void validate(CategoryType category, Integer amount) {
+    /**
+     * コンストラクタ
+     *
+     * @param category カテゴリー（null不可）
+     * @param amount  金額（0以上）
+     * @param count   件数（0以上）
+     */
+    public CategorySummary(CategoryType category, Integer amount, Integer count) {
+        validate(category, amount, count);
+        this.category = category;
+        this.amount = amount;
+        this.count = count;
+    }
+
+    private static void validateTwoArg(CategoryType category, Integer amount) {
         Objects.requireNonNull(category, "カテゴリーはnullであってはなりません。");
         Objects.requireNonNull(amount, "金額はnullであってはなりません。");
         if (amount < 1) {
             throw new IllegalArgumentException("金額は1以上でなければなりません。");
+        }
+    }
+
+    private static void validate(CategoryType category, Integer amount, Integer count) {
+        Objects.requireNonNull(category, "カテゴリーはnullであってはなりません。");
+        Objects.requireNonNull(amount, "金額はnullであってはなりません。");
+        Objects.requireNonNull(count, "件数はnullであってはなりません。");
+        if (amount < 0) {
+            throw new IllegalArgumentException("金額は0以上でなければなりません。");
+        }
+        if (count < 0) {
+            throw new IllegalArgumentException("件数は0以上でなければなりません。");
+        }
+        if (amount > 0 && count < 1) {
+            throw new IllegalArgumentException("金額が1以上のとき件数は1以上でなければなりません。");
         }
     }
 

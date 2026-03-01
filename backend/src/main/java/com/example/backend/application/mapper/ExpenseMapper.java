@@ -2,6 +2,7 @@ package com.example.backend.application.mapper;
 
 import com.example.backend.entity.Expense;
 import com.example.backend.entity.ExpenseUpdate;
+import com.example.backend.entity.MonthlyReport;
 import com.example.backend.entity.User;
 import com.example.backend.application.service.CsvExpenseService;
 import com.example.backend.application.service.csv.model.CsvParseError;
@@ -9,6 +10,7 @@ import com.example.backend.generated.model.CsvUploadResponseDto;
 import com.example.backend.generated.model.CsvUploadResponseDtoErrorsInner;
 import com.example.backend.generated.model.ExpenseDto;
 import com.example.backend.generated.model.ExpenseRequestDto;
+import com.example.backend.generated.model.MonthlyReportResponse;
 import com.example.backend.generated.model.MonthlySummaryDto;
 import com.example.backend.valueobject.CategorySummary;
 import com.example.backend.valueobject.CategoryType;
@@ -18,6 +20,7 @@ import com.example.backend.valueobject.MonthlySummary;
 
 import org.springframework.stereotype.Component;
 
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,9 +37,12 @@ import java.util.stream.Collectors;
  * - リクエスト DTO（ExpenseRequestDto）から更新/作成用の値オブジェクト（ExpenseUpdate）への変換
  * - 値オブジェクト（MonthlySummary）から DTO への変換
  * - サービス結果（CsvUploadResult）から DTO への変換
+ * - 月次レポート（MonthlyReport）から MonthlyReportResponse への変換
  */
 @Component
 public class ExpenseMapper {
+    public ExpenseMapper() {
+    }
 
     /**
      * エンティティからDTOへ変換
@@ -149,18 +155,16 @@ public class ExpenseMapper {
         }
 
         MonthlySummaryDto dto = new MonthlySummaryDto();
-        dto.setTotal(monthlySummary.getTotal());
-        dto.setCount(monthlySummary.getCount());
+        dto.setTotal(monthlySummary.total());
+        dto.setCount(monthlySummary.count());
 
         // CategorySummaryのリストをDTOのリストに変換
         List<com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner> byCategoryList = new ArrayList<>();
-        if (monthlySummary.getCategorySummaries() != null) {
-            for (CategorySummary categorySummary : monthlySummary.getCategorySummaries()) {
-                com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner categoryDto = new com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner();
-                categoryDto.setCategory(categorySummary.getDisplayName());
-                categoryDto.setAmount(categorySummary.getAmount());
-                byCategoryList.add(categoryDto);
-            }
+        for (CategorySummary categorySummary : monthlySummary.categorySummaries()) {
+            com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner categoryDto = new com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner();
+            categoryDto.setCategory(categorySummary.getDisplayName());
+            categoryDto.setAmount(categorySummary.getAmount());
+            byCategoryList.add(categoryDto);
         }
         dto.setByCategory(byCategoryList);
 
@@ -211,5 +215,20 @@ public class ExpenseMapper {
         errorDto.setLineContent(error.lineContent());
 
         return errorDto;
+    }
+
+    /**
+     * 月次レポートEntityからAPIレスポンスDTOへ変換
+     *
+     * @param report 月次レポートEntity（サービス層から返却されたもの）
+     * @return 月次レポートAPIレスポンス
+     */
+    public MonthlyReportResponse toMonthlyReportResponse(MonthlyReport report) {
+        MonthlyReportResponse response = new MonthlyReportResponse();
+        response.setMonth(report.getMonth());
+        response.setSummary(report.getSummary());
+        response.setSuggestions(report.getSuggestions());
+        response.setGeneratedAt(report.getGeneratedAt().atOffset(ZoneOffset.UTC));
+        return response;
     }
 }
