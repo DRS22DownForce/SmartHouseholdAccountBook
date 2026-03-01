@@ -22,11 +22,19 @@ export function useMonthlyReport(): UseMonthlyReportReturn {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    /** 新規作成または再生成: APIで generate=true を送り、AIでレポートを生成する */
+    /**
+     * レポートを表示する。キャッシュがあればそれを返し、なければ新規生成する。
+     * generate=false → キャッシュのみ取得（204ならなし）。null なら generate=true で生成。
+     */
     const fetchReport = useCallback(async (month: string) => {
         setIsLoading(true)
         setError(null)
         try {
+            const cached = await getMonthlyReport(month, false)
+            if (cached != null) {
+                setReport(cached)
+                return
+            }
             const data = await getMonthlyReport(month, true)
             setReport(data ?? null)
         } catch (err) {
