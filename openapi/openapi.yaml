@@ -18,8 +18,8 @@ paths:
     $ref: './paths/expenses.yaml#/~1api~1expenses~1summary~1range'
   /api/expenses/months:
     $ref: './paths/expenses.yaml#/~1api~1expenses~1months'
-  /api/ai/chat:
-    $ref: './paths/chat.yaml#/~1api~1ai~1chat'
+  /api/expenses/report:
+    $ref: './paths/expenses.yaml#/~1api~1expenses~1report'
   /api/ai/category:
     $ref: './paths/ai-category.yaml#/~1api~1ai~1category'
   /api/expenses/upload-csv:

@@ -184,7 +184,7 @@
     summary: 利用可能な月のリスト取得
     responses:
       '200':
-        description: 利用可能な月のリスト取得成功
+        description: 利用可能な月のリスト取得成功 (YYYY-MM形式)
         content:
           application/json:
             schema:
@@ -193,6 +193,49 @@
                 type: string
                 pattern: '^\d{4}-\d{2}$'
                 example: '2024-01'
+/api/expenses/report:
+  get:
+    tags:
+      - expenses
+    summary: 月次AIレポート取得
+    description: 指定された月の支出データを分析し、AIが生成した改善提案を含むレポートを返します。generate=falseのときはキャッシュのみ返し、キャッシュがなければ204を返します（OpenAIを呼び出しません）。generate=trueのときはキャッシュを無視して新規生成します。
+    parameters:
+      - name: month
+        in: query
+        required: true
+        description: 対象月（YYYY-MM形式）
+        schema:
+          type: string
+          pattern: '^\d{4}-\d{2}$'
+          example: '2024-01'
+      - name: generate
+        in: query
+        required: false
+        description: trueの場合、キャッシュを無視して新規にAIレポートを生成します。falseの場合はキャッシュがあれば返し、なければ204を返します。
+        schema:
+          type: boolean
+          default: false
+    responses:
+      '200':
+        description: 月次レポート取得成功
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/MonthlyReportResponse'
+      '204':
+        description: キャッシュが存在しない（generate=falseの場合のみ）
+      '400':
+        description: バリデーションエラー
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'
+      '500':
+        description: AIサービスエラー
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'
 /api/expenses/upload-csv:
   post:
     tags:
