@@ -4,11 +4,11 @@ import com.example.backend.entity.Expense;
 
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.EnumMap;
 import java.util.stream.Collectors;
 
 /**
@@ -61,32 +61,32 @@ public record MonthlySummary(
      */
     public static MonthlySummary createMonthlySummaryFromExpenses(List<Expense> monthlyExpenses, String month) {
         Objects.requireNonNull(monthlyExpenses);
+        Objects.requireNonNull(month);
+    
         if (monthlyExpenses.isEmpty()) {
-            return new MonthlySummary(month, Collections.emptyList(), 0, 0, Collections.emptyList());
+            return new MonthlySummary(month, List.of(), 0, 0, List.of());
         }
-        // 合計金額
-        int total = monthlyExpenses.stream()
-                .mapToInt(expense -> expense.getAmount().getAmount())
-                .sum();
-
-        // 件数
-        int count = monthlyExpenses.size();
-
-        // カテゴリごとに「合計金額」と「件数」を一度に集計
-        Map<CategoryType, int[]> byCategory = monthlyExpenses.stream()
-                .collect(Collectors.groupingBy(
-                        Expense::getCategory,
-                        Collectors.teeing(
-                                Collectors.summingInt(expense -> expense.getAmount().getAmount()),
-                                Collectors.counting(),
-                                (sum, cnt) -> new int[] { sum, cnt.intValue() })));
-
+    
+        int total = 0;
+        Map<CategoryType, int[]> byCategory = new EnumMap<>(CategoryType.class);
+    
+        // 1回のループで合計とカテゴリ集計を同時に作る
+        for (Expense expense : monthlyExpenses) {
+            int amount = expense.getAmount().getAmount();
+            total += amount;
+    
+            int[] totalAndCount = byCategory.computeIfAbsent(expense.getCategory(), k -> new int[2]);
+            totalAndCount[0] += amount; // 合計金額
+            totalAndCount[1] += 1;      // 件数
+        }
+    
         List<CategorySummary> categorySummaries = byCategory.entrySet().stream()
                 .map(e -> new CategorySummary(e.getKey(), e.getValue()[0], e.getValue()[1]))
                 .sorted(Comparator.comparing(CategorySummary::getAmount).reversed())
-                .collect(Collectors.toUnmodifiableList());
-
-        return new MonthlySummary(month, monthlyExpenses, total, count, categorySummaries);
+                .toList();
+        
+        //呼び出し元がmonthlyExpenseを変更しても影響を受けないように、copyOfを使用して新しいリストを作成する。(防御的コピー)
+        return new MonthlySummary(month, List.copyOf(monthlyExpenses), total, monthlyExpenses.size(), categorySummaries);
     }
     
     /**
