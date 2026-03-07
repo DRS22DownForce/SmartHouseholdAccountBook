@@ -7,8 +7,13 @@
 1. [Spring Boot 3.5.0](#spring-boot-350)
    - [実行環境のレイヤー](#実行環境のレイヤー)
    - [HTTP リクエストの流れ](#http-リクエストの流れtomcat--controller)
+   - [コントローラー](#コントローラー)
+   - [Bean と DI・コンポーネントの種類](#bean-と-diコンポーネントの種類)
    - [外部化設定](#外部化設定externalized-configuration)
    - [ステーター（Starter）の考え方](#ステーターstarterの考え方)
+   - [グローバル例外処理](#グローバル例外処理)
+   - [キャッシュ](#キャッシュ)
+   - [Bean Validation](#bean-validation)
 2. [Spring Data JPA](#spring-data-jpa)
    - [トランザクション](#トランザクション)
 3. [Spring Security + OAuth2](#spring-security--oauth2)
@@ -101,6 +106,108 @@ HTTP リクエスト
 HTTP レスポンス
 ```
 
+---
+
+### コントローラー
+
+**役割**: HTTP リクエストを受け取り、レスポンスを返す層。URL と HTTP メソッドに応じて「どのメソッドを呼ぶか」が決まり、そのメソッド内でサービスを呼び出して結果を DTO に変換し、`ResponseEntity` で返す。ビジネスロジックはコントローラーに書かず、サービス層に任せる。
+
+**このプロジェクトでの使用箇所**: `ExpenseController`、`AiCategoryController`、`HomeController`
+
+#### @Controller と @RestController
+
+| アノテーション | 役割 |
+|----------------|------|
+| **@Controller** | Web のリクエストを扱う Bean。メソッドの戻り値は「ビュー名」や `ModelAndView` が想定され、HTML を返す MVC 用途で使う。戻り値をそのまま HTTP レスポンスの body にするには、メソッドに `@ResponseBody` を付ける。 |
+| **@RestController** | `@Controller` + `@ResponseBody` の複合。クラスに付けると、全メソッドの戻り値がそのまま HTTP レスポンスの body として扱われる。REST API ではこちらを使う。ResponseEntity<T>を返す場合もHTMLを返している訳ではないのでこちらを使う |
+
+REST API では JSON で body を返すため、このプロジェクトでは `@RestController` を使用している。
+
+#### リクエストとメソッドの対応（マッピング）
+
+DispatcherServlet は「URL + HTTP メソッド」から、呼び出すコントローラーのメソッドを決める。その対応を付けるアノテーションが `@RequestMapping` および省略形の `@GetMapping` / `@PostMapping` / `@PutMapping` / `@DeleteMapping` など。
+
+**このプロジェクトでのやり方**: OpenAPI 仕様（YAML）からコード生成した **API インターフェース**（例: `ExpensesApi`）に、すでに `@RequestMapping` や `@RequestParam` などが付いたメソッドが定義されている。コントローラークラスでそのインターフェースを `implements` し、各メソッドを実装する。これにより「仕様と実装の一貫性」と「URL・パラメータの二重管理の防止」を実現している。
+
+#### メソッド引数（リクエストの受け取り方）
+
+| 引数に付けるもの | 意味 | 主な用途 |
+|------------------|------|----------|
+| **@RequestBody** | リクエスト body（JSON など）を 1 つのオブジェクトにバインドする。 | POST/PUT で送る JSON を DTO として受け取る。 |
+| **@RequestParam** | クエリパラメータ（`?month=2025-01&page=0`）を引数にバインドする。 | 一覧の絞り込み（月、ページ番号、件数など）。 |
+| **@PathVariable** | URL パス内の変数（例: `/api/expenses/{id}` の `id`）を引数にバインドする。 | リソース ID の指定。 |
+| **@RequestHeader** | リクエストヘッダーの値を引数にバインドする。 | 認証トークンや言語指定など（このプロジェクトでは JWT はフィルターで処理）。 |
+| **MultipartFile** | マルチパート(一つのリクエストボディがフィールドやファイルといった複数のパート持つContent-Type)で送られたファイルパートをこの型の引数にバインドする | ファイルアップロード（CSV アップロードなど）。 |
+
+#### 戻り値（レスポンスの返し方）
+
+| 戻り値の形 | 意味 |
+|------------|------|
+| **ResponseEntity&lt;T&gt;** | HTTP ステータスコードと body を明示的に返す。`ResponseEntity.ok(dto)`（200）、`ResponseEntity.status(HttpStatus.CREATED).body(dto)`（201）、`ResponseEntity.noContent().build()`（204）など。 |
+| **T のみ** |  body としてそのオブジェクトが返り、ステータスは 200 がデフォルト。 |
+
+REST API では「作成時は 201」「削除時は 204」のようにステータスを揃えたいため、このプロジェクトでは `ResponseEntity` を使っている。
+
+#### 処理の流れ（コントローラーメソッド内）
+
+1. リクエストがマッピングに従ってコントローラーのメソッドに渡される。
+2. 必要ならバリデーション（`@Valid` / `@Validated`）が実行され、違反時は例外となり `@ControllerAdvice` で処理される。
+3. メソッド内で **アプリケーションサービス**（例: `ExpenseApplicationService`）を呼び出す。ビジネスロジックやトランザクションはサービス層に任せる。
+4. サービスが返した Entity や値オブジェクトを **Mapper** で DTO に変換する。
+5. `ResponseEntity` でステータスと DTO を返す。Spring MVC が JSON にシリアライズして HTTP レスポンスにする。
+
+#### このプロジェクトでの例（ExpenseController）
+
+- **インターフェース実装**: `ExpenseController implements ExpensesApi`。OpenAPI 生成の `ExpensesApi` に定義されたエンドポイント（`/api/expenses` の GET/POST、`/api/expenses/{id}` の PUT/DELETE など）を実装している。
+- **DI**: コンストラクタで `ExpenseApplicationService`、`CsvExpenseService`、`ExpenseMapper`、`MonthlyReportService` を受け取り、メソッド内で利用。
+- **薄いコントローラー**: 各メソッドは「パラメータの受け取り → サービス呼び出し → Mapper で DTO 変換 → ResponseEntity で返却」に留め、条件分岐や集計ロジックはサービス側に置いている。
+- **例外**: 業務エラー（Not Found など）はサービスで例外をスローし、`GlobalExceptionHandler` が HTTP ステータスと `ErrorResponse` に変換する。
+
+#### コントローラー層の責務のまとめ
+
+| やること | やらないこと |
+|----------|--------------|
+| HTTP の入出力（URL・メソッド・パラメータ・body の受け取り、ステータスと body の返却） | ビジネスルールの記述、トランザクション境界の定義 |
+| サービスへの委譲と、その戻り値の DTO 変換 | 直接のリポジトリ呼び出し（サービス経由にする） |
+| リクエスト単位の軽い検証（ファイルの有無や形式など、OpenAPI で表現しきれないもの） | 複雑なバリデーションや業務チェック（サービス層やドメイン層で行う） |
+
+---
+
+### Bean と DI・コンポーネントの種類
+
+**役割**: Spring が「どのクラスをインスタンス化し、どこに渡すか」を管理する仕組み。Bean はコンテナが生成・保持するオブジェクトで、依存性注入（DI）によって必要なクラスに渡される。
+
+**主な考え方**:
+- **Bean**: `@Component` や `@Bean` で登録されたオブジェクト。デフォルトではアプリ内に同一型の Bean は 1 つ（シングルトン）として扱われる。
+- **DI（依存性注入）**: コンストラクタやフィールドで「他の Bean」を受け取り、自分で `new` しない。テスト時にモックに差し替えやすく、依存関係が明確になる。
+
+#### コンポーネントの種類（@Component の仲間）
+
+| アノテーション | 役割 | 主な使用箇所 |
+|----------------|------|----------------------|
+| **@Component** | 汎用的な Bean として登録する。スキャン対象になる。 | 特に役割を分けたくない場合 |
+| **@Service** | ビジネスロジックを担当する Bean であることを示す。中身は @Component と同様。 | サービス層（`ExpenseApplicationService`, `AiCategoryService` など） |
+| **@Repository** | データアクセスを担当する Bean。JPA ではデータアクセス例外を Spring の例外に変換するなど、特別扱いされる。 | リポジトリ層（`ExpenseRepository` はインターフェースのため、実装は Spring Data JPA が生成） |
+| **@Controller** / **@RestController** | Web のリクエストを扱う Bean。DispatcherServlet が URL に応じてメソッドを呼ぶ。 | Controller 層 |
+
+これらはすべて `@ComponentScan` の対象となり、`@SpringBootApplication` のパッケージ以下がスキャンされて Bean 登録される。
+
+#### コンストラクタインジェクションが推奨される理由
+
+- **必須依存が明示される**: コンストラクタの引数が「このクラスが動くために必要なもの」になる。引数なしではインスタンス化できない。
+- **final にできる**: コンストラクタで一度だけ代入すればよいため、フィールドを `final` にでき、不変性や誤代入防止につながる。
+- **テストしやすい**: テスト時にコンストラクタでモックを渡せる。`@Autowired` でフィールド注入すると、テストで差し替えるにはリフレクションや `@MockBean` に頼りがちになる。
+
+このプロジェクトでは、サービスやフィルターで「コンストラクタの引数にリポジトリやクライアントを渡す」形で DI している。
+
+#### @Configuration と @Bean
+
+**@Configuration**: クラスを「Bean 定義のまとまり」として扱う。このクラス内の `@Bean` メソッドの戻り値が、Bean として登録される。
+
+**@Bean**: メソッドの戻り値の型が Bean になる。Starter が自動で作ってくれないものを、自分で 1 つだけ定義したいときに使う。例: `CacheConfig` で `CacheManager` を `@Bean` として定義し、キャッシュ実装（Caffeine）を Spring に渡している。
+
+---
+
 ### 外部化設定（Externalized Configuration）
 
 設定をコードの外に置き、環境（開発・本番など）やデプロイ先で変えられるようにする仕組み。同じ JAR を、設定だけ変えて複数環境で動かせる。
@@ -163,6 +270,124 @@ pom.xml に starter を追加
 | **spring-boot-starter-test** | テスト用。JUnit 5、Mockito、Spring TestContext など。 |
 
 Starter 同士のバージョンは親 POM で揃えられるため、ライブラリの組み合わせ不整合を減らせる。
+
+---
+
+### グローバル例外処理
+
+**役割**: Controller 層で発生した例外を一箇所で受け止め、HTTP ステータスコードとレスポンス body を統一して返す仕組み。各 Controller で try-catch を書かずに済み、API のエラー形式（OpenAPI で定義した `ErrorResponse` など）を揃えられる。
+
+**このプロジェクトでの使用箇所**: `GlobalExceptionHandler.java`
+
+#### @ControllerAdvice と @ExceptionHandler
+
+| アノテーション | 役割 |
+|----------------|------|
+| **@ControllerAdvice** | 付けたクラスが「全 Controller で発生した例外を処理するアドバイス」として扱われる。Spring MVC が Controller の実行中にスローされた例外を、このクラスのメソッドに渡す。 |
+| **@ExceptionHandler(例外クラス.class)** | 付けたメソッドが、指定した例外が発生したときだけ呼ばれる。戻り値は `ResponseEntity<Body>` で、HTTP ステータスと body を返す。 |
+
+**処理の流れ**:
+
+```
+Controller 内で例外がスローされる
+      ↓
+Spring MVC が例外をキャッチ
+      ↓
+@ControllerAdvice クラス内の、その例外に一致する @ExceptionHandler メソッドを探す
+      ↓
+該当メソッドが ResponseEntity を返す → その内容が HTTP レスポンスになる
+```
+
+#### 認証・認可エラーとの役割分担
+
+| 種類 | 誰が処理するか | 主な HTTP ステータス |
+|------|----------------|------------------------|
+| **認証されていない** | Spring Security のフィルター（JwtAuthFilter や認可フィルター） | 401 Unauthorized |
+| **認証済みだが権限がない** | Spring Security の認可チェック | 403 Forbidden |
+| **業務エラー（Not Found、Bad Request 等）** | @ControllerAdvice の @ExceptionHandler | 404, 400, 429, 500 など |
+
+認証・認可は「Controller に到達する前」のフィルターで判定されるため、401/403 は通常ここでは扱わない。`GlobalExceptionHandler` は、Controller やサービスで投げた業務用例外を拾い、OpenAPI 定義に合わせた `ErrorResponse` で返す役割を持つ。
+
+---
+
+### キャッシュ
+
+**役割**: メソッドの戻り値をキーに応じて保存し、同じ引数で再度呼ばれたときはメソッドを実行せずに保存した値を返す。外部 API 呼び出しや DB アクセスの回数を減らし、レスポンスや負荷を改善する。
+
+**このプロジェクトでの使用箇所**: `CacheConfig.java`（設定）、`AiCategoryService.predictCategory`、`UserApplicationService.getUser`
+
+#### @EnableCaching と @Cacheable
+
+| アノテーション | 役割 |
+|----------------|------|
+| **@EnableCaching** | クラスに付ける（通常は `@Configuration` クラス）。キャッシュ用の AOP を有効にし、`@Cacheable` などが動くようにする。 |
+| **@Cacheable(value = "キャッシュ名", key = "SpEL")** | メソッドに付ける。初回呼び出しではメソッドを実行し、戻り値をキャッシュに保存する。同じキャッシュ名かつ同じ key で呼ばれたときは、メソッドを実行せずキャッシュの値を返す。 |
+
+**key の指定**: SpEL（Spring Expression Language）で書く。例: `#description` はメソッドの引数 `description` の値、`@currentAuthProvider.getCurrentSub()` は Bean 名 `currentAuthProvider` のメソッドの戻り値。
+
+#### このプロジェクトでのキャッシュ定義（CacheConfig）
+
+- **CacheManager**: `SimpleCacheManager` を使い、次の 2 つのキャッシュを登録している。
+  - **users**: 最大 200 件、30 分で期限切れ。現在認証ユーザーの取得結果をキャッシュ。
+  - **aiCategory**: 最大 500 件、60 分で期限切れ。説明文ごとの AI カテゴリ推論結果をキャッシュ。
+- **実装**: Caffeine。`spring-boot-starter-cache` は抽象のみで、実際の保存は Caffeine などのライブラリを依存に追加し、`@Bean` で `CacheManager` を定義して使う。
+
+---
+
+### Bean Validation
+
+**役割**: オブジェクトのフィールドに「必須」「長さ」「形式」などのルールを宣言し、実行時にチェックする仕組み。`spring-boot-starter-validation` により利用可能。リクエストの入力チェックや、設定クラスのプロパティ検証に使う。
+
+**このプロジェクトでの使用箇所**: `CorsProperties`（`@Validated` と `@NotNull`, `@NotEmpty`）、リクエスト body に `@Valid` を付けると Controller でバリデーションが実行される。
+
+#### @Valid と @Validated の違い
+
+| アノテーション | 付ける場所 | 役割 |
+|----------------|------------|------|
+| **@Valid** | メソッドの引数（例: Controller の `@RequestBody` の前） | そのオブジェクトと、その中にネストしたオブジェクトのフィールドに付けた `@NotNull` などを実行する。失敗すると `MethodArgumentNotValidException` がスローされる。またそのオブジェクトに`@Validated`をつける必要はない |
+| **@Validated** | クラス | そのクラスを「バリデーションの対象」にする。`@ConfigurationProperties` で読み込んだ設定クラスに付けると、起動時やプロパティ注入時にフィールドの検証が走る。Controllerのようにメソッド引数に対する検証を有効にする場合にも使う。 |
+
+#### 主な検証アノテーション（Jakarta Validation）
+
+| アノテーション | 意味 |
+|----------------|------|
+| **@NotNull** | null 不可。 |
+| **@NotEmpty** | null および空文字・空コレクション不可。リストや文字列に使う。 |
+| **@NotBlank** | null・空文字・空白のみ不可。文字列用。 |
+| **@Size(min, max)** | 文字列やコレクションの長さの範囲。 |
+| **@Min**, **@Max** | 数値の範囲。 |
+
+これらはフィールドに付けて宣言する。`message = "..."` でエラー時のメッセージを指定できる。
+
+#### このプロジェクトでの例（CorsProperties）
+
+- クラスに `@Validated` を付与。`@ConfigurationProperties(prefix = "cors")` で `application.properties` の `cors.*` をバインド。
+- `allowedOrigins` に `@NotEmpty(message = "許可するオリジンは必須です")` を付与。設定が空だと起動時（またはプロパティ反映時）にバリデーションエラーになる。
+- `allowedMethods` などに `@NotNull` を付与。意図しない null を防ぐ。
+
+#### リクエストボディ以外のバリデーション（@RequestParam / @PathVariable / @RequestHeader）
+
+`@RequestParam`・`@PathVariable`・`@RequestHeader` のように、単純な型（String, Integer など）で受け取る引数にも制約を付けられます。
+
+- **付ける場所**: 各**引数**に、`@NotNull`, `@Min`, `@Max`, `@Pattern`, `@Size` などを直接付けます。必要に応じて引数に `@Valid` も付けます（単純型だけの場合は省略できることが多いです）。
+- **必須の設定**: これらのメソッド引数検証を有効にするには、**Controller クラス（または Controller のインターフェース）に `@Validated` を付ける**必要があります。クラスに `@Validated` がないと、引数に制約を付けても実行されません。
+- **失敗時の例外**: 違反時は `ConstraintViolationException` がスローされます。`@ControllerAdvice` で `ConstraintViolationException` をハンドリングし、400 Bad Request とメッセージを返すと、RequestBody と同様に API のエラー形式を揃えられます。
+
+このプロジェクトでは、OpenAPI 生成の `ExpensesApi` インターフェースに `@Validated` が付いており、`apiExpensesGet` の `month`（`@NotNull` + `@Pattern`）、`page`（`@Min(0)`）、`size`（`@Min(1)` + `@Max(50)`）などがこの仕組みで検証されています。
+
+| 対象 | 引数に付けるもの | クラスに必要なもの | 失敗時の例外 |
+|------|------------------|--------------------|--------------|
+| `@RequestBody` のオブジェクト | `@Valid` + 型 | 不要（DTO に @Validated は不要、ただしDTOのフィールドには`@Min`等をつける）| `MethodArgumentNotValidException` |
+| `@RequestParam` / `@PathVariable` / `@RequestHeader` | 制約アノテーション（`@Min`, `@Pattern` 等） | **`@Validated`**（Controller 側） | `ConstraintViolationException` |
+
+#### バリデーション失敗時の流れ（Controller で @Valid を使う場合）
+
+1. Controller のメソッド引数に `@Valid` を付けたオブジェクトがある。
+2. リクエスト body がその型にバインドされる際に、バリデーションが実行される。
+3. 1 つでも制約に違反すると `MethodArgumentNotValidException` がスローされる。
+4. この例外を `@ControllerAdvice` の `@ExceptionHandler` で受け、400 Bad Request とエラーメッセージ（例: フィールドごとのエラー）を `ErrorResponse` などに詰めて返すと、API のエラー形式を統一できる。
+
+ @Validated が付いたインターフェースを継承（実装）したクラスでも、そのインターフェースで宣言されたメソッドの引数バリデーションは有効
 
 ---
 

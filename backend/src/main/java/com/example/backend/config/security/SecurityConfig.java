@@ -11,7 +11,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com.example.backend.auth.CustomAuthenticationEntryPoint;
 import com.example.backend.auth.filter.JwtAuthFilter;
 import com.example.backend.auth.filter.UserRegistrationFilter;
 
@@ -31,17 +30,14 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final UserRegistrationFilter userRegistrationFilter;
     private final CorsProperties corsProperties;
-    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
     public SecurityConfig(
             JwtAuthFilter jwtAuthFilter,
             UserRegistrationFilter userRegistrationFilter,
-            CorsProperties corsProperties,
-            CustomAuthenticationEntryPoint customAuthenticationEntryPoint) {
+            CorsProperties corsProperties) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.userRegistrationFilter = userRegistrationFilter;
         this.corsProperties = corsProperties;
-        this.customAuthenticationEntryPoint = customAuthenticationEntryPoint;
     }
 
     @Bean
@@ -64,8 +60,6 @@ public class SecurityConfig {
                         .requestMatchers("/").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().denyAll())
-                // 認証エラー時のレスポンス処理(フィルターでAuthenticationExceptionが発生した場合や認可エラー時のハンドリングを行う)
-                .exceptionHandling(ex -> ex.authenticationEntryPoint(customAuthenticationEntryPoint))
                 // JWT認証 → ユーザー登録（未登録ならDBに作成）→ 通常処理
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterAfter(userRegistrationFilter, JwtAuthFilter.class);
