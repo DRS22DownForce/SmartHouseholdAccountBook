@@ -5,7 +5,12 @@
 ## 📋 目次
 
 1. [Spring Boot 3.5.0](#spring-boot-350)
+   - [実行環境のレイヤー](#実行環境のレイヤー)
+   - [HTTP リクエストの流れ](#http-リクエストの流れtomcat--controller)
+   - [外部化設定](#外部化設定externalized-configuration)
+   - [ステーター（Starter）の考え方](#ステーターstarterの考え方)
 2. [Spring Data JPA](#spring-data-jpa)
+   - [トランザクション](#トランザクション)
 3. [Spring Security + OAuth2](#spring-security--oauth2)
 4. [Spring Boot DevTools](#spring-boot-devtools)
 
@@ -16,11 +21,22 @@
 **役割**: Javaアプリケーション開発のフレームワーク。設定の自動化・依存性注入（DI）・コンポーネントスキャンを提供。
 
 **主な機能**:
-- **自動設定**: クラスパス上の依存（例: JPA、JDBCドライバー）を検出し、データソース・EntityManager等を自動設定
+- **AutoConfiguration**: クラスパス上の依存（例: JPA、JDBCドライバー）を検出し、データソース・EntityManager等を自動生成
 - **依存性注入**: `@Autowired`やコンストラクタインジェクションで依存関係を管理
 - **プロファイル**: `application.properties`で環境ごとの設定を切り替え
 
 **`@SpringBootApplication`**: `@Configuration` + `@EnableAutoConfiguration` + `@ComponentScan`の複合。`main`から`SpringApplication.run(BackendApplication.class, args)`で起動し、このクラスを引数に渡すのが一般的。
+
+#### @SpringBootApplication を構成する3つのアノテーション
+
+| アノテーション | 役割 |
+|----------------|------|
+| **@Configuration** | このクラスを「Bean を定義する設定クラス」として扱う。`@Bean` メソッドで Bean を登録できる。 |
+| **@EnableAutoConfiguration** | クラスパスに応じてAutoConfigurationを有効にする。Starter 由来の Bean（DataSource や DispatcherServlet など）が自動作成される。 |
+| **@ComponentScan** | このクラスがあるパッケージ以下をスキャンし、`@Component` / `@Service` / `@Controller` などを Bean として登録する。 |
+
+起動の流れ
+SpringApplication.run(...) でコンテナが起動 → @ComponentScan でアプリの Bean を登録 → @EnableAutoConfiguration で Starter 由来の Bean を登録 → 組み込み Tomcat 起動」
 
 ### 実行環境のレイヤー
 
@@ -85,6 +101,69 @@ HTTP リクエスト
 HTTP レスポンス
 ```
 
+### 外部化設定（Externalized Configuration）
+
+設定をコードの外に置き、環境（開発・本番など）やデプロイ先で変えられるようにする仕組み。同じ JAR を、設定だけ変えて複数環境で動かせる。
+
+```
+設定の優先順位（上ほど優先される）
+      ↑
+┌─────────────────────────────────────────────────────────┐
+│  1. コマンドライン引数                                    │  java -jar app.jar --server.port=9090
+├─────────────────────────────────────────────────────────┤
+│  2. 環境変数                                             │  SPRING_DATASOURCE_URL=jdbc:mysql://...
+├─────────────────────────────────────────────────────────┤
+│  3. application-{profile}.properties / .yml             │  application-prod.properties（プロファイル指定時）
+├─────────────────────────────────────────────────────────┤
+│  4. application.properties / application.yml            │  src/main/resources/ に配置
+└─────────────────────────────────────────────────────────┘
+```
+
+#### 外部化設定のポイント
+
+| 項目 | 説明 |
+|------|------|
+| **application.properties** | デフォルトの設定。`src/main/resources/` に置く。キーは `server.port` のようにドットで階層化。 |
+| **プロファイル** | `spring.profiles.active=prod` と設置することで `application-prod.properties` が追加で読み込まれる。同じキーはプロファイル側が上書き。 |
+| **環境変数** | 本番やコンテナでは環境変数で上書きすることが多い。`SPRING_DATASOURCE_URL` のように大文字・アンダースコアにすると、`spring.datasource.url` に対応する。そのため`openai.api.key=${OPENAI_API_KEY}`のような記載はなくてもいい |
+| **利点** | コードを変えずに DB の URL や API キーを切り替えられる。秘密情報をソースに含めず、12-Factor の「設定を環境に持つ」に沿った運用がしやすい。 |
+
+---
+
+### ステーター（Starter）の考え方
+
+**Starter** は、ある機能に必要な依存ライブラリと、それに合うデフォルト設定(Bean定義が含まれるJARがクラスパスに取り込まれる)をひとまとめにした Maven/Gradle の依存単位。`spring-boot-starter-xxx` を 1 つ追加するだけで、その機能に必要なものが一括で入る。
+
+```
+pom.xml に starter を追加
+      ↓
+┌─────────────────────────────────────────────────────────┐
+│  spring-boot-starter-web を追加した場合                   │
+│  → spring-webmvc, tomcat, jackson-databind, ... が       │
+│     「互換の取れたバージョン」で自動的に入る               │
+├─────────────────────────────────────────────────────────┤
+│  自動設定（Auto-configuration）が有効になる               │
+│  → クラスパスに JAR があるのを検知し、DispatcherServlet  │
+│     or データソースなどを Bean として登録                 │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### このプロジェクトで使っている主な Starter
+
+| Starter | 役割 |
+|---------|------|
+| **spring-boot-starter-parent** | 親 POM。Spring Boot のバージョン・プラグイン・依存のバージョン管理を一括で行う。Spring bootのバージョンを指定することで、その他Starterのバージョンを指定しなくても、適切なバージョンが自動で使われる |
+| **spring-boot-starter-web** | Web API 用。組み込み Tomcat、Spring MVC、JSON 変換（Jackson）など。 |
+| **spring-boot-starter-data-jpa** | JPA + Hibernate。リポジトリの実装やトランザクションまわりも含む。 |
+| **spring-boot-starter-security** | 認証・認可の基盤。フィルターや SecurityContext の仕組みを提供。 |
+| **spring-boot-starter-oauth2-resource-server** | JWT などでリソースサーバーとして動かすための検証機能。 |
+| **spring-boot-starter-oauth2-client** | OAuth2 クライアント（Cognito 等への認証リクエスト）用。このプロジェクトでは主にリソースサーバー側で JWT 検証に利用。 |
+| **spring-boot-starter-validation** | Bean Validation（@Valid, @NotNull 等）。リクエストの入力チェックに使う。 |
+| **spring-boot-starter-cache** | キャッシュ抽象化。実装（Caffeine 等）は別依存で追加する。 |
+| **spring-boot-starter-test** | テスト用。JUnit 5、Mockito、Spring TestContext など。 |
+
+Starter 同士のバージョンは親 POM で揃えられるため、ライブラリの組み合わせ不整合を減らせる。
+
 ---
 
 ## Spring Data JPA
@@ -121,7 +200,7 @@ HTTP レスポンス
 - `@Table(name="テーブル名", indexes ={@Index(name = "インデックス名", columnList = "インデックスを作成する列")})`で特定にカラムに対するインデックスを作成できる
 - `@Id`: 主キー（識別子）を指定
 - `@GeneratedValue`: IDの自動生成方法を指定（`@GeneratedValue(strategy = GenerationType.IDENTITY)`はDBの自動採番機能によって主キーを生成する方式）
-- `@Column`: カラムの詳細設定（`nullable = false`：NULLを強要しない。`columnDefinition = "TEXT"`：DB上の型をテキストにする。`updatable = false` INSERT時だけ値が設定されUPDATEでは変更されない）
+- `@Column`: カラムの詳細設定（`nullable = false`：NULLを許容しない。`columnDefinition = "TEXT"`：DB上の型をテキストにする。`updatable = false` INSERT時だけ値が設定されUPDATEでは変更されない）
 - `@ManyToOne`: 多対一の関係（複数の支出が1つのユーザーに属する）。`@ManyToOne(fetch = FetchType.LAZY)`とすると、関連のEnittyのフィールドに実際にアクセスするまで、そのEntityへのSELECTは発行されない。
 - `@Embedded`: 値オブジェクトをエンティティに埋め込む
 - `@Enumerated`: EnumをDBにどう保存するかの指定。`@Enumerated(EnumType.STRING)`は列挙子の名前を文字列で保存する設定。
@@ -134,7 +213,7 @@ HTTP レスポンス
 - `@ManyToOne(fetch = FetchType.LAZY)`とするとN+1問題が発生する可能性がある
   - 例えばExpenseをリストで複数個取得し、それぞれにExpense.getUser()をするとそれぞれにUserを取得するクエリが実行される。
   - この対策として、Expenseと一緒に関連のUserも取得する`JOIN FETCH`や`@EntityGraph`を利用する。
-- インデックスをつけると検索が速くなるので、WHERE句やOREDER BYをよく利用する列につけると効果的。ただし更新系の処理は遅くなるのでやり過ぎは注意。
+- インデックスをつけると検索が速くなるので、WHERE句で絞り込んだりやOREDER BYでソートをよく利用する列につけると効果的。ただし更新系の処理は遅くなるのでやり過ぎは注意。
 
 ---
 
@@ -147,15 +226,16 @@ HTTP レスポンス
 
 #### リポジトリパターン
 
-`JpaRepository`を継承するだけでCRUDが可能。実装クラスは不要で、Spring Data JPAが実行時に**動的プロキシ**を生成し、メソッド名からSQLを生成してHibernate経由で実行する。役割分担：動的プロキシ（メソッド解析）→ Hibernate（SQL生成）→ JDBCドライバー（DB接続）→ DB。動的プロキシの動作はH2/MySQLで同じ。
+`JpaRepository`を継承するインターフェースを定義することでCRUDが可能。実装クラスは不要で、Spring Data JPAが実行時にインターフェースの実装クラスである**動的プロキシ**を生成し、これをDIする。動的プロキシ、Hibernateを通してSQLが発行される。
+役割分担：動的プロキシ（メソッド解析）→ Hibernate（SQL生成）→ JDBCドライバー（DB接続）→ DB。動的プロキシの動作はH2/MySQLで同じ。
 
 ---
 
 #### JDBCドライバー・H2とMySQL
 
-- **JDBCドライバー**: JavaとDBの橋渡し。`pom.xml`で`mysql-connector-j`（本番）や`h2`（テスト）を依存追加。`spring.datasource.url`のプロトコル（`jdbc:mysql`等）からSpring Bootがドライバーを自動検出。
+- **JDBCドライバー**: JavaとDBの橋渡し。`pom.xml`で`mysql-connector-j`（本番）や`h2`（テスト）を依存追加。`spring.datasource.url`のプロトコル（`jdbc:mysql`等）からSpring Bootがドライバーを自動検出。SpringBootのAutoConfigurationにより、検出されたJDBCドライバからDataSource Beanが自動生成される。
 - **H2とMySQLの違い**: Dialect（`H2Dialect` / `MySQLDialect`）と接続URL・保存先（メモリ/ディスク）が異なる。H2はインメモリのためサーバー不要でテスト終了後に自動削除。
-- **H2の起動**: テスト時は`application-test.properties`で`jdbc:h2:mem:testdb`を指定すると、Spring Boot起動時にインメモリDBが自動作成される。
+- **H2の起動**: テスト時は`application-test.properties`で`spring.datasource.url=jdbc:h2:mem:testdb`を指定すると、Spring Boot起動時にインメモリDBが自動作成される。
 
 ---
 
@@ -163,6 +243,32 @@ HTTP レスポンス
 
 - **クエリメソッド**: メソッド名（例: `findByUser`）からSQLを自動生成。`@Query`でJPQLを直接記述可能。`@Query`を使う場合は引数に`@Param`を付ける。
 - **引数の型**: Entity、`String`/`Long`等、`LocalDate`、`Pageable`/`Sort`、`List`（IN句）などが使える。Entityを引数にするとそのIDが条件に使われる。
+
+**JPQL（Java Persistence Query Language）とは**:
+- データベースのテーブル名・カラム名ではなく、**Entity クラス名とプロパティ名**を指定して検索するクエリ言語。JPA の標準仕様で、Hibernate が JPQL を解釈し、接続先 DB に合わせた SQL に変換して実行する。
+- **SQL との違い**: SQL は `SELECT * FROM expense WHERE user_id = ?` のようにテーブル・列を書く。JPQL は `SELECT e FROM Expense e WHERE e.user = :user` のように Entity（`Expense`）とそのプロパティ（`e.user`）で書く。DB に依存しない書き方になるため、H2 と MySQL で同じ JPQL が使える。
+- **`@Query` での使い方**: リポジトリのメソッドに `@Query("JPQL文")` を付け、引数は `:引数名` で JPQL 内にバインドする。メソッドの引数には `@Param("引数名")` を付けて、`:引数名` と対応させる。例: `@Query("SELECT e FROM Expense e WHERE e.user = :user AND e.date.date >= :start ...")` と `@Param("user")`, `@Param("start")`。
+
+---
+
+#### トランザクション
+
+**トランザクションとは**: 複数のデータベース操作をひとまとまりとして扱い、「すべて成功する」か「すべて取り消す」のどちらかにする仕組み。途中で例外が起きた場合は、それまでに行った変更をロールバック（取り消し）し、データの整合性を保つ。
+
+| 項目 | 説明 |
+|------|------|
+| **開始** | `@Transactional` が付いたメソッドを呼び出したときに、そのメソッドの先頭でトランザクションが開始される。 |
+| **コミット** | メソッドが正常終了すると、トランザクションがコミットされ、変更がDBに確定する。 |
+| **ロールバック** | メソッド内で未チェック例外（`RuntimeException` 等）が発生すると、トランザクションはロールバックされ、そのトランザクション内の変更はDBに反映されない。 |
+
+**`@Transactional` の付け方**:
+- **サービス層に付ける**: 複数のリポジトリ呼び出しや、1リクエストで複数テーブルを更新する処理を、1つのトランザクションにまとめたいときに、`@Service` クラスのメソッドに `@Transactional` を付ける。Spring Data JPA のリポジトリ単体のメソッドもトランザクション内で動くが、サービスでまとめることで「読んでから書く」までを一括でコミット・ロールバックできる。
+- **読み取り専用**: 参照だけするメソッドでは `@Transactional(readOnly = true)` を付けると、書き込み用の準備を省略でき、パフォーマンスや接続の扱いの最適化が行われる場合がある。
+
+**Entity の状態管理との関係**:
+- トランザクション内で `findById` などで取得した Entity は「永続コンテキスト(トランザクションの間だけ存在するメモリ上のデータ構造)で管理されている」状態になる。
+- その Entity のフィールドを変更すると、永続コンテキストに変更が保存され、コミット時にDBに反映される。つまり、明示的に `save()` を呼ばなくても、トランザクションがコミットされれば DB に反映される。
+- 逆に、トランザクションがロールバックされると、その中で行った Entity の変更も DB には反映されない。
 
 ---
 
