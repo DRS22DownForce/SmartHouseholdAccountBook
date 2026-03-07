@@ -22,6 +22,69 @@
 
 **`@SpringBootApplication`**: `@Configuration` + `@EnableAutoConfiguration` + `@ComponentScan`の複合。`main`から`SpringApplication.run(BackendApplication.class, args)`で起動し、このクラスを引数に渡すのが一般的。
 
+### 実行環境のレイヤー
+
+下から上への積み重なりは次のとおりです。
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  Spring Boot アプリ (BackendApplication, Controller 等)   │  ← あなたのコード
+├─────────────────────────────────────────────────────────┤
+│  組み込み Web サーバー (Embedded Tomcat)                  │  ← JAR 内に同梱
+├─────────────────────────────────────────────────────────┤
+│  実行可能 JAR (backend-0.0.1-SNAPSHOT.jar)               │  ← 1 ファイルで配布
+├─────────────────────────────────────────────────────────┤
+│  JVM (Java Virtual Machine)                              │  ← バイトコード実行
+├─────────────────────────────────────────────────────────┤
+│  JDK 21 (java コマンド・標準ライブラリ等)                 │  ← 実行・開発環境
+├─────────────────────────────────────────────────────────┤
+│  OS (Linux)                                              │
+└─────────────────────────────────────────────────────────┘
+```
+
+#### 各レイヤーの説明
+
+| レイヤー | 役割 |
+|----------|------|
+| **JDK** | Java を「開発する」＋「実行する」ための一式。主なもの: **javac**（ソースをバイトコードにコンパイル）、**java**（JVM 起動）、**jar**（JAR の作成・解凍）。 |
+| **JVM** | `.class`（バイトコード）を解釈・実行する実行エンジン。JDK の `java` コマンドが JVM を立ち上げる。 |
+| **JAR** | Java Archive。クラスとリソースをまとめた配布単位。Spring Boot では**実行可能 JAR（fat JAR）**となり、アプリ＋依存（Spring、Tomcat 等）が 1 つに同梱される。`java -jar backend-0.0.1-SNAPSHOT.jar` でサーバー起動。 |
+| **組み込み Tomcat** | `spring-boot-starter-web` に同梱。JVM 内で起動し HTTP を受信。Servlet コンテナ（Servlet API を実装）。 |
+| **Spring Boot アプリ** | Controller や DI コンテナなど、あなたのコードと Spring の処理。 |
+
+**WAR との違い（参考）**
+
+- **WAR**: 従来型。外部の Web コンテナ（Tomcat 等）にデプロイする形式。コンテナが WAR を読み込み Servlet を動かす。
+- **JAR（Spring Boot）**: Web サーバーが JAR 内に含まれる。外部 Tomcat は不要。
+
+### HTTP リクエストの流れ（Tomcat → Controller）
+
+Tomcat は Servlet コンテナ。Spring Boot は起動時に **DispatcherServlet** を 1 本だけ Tomcat に登録する。DispatcherServlet が URL や HTTP メソッドを見て、どの `@RestController` / `@Controller` に渡すか決める。流れは **Tomcat → DispatcherServlet → Controller**。
+
+```
+HTTP リクエスト
+      ↓
+┌─────────────────────────────────────────┐
+│  Tomcat（Servlet コンテナ）              │  ← ソケットで HTTP を受信
+│  「どの Servlet / Filter に渡すか」を管理  │
+└─────────────────────────────────────────┘
+      ↓
+┌─────────────────────────────────────────┐
+│  Filter チェーン（Servlet の前処理）      │  ← Servlet API を使用
+│  JwtAuthFilter → UserRegistrationFilter  │     (HttpServletRequest 等)
+└─────────────────────────────────────────┘
+      ↓
+┌─────────────────────────────────────────┐
+│  DispatcherServlet（唯一の Servlet）     │  ← URL に応じて Controller を選択
+└─────────────────────────────────────────┘
+      ↓
+┌─────────────────────────────────────────┐
+│  @RestController / @Controller           │  ← あなたの API
+└─────────────────────────────────────────┘
+      ↓
+HTTP レスポンス
+```
+
 ---
 
 ## Spring Data JPA
