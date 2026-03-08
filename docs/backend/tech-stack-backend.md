@@ -7,6 +7,7 @@
 1. [概要](#概要)
 2. [コア技術](#コア技術)
 3. [フレームワーク・ライブラリ](#フレームワークライブラリ)
+   - [Resilience4j](#resilience4jレート制限リトライサーキットブレーカー)
 4. [データベース・インフラ](#データベースインフラ)
 5. [認証・セキュリティ](#認証セキュリティ)
 6. [アーキテクチャパターン](#アーキテクチャパターン)
@@ -51,6 +52,82 @@
 ## フレームワーク・ライブラリ
 
 > **📌 ライブラリの詳細**: OpenAPI Generator、Lombok、Jakarta Validationなどの詳細は、[バックエンドライブラリ詳細資料](./libraries.md)を参照してください。
+
+---
+
+### Resilience4j（レート制限・リトライ・サーキットブレーカー）
+
+**役割**: 外部API（OpenAI）呼び出しの耐障害性を高めるライブラリ。**レート制限**（送信回数の上限）、**リトライ**（一時障害時の再試行）、**サーキットブレーカー**（連続失敗時に呼び出しを一時停止）をアノテーションで適用できる。
+
+**このプロジェクトでの使用箇所**:
+- `OpenAiClient.java`（`callText` / `callJson` に適用）
+- `application.properties`（インスタンス名 `openai` の設定）
+- `GlobalExceptionHandler.java`（レート制限超過・OpenAI クォータ超過の例外処理）
+
+#### 3つの機能の役割
+
+| 機能 | 役割 |
+|------|------|
+| **Rate Limiter** | アプリからOpenAIへ送るリクエスト数を「一定期間あたり○回まで」に制限する。超えた場合は呼び出し前に `RequestNotPermitted` がスローされ、API利用者には 429 を返す。OpenAIの利用枠に達する前の「クライアント側のガード」になる。 |
+| **Retry** | 一時的なネットワーク障害やサーバー過負荷で失敗した場合に、指定回数・間隔で再試行する。このプロジェクトでは `ResourceAccessException` と `RestClientException` のときだけリトライする。OpenAIが 429 を返した場合は `QuotaExceededException` に変換してスローするため、リトライ対象外となる。 |
+| **Circuit Breaker** | 直近の呼び出しで失敗率が閾値を超えると「サーキットを開く」。開いている間は実際のAPI呼び出しを行わず、フォールバックメソッドが呼ばれて `AiServiceException` をスローする。連続失敗時の無駄な呼び出しを防ぎ、外部サービスの回復を待つ。 |
+
+#### 処理の流れ（OpenAI呼び出し時）
+
+```
+callText / callJson が呼ばれる
+      ↓
+Rate Limiter（openai）
+  → 許可数以内なら通過。超えていれば RequestNotPermitted をスロー（ここで 429 に変換）
+      ↓
+Retry（openai）
+  → リトライ対象例外のときだけ待機後に再実行
+      ↓
+Circuit Breaker（openai）
+  → サーキットが閉じていれば通過。開いていればフォールバック実行（AiServiceException）
+      ↓
+callForContent（実際の HTTP 呼び出し）
+  → 成功なら結果を返す。OpenAI が 429 を返した場合は QuotaExceededException（429 に変換）
+```
+
+#### アノテーションの適用例（OpenAiClient）
+
+`callText` と `callJson` の両方に、同じ3つのアノテーションを付与している。名前 `openai` で `application.properties` の設定（`resilience4j.ratelimiter.instances.openai` など）が紐づく。
+
+| アノテーション | 意味 |
+|----------------|------|
+| **@RateLimiter(name = "openai")** | 上記の「発信レート制限」をこのメソッドに適用する。 |
+| **@Retry(name = "openai")** | リトライ設定をこのメソッドに適用する。 |
+| **@CircuitBreaker(name = "openai", fallbackMethod = "…")** | サーキットブレーカーを適用し、サーキットが開いているときは指定したフォールバックメソッドを呼ぶ。 |
+
+#### application.properties の設定（本番・開発）
+
+| プロパティ | 意味 |
+|------------|------|
+| **Rate Limiter** | |
+| `resilience4j.ratelimiter.instances.openai.limit-for-period=50` | 1期間あたり許可する呼び出し数。 |
+| `resilience4j.ratelimiter.instances.openai.limit-refresh-period=600s` | 上記の「1期間」の長さ。600秒で50回まで。 |
+| `resilience4j.ratelimiter.instances.openai.timeout-duration=0` | 制限に達したときに待機する時間（秒）。0 のため待たずに即 `RequestNotPermitted` をスロー。 |
+| **Retry** | |
+| `resilience4j.retry.instances.openai.max-attempts=3` | 最大試行回数（初回＋リトライ2回）。 |
+| `resilience4j.retry.instances.openai.wait-duration=1s` | リトライまでの待機時間。 |
+| `resilience4j.retry.instances.openai.retry-exceptions[0/1]` | この例外のときだけリトライ。429 で投げる `QuotaExceededException` は含めないため、クォータ超過ではリトライしない。 |
+| **Circuit Breaker** | |
+| `resilience4j.circuitbreaker.instances.openai.failure-rate-threshold=50` | スライディングウィンドウ内の失敗率が50%を超えるとサーキットを開く。 |
+| `resilience4j.circuitbreaker.instances.openai.sliding-window-size=5` | 直近の呼び出し何件を失敗率計算に使うか。 |
+| `resilience4j.circuitbreaker.instances.openai.wait-duration-in-open-state=30s` | サーキットを開いたままにする時間。経過後に「半開」となり、再度呼び出しを試す。 |
+| `resilience4j.circuitbreaker.instances.openai.minimum-number-of-calls=5` | 少なくともこの回数呼ばれた後に失敗率を判定する。 |
+
+テスト用（`application-test.properties`）では、レート制限を緩和（`limit-for-period=10000`）し、リトライ回数を 1 にしているため、テストがレート制限やリトライ待ちに影響されない。
+
+#### 例外ハンドリング（GlobalExceptionHandler）
+
+レート制限とOpenAIクォータ超過の両方を、API では **429 Too Many Requests** として返す。
+
+| 例外 | 発生タイミング | ハンドラーでの処理 |
+|------|----------------|---------------------|
+| **RequestNotPermitted** | Resilience4j の Rate Limiter が「許可数超過」と判断したとき。 | 429 と「リクエスト数が上限を超えました」メッセージを返す。 |
+| **QuotaExceededException** | OpenAI API が 429 を返したとき。`OpenAiClient` が `HttpClientErrorException.TooManyRequests` をキャッチし、この例外に変換してスロー。 | 429 と「利用枠を超過しました」メッセージを返す。 |
 
 ---
 
@@ -353,6 +430,10 @@ public class GlobalExceptionHandler {
   - 詳細: [Spring Security + OAuth2の詳細](./spring-framework.md#spring-security--oauth2)
 - **AWS Cognito**: マネージド認証サービス
 - **JWT**: トークンベース認証
+
+### 耐障害・外部API呼び出し
+- **Resilience4j**: レート制限・リトライ・サーキットブレーカー（OpenAI API 呼び出しに適用）
+  - 詳細: [Resilience4jの説明（本文）](#resilience4jレート制限リトライサーキットブレーカー)
 
 ### 開発ツール
 - **Maven**: ビルドツール
