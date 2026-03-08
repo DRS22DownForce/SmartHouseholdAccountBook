@@ -119,6 +119,15 @@
 		</dependency>
 
 		<!-- ========================================
+		     Actuator
+		     ヘルスチェック等の監視機能
+		     ======================================== -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
+
+		<!-- ========================================
 		     OpenAPI / Swagger
 		     API仕様書の自動生成とSwagger UI
 		     ======================================== -->

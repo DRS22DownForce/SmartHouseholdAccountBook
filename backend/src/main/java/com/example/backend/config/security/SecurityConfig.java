@@ -1,5 +1,7 @@
 package com.example.backend.config.security;
 
+import org.springframework.boot.actuate.autoconfigure.security.servlet.EndpointRequest;
+import org.springframework.boot.actuate.health.HealthEndpoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -57,6 +59,7 @@ public class SecurityConfig {
 
                 // 認可ルールの設定
                 .authorizeHttpRequests(authz -> authz
+                        .requestMatchers(EndpointRequest.to(HealthEndpoint.class)).permitAll()
                         .requestMatchers("/").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().denyAll())
