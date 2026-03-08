@@ -4,6 +4,9 @@ import com.example.backend.exception.AiServiceException;
 import com.example.backend.exception.QuotaExceededException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
+import io.github.resilience4j.retry.annotation.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -49,7 +52,12 @@ public class OpenAiClient {
      * @param systemPrompt システムプロンプト
      * @param userPrompt ユーザープロンプト
      * @return 応答コンテンツ（前後の空白を除去済み）
+     * @throws QuotaExceededException OpenAI APIの利用枠を超過した場合
+     * @throws AiServiceException OpenAI APIとの通信でエラーが発生した場合やサーキットブレーカーが開いている場合
      */
+    @RateLimiter(name = "openai")
+    @Retry(name = "openai")
+    @CircuitBreaker(name = "openai", fallbackMethod = "callTextFallback")
     public String callText(String systemPrompt, String userPrompt) {
         return callForContent(systemPrompt, userPrompt, false);
     }
@@ -64,6 +72,9 @@ public class OpenAiClient {
      * @param <T> 戻り値型
      * @return パース済みオブジェクト
      */
+    @RateLimiter(name = "openai")
+    @Retry(name = "openai")
+    @CircuitBreaker(name = "openai", fallbackMethod = "callJsonFallback")
     public <T> T callJson(String systemPrompt, String userPrompt, TypeReference<T> responseType) {
         String content = callForContent(systemPrompt, userPrompt, true);
         try {
@@ -89,8 +100,6 @@ public class OpenAiClient {
         } catch (HttpClientErrorException.TooManyRequests e) {
             logger.warn("OpenAI APIの利用枠を超過しました");
             throw new QuotaExceededException(e);
-        } catch (AiServiceException e) {
-            throw e;
         } catch (Exception e) {
             logger.error("AIサービスとの通信でエラーが発生しました", e);
             throw new AiServiceException("AIサービスとの通信でエラーが発生しました。", e);
@@ -118,6 +127,18 @@ public class OpenAiClient {
             throw new AiServiceException("AIからの応答を取得できませんでした。");
         }
         return message.content().trim();
+    }
+
+    //callText の Circuit Breaker フォールバック（サーキットが開いているときに呼ばれる）
+    private String callTextFallback(String systemPrompt, String userPrompt, Throwable t) {
+        logger.warn("AIサービスが一時的に利用できません（サーキットブレーカー開）: {}", t.getMessage());
+        throw new AiServiceException("AIサービスが一時的に利用できません。", t);
+    }
+
+    //callJson の Circuit Breaker フォールバック（サーキットが開いているときに呼ばれる）
+    private <T> T callJsonFallback(String systemPrompt, String userPrompt, TypeReference<T> responseType, Throwable t) {
+        logger.warn("AIサービスが一時的に利用できません（サーキットブレーカー開）: {}", t.getMessage());
+        throw new AiServiceException("AIサービスが一時的に利用できません。", t);
     }
 
     private record OpenAiChatResponse(List<OpenAiChatChoice> choices) {

@@ -1,5 +1,6 @@
 package com.example.backend.exception;
 
+import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.http.ResponseEntity;
@@ -35,6 +36,17 @@ public class GlobalExceptionHandler {
         logger.warn("不正な引数が渡されました: {}", e.getMessage());
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse(e.getMessage(), Instant.now().atOffset(ZoneOffset.UTC)));
+    }
+
+    /**
+     * レート制限超過エラーを処理
+     * 429 Too Many Requestsを返す
+     */
+    @ExceptionHandler(RequestNotPermitted.class)
+    public ResponseEntity<ErrorResponse> handleRequestNotPermitted(RequestNotPermitted e) {
+        logger.warn("リクエスト数が上限を超えました: {}", e.getMessage());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .body(new ErrorResponse("リクエスト数が上限を超えました。しばらく待ってから再試行してください。", Instant.now().atOffset(ZoneOffset.UTC)));
     }
 
     /**
