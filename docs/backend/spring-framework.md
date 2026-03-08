@@ -17,7 +17,11 @@
 2. [Spring Data JPA](#spring-data-jpa)
    - [トランザクション](#トランザクション)
 3. [Spring Security + OAuth2](#spring-security--oauth2)
-4. [Spring Boot DevTools](#spring-boot-devtools)
+4. [Spring Boot Actuator](#spring-boot-actuator)
+   - [役割とエンドポイント](#役割とエンドポイント)
+   - [health と liveness / readiness](#health-と-liveness--readiness)
+   - [設定と Security 連携](#設定と-security-連携)
+5. [Spring Boot DevTools](#spring-boot-devtools)
 
 ---
 
@@ -698,6 +702,57 @@ AWS Cognitoが発行するJWTトークンには、以下のような情報が含
 
 
 ---
+## Spring Boot Actuator
+
+**役割**: アプリケーションの稼働状態・ヘルス・メトリクスなどを HTTP エンドポイントで提供する監視用機能。ロードバランサやオーケストレーション（ECS 等）が「このインスタンスにリクエストを流してよいか」を判断するために利用する。このプロジェクトでは必要最低限として **health** のみを HTTP で公開している。
+
+**このプロジェクトでの使用箇所**:
+- 依存: `pom.xml` の `spring-boot-starter-actuator`
+- 設定: `application.properties` の `management.*`
+- 認可: `SecurityConfig` で `HealthEndpoint` を `permitAll()` し、それ以外の Actuator エンドポイントは未公開
+
+---
+
+#### 役割とエンドポイント
+
+公開しているエンドポイントは **health** のみ。次のパスが認証なしで利用できる。
+
+| パス | 用途 |
+|------|------|
+| `GET /actuator/health` | 総合ヘルス（UP/DOWN）。DB 等の依存を含めた状態を返す。 |
+| `GET /actuator/health/liveness` | 生存確認。プロセスが生きているか。 |
+| `GET /actuator/health/readiness` | 受付可能か。DB 接続などが整い、トラフィックを受け付けてよいかを返す。 |
+
+---
+
+#### health と liveness / readiness
+
+- **liveness**: プロセスが生きているかどうか。失敗し続ける場合はコンテナの再起動の判断に使う（Kubernetes の livenessProbe、ECS のヘルスチェックなど）。
+- **readiness**: トラフィックを受け付けてよいか。DB 接続不良や起動直後などで「まだ受け付けない」状態を返す。ロードバランサは readiness が失敗しているインスタンスにはリクエストを流さない。
+
+単にホームページ（`/`）にアクセスするヘルスチェックと違い、Actuator の health は DB などの依存関係を含めた健全性を返すため、ALB/ECS のヘルスチェックに適している。
+
+---
+
+#### 設定と Security 連携
+
+**application.properties の主な設定**:
+
+| プロパティ | 意味 |
+|------------|------|
+| `management.endpoints.web.exposure.include=health` | HTTP で公開するエンドポイントを health のみに限定。 |
+| `management.endpoint.health.show-details=when_authorized` | 未認証時は UP/DOWN のみ返し、詳細（DB の状態など）は出さない。 |
+| `management.health.livenessstate.enabled=true` | liveness を有効化。 |
+| `management.health.readinessstate.enabled=true` | readiness を有効化。 |
+| `management.endpoint.health.group.liveness.include=livenessState` | 「liveness」グループを定義し、`/actuator/health/liveness` の結果に livenessState（生存しているか）だけを含める。 |
+| `management.endpoint.health.group.readiness.include=readinessState` | 「readiness」グループを定義し、`/actuator/health/readiness` の結果に readinessState（受け付けてよいか）だけを含める。 |
+
+**ヘルスグループの意味**: Actuator の health は「グループ」単位でサブパス（例: `/actuator/health/liveness`）を提供できる。`group.グループ名` でその名前の URL を作り、`include=コンポーネント名` で「そのグループの結果に含める HealthContributor」を指定する。livenessState / readinessState は Spring Boot が用意する「生存状態」「受付可能状態」用のコンポーネント。グループを定義しないと該当パスは 404 になる。
+
+**Security との連携**: `SecurityConfig` で `EndpointRequest.to(HealthEndpoint.class)` により health エンドポイントのみ認証なしで許可している。それ以外の Actuator（metrics, env, beans 等）は `exposure.include` に含めず、かつ `anyRequest().denyAll()` により拒否されるため、本番で公開されない。
+
+---
+
 ## Spring Boot DevTools
 
 **役割**: コード変更を検知して自動再起動（ホットリロード）し、開発効率を上げる。
