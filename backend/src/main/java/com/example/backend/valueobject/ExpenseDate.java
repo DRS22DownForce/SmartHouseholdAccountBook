@@ -8,7 +8,6 @@ import lombok.ToString;
 import lombok.NoArgsConstructor;
 import lombok.AccessLevel;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.Objects;
@@ -17,7 +16,7 @@ import java.util.Objects;
  * 支出日付を表現する値オブジェクト
  * 
  * このクラスは支出の日付を表現し、以下の責務を持ちます:
- * - 日付のバリデーション（未来日付でないこと）
+ * - 日付のバリデーション（未来日付でないこと。基準は UTC の暦日）
  * - 日付に関するビジネスロジック
  */
 @Embeddable
@@ -44,7 +43,8 @@ public class ExpenseDate{
 
     private static void validate(LocalDate value) {
         Objects.requireNonNull(value, "日付はnullであってはなりません。");
-        LocalDate today = Instant.now().atOffset(ZoneOffset.UTC).toLocalDate();
+        // API で渡る LocalDate は「日付のみ」なので、未来判定の基準を UTC の暦日に統一する
+        LocalDate today = LocalDate.now(ZoneOffset.UTC);
         if (value.isAfter(today)) {
             throw new IllegalArgumentException("日付は今日以前でなければなりません。");
         }

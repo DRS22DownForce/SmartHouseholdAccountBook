@@ -28,6 +28,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -100,7 +101,7 @@ class ExpenseIntegrationTest {
         @DisplayName("追加した支出が一覧で取得できる")
         void returnsCreatedAndExpenseInList() throws Exception {
             // given
-            ExpenseRequestDto request = requestDto(LocalDate.now(), "食費", 1000, "テスト");
+            ExpenseRequestDto request = requestDto(LocalDate.now(ZoneOffset.UTC), "食費", 1000, "テスト");
 
             // when
             mockMvc.perform(post("/api/expenses")
@@ -141,7 +142,7 @@ class ExpenseIntegrationTest {
         @DisplayName("指定IDの支出を削除する")
         void deletesExpense() throws Exception {
             // given
-            Expense expense = saveExpense("バス代", 500, LocalDate.now(), CategoryType.TRANSPORT);
+            Expense expense = saveExpense("バス代", 500, LocalDate.now(ZoneOffset.UTC), CategoryType.TRANSPORT);
 
             // when
             mockMvc.perform(delete("/api/expenses/" + expense.getId()))
@@ -160,8 +161,8 @@ class ExpenseIntegrationTest {
         @DisplayName("支出更新がDBに反映される")
         void updatesExpense() throws Exception {
             // given
-            Expense expense = saveExpense("バス代", 500, LocalDate.now(), CategoryType.TRANSPORT);
-            ExpenseRequestDto request = requestDto(LocalDate.now(), "食費", 1000, "更新テスト");
+            Expense expense = saveExpense("バス代", 500, LocalDate.now(ZoneOffset.UTC), CategoryType.TRANSPORT);
+            ExpenseRequestDto request = requestDto(LocalDate.now(ZoneOffset.UTC), "食費", 1000, "更新テスト");
 
             // when
             mockMvc.perform(put("/api/expenses/" + expense.getId())
