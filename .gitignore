@@ -19,7 +19,6 @@ target/
 *.env
 
 # データベース関連
-/docker/mysql/init.sql
 *.sql.backup
 *.sql.dump
 *.db

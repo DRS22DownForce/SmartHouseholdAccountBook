@@ -325,38 +325,7 @@ spring.jpa.open-in-view=false
 
 ### データベーススキーマ
 
-このプロジェクトでは、`docker/mysql/init.sql`でデータベースの初期化を行います。
-
-```1:34:docker/mysql/init.sql
--- データベースの作成（もしなければ）
-CREATE DATABASE IF NOT EXISTS demo DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- データベースの選択
-USE demo;
-
--- セッションの文字コードをUTF-8に設定
-SET NAMES utf8mb4;
-
--- ユーザーテーブルの作成
-CREATE TABLE IF NOT EXISTS users (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    cognito_sub VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- 家計簿テーブルの作成
-CREATE TABLE IF NOT EXISTS expenses (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    date DATE NOT NULL,
-    category VARCHAR(50) NOT NULL,
-    amount INT NOT NULL,
-    description VARCHAR(255) NOT NULL,
-    user_id BIGINT NOT NULL,
-    CONSTRAINT fk_expenses_user
-    FOREIGN KEY (user_id) REFERENCES users(id)
-    ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-```
+このプロジェクトでは、**Flyway** によりスキーマをバージョン管理しています。Spring Boot 起動時に、未適用のマイグレーション（`backend/src/main/resources/db/migration/` 内の `V*.sql`）が順に実行され、テーブルが作成・更新されます。初回は `V1__initial_schema.sql` で `users`・`expenses`・`monthly_reports` が作成されます。詳細は [バックエンド技術スタック資料](./tech-stack-backend.md) の Flyway の節を参照してください。
 
 **テーブル構造の説明**:
 
@@ -774,7 +743,6 @@ services:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
     healthcheck:
       test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_ROOT_USER}", "-p${MYSQL_ROOT_PASSWORD}" ]
@@ -814,8 +782,7 @@ volumes:
      - 2回目起動: `docker-compose up` → **データがそのまま残っている**
 
 3. **ファイルマウント**:
-   - `./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql`: 初期化SQLをマウント（初回起動時に自動実行）
-   - `./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf`: MySQL設定ファイルをマウント
+   - `./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf`: MySQL設定ファイル（文字セット等）をマウント。スキーマの作成はアプリ起動時の Flyway マイグレーションで行う。
 
 #### 開発環境用のDocker Compose
 
@@ -837,8 +804,6 @@ services:
     volumes:
       # データ永続化
       - mysql_dev_data:/var/lib/mysql
-      # 初期化スクリプト
-      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
       # MySQL設定
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
     healthcheck:
