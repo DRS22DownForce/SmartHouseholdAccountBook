@@ -15,8 +15,6 @@ services:
     volumes:
       # データ永続化
       - mysql_dev_data:/var/lib/mysql
-      # 初期化スクリプト
-      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
       # MySQL設定
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
     healthcheck:
