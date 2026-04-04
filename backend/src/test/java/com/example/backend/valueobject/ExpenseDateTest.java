@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.DisplayName;
 
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -27,7 +28,7 @@ class ExpenseDateTest {
         @DisplayName("今日の日付で作成できる")
         void createWithToday() {
             // given
-            LocalDate today = LocalDate.now();
+            LocalDate today = LocalDate.now(ZoneOffset.UTC);
 
             // when
             ExpenseDate date = new ExpenseDate(today);
@@ -41,7 +42,7 @@ class ExpenseDateTest {
         @DisplayName("過去の日付で作成できる")
         void createWithPastDate() {
             // given
-            LocalDate pastDate = LocalDate.now().minusDays(1);
+            LocalDate pastDate = LocalDate.now(ZoneOffset.UTC).minusDays(1);
 
             // when
             ExpenseDate date = new ExpenseDate(pastDate);
@@ -85,7 +86,7 @@ class ExpenseDateTest {
         @DisplayName("未来の日付の場合は例外が発生する")
         void validateDateNotFuture() {
             // given
-            LocalDate futureDate = LocalDate.now().plusDays(1);
+            LocalDate futureDate = LocalDate.now(ZoneOffset.UTC).plusDays(1);
 
             // when, then
             assertThatThrownBy(() -> new ExpenseDate(futureDate))
@@ -102,8 +103,8 @@ class ExpenseDateTest {
         @DisplayName("日付を比較できる")
         void isAfterSuccess() {
             // given
-            LocalDate date1 = LocalDate.now().minusDays(5);
-            LocalDate date2 = LocalDate.now().minusDays(10);
+            LocalDate date1 = LocalDate.now(ZoneOffset.UTC).minusDays(5);
+            LocalDate date2 = LocalDate.now(ZoneOffset.UTC).minusDays(10);
             ExpenseDate expenseDate1 = new ExpenseDate(date1);
             ExpenseDate expenseDate2 = new ExpenseDate(date2);
 
@@ -116,7 +117,7 @@ class ExpenseDateTest {
         @DisplayName("比較する日付がnullの場合は例外が発生する")
         void isAfterWithNull() {
             // given
-            ExpenseDate date = new ExpenseDate(LocalDate.now());
+            ExpenseDate date = new ExpenseDate(LocalDate.now(ZoneOffset.UTC));
 
             // when, then
             assertThatThrownBy(() -> date.isAfter(null))
@@ -133,8 +134,8 @@ class ExpenseDateTest {
         @DisplayName("日付を比較できる")
         void isBeforeSuccess() {
             // given
-            LocalDate date1 = LocalDate.now().minusDays(10);
-            LocalDate date2 = LocalDate.now().minusDays(5);
+            LocalDate date1 = LocalDate.now(ZoneOffset.UTC).minusDays(10);
+            LocalDate date2 = LocalDate.now(ZoneOffset.UTC).minusDays(5);
             ExpenseDate expenseDate1 = new ExpenseDate(date1);
             ExpenseDate expenseDate2 = new ExpenseDate(date2);
 
@@ -147,7 +148,7 @@ class ExpenseDateTest {
         @DisplayName("比較する日付がnullの場合は例外が発生する")
         void isBeforeWithNull() {
             // given
-            ExpenseDate date = new ExpenseDate(LocalDate.now());
+            ExpenseDate date = new ExpenseDate(LocalDate.now(ZoneOffset.UTC));
 
             // when, then
             assertThatThrownBy(() -> date.isBefore(null))
@@ -164,7 +165,7 @@ class ExpenseDateTest {
         @DisplayName("同じ日付の場合はより後/前の比較はfalseになる")
         void compareEqualDates() {
             // given
-            LocalDate sameDate = LocalDate.now().minusDays(5);
+            LocalDate sameDate = LocalDate.now(ZoneOffset.UTC).minusDays(5);
             ExpenseDate date1 = new ExpenseDate(sameDate);
             ExpenseDate date2 = new ExpenseDate(sameDate);
 
@@ -221,7 +222,7 @@ class ExpenseDateTest {
         @DisplayName("比較する日付がnullの場合は例外が発生する")
         void isSameMonthWithNull() {
             // given
-            ExpenseDate date = new ExpenseDate(LocalDate.now());
+            ExpenseDate date = new ExpenseDate(LocalDate.now(ZoneOffset.UTC));
 
             // when, then
             assertThatThrownBy(() -> date.isSameMonth(null))
