@@ -21,7 +21,9 @@ public class CacheConfig {
         SimpleCacheManager cacheManager = new SimpleCacheManager();
         cacheManager.setCaches(List.of(
                 buildCache("users", 30, TimeUnit.MINUTES, 200),
-                buildCache("aiCategory", 60, TimeUnit.MINUTES, 500)));
+                buildCache("aiCategory", 60, TimeUnit.MINUTES, 500),
+                // 「該当 sub のユーザーは DB に存在する」ことを記録するキャッシュ。
+                buildCache("userEnsured", 30, TimeUnit.MINUTES, 1000)));
         return cacheManager;
     }
 
