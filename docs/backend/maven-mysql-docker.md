@@ -40,7 +40,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.0</version>
+		<version>3.5.13</version>
 		<relativePath />
 	</parent>
 	<groupId>com.example</groupId>
@@ -138,7 +138,7 @@ mvn dependency:tree  # スコープも表示される
 	</profiles>
 ```
 
-**使い方**: `mvn clean package -Plocal`（ローカル環境）または`-Pdocker`（Docker環境）
+**使い方**: `./mvnw clean package -Plocal`（ローカル環境）または `-Pdocker`（Docker ビルド）。**Maven Wrapper**（`backend/mvnw`）でチーム全体が同じ Maven バージョンを使います。
 
 #### 5. ビルドプラグイン（Build Plugins）
 
@@ -278,7 +278,7 @@ public class ExpenseController implements ExpensesApi {
 
 Spring BootアプリケーションがMySQLに接続するための設定は、`application.properties`で行います。
 
-```3:16:backend/src/main/resources/application.properties
+```3:15:backend/src/main/resources/application.properties
 # MySQLの接続設定（ローカル開発用）
 spring.datasource.url=${SPRING_DATASOURCE_URL_DEV}
 spring.datasource.username=${MYSQL_ROOT_USER}
@@ -286,10 +286,10 @@ spring.datasource.password=${MYSQL_ROOT_PASSWORD}
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
 
 # JPAの設定
-spring.jpa.hibernate.ddl-auto=update
+spring.jpa.hibernate.ddl-auto=validate
 spring.jpa.show-sql=false
 spring.jpa.database-platform=org.hibernate.dialect.MySQLDialect
-spring.jpa.properties.hibernate.jdbc.time_zone=Asia/Tokyo
+spring.jpa.properties.hibernate.jdbc.time_zone=UTC
 # Open-in-Viewを無効化（警告メッセージを抑制し、パフォーマンスも向上）
 spring.jpa.open-in-view=false
 ```
@@ -298,13 +298,13 @@ spring.jpa.open-in-view=false
 
 | 設定項目 | 説明 |
 |---------|------|
-| `spring.datasource.url` | MySQLデータベースへの接続URL（例: `jdbc:mysql://localhost:3306/demo`） |
+| `spring.datasource.url` | MySQLデータベースへの接続URL（例: `jdbc:mysql://localhost:3306/demo?serverTimezone=UTC`） |
 | `spring.datasource.username` | MySQLのユーザー名（通常は`root`） |
 | `spring.datasource.password` | MySQLのパスワード |
 | `spring.datasource.driver-class-name` | JDBCドライバーのクラス名（MySQL用） |
-| `spring.jpa.hibernate.ddl-auto` | テーブルの自動生成設定（`update`: 既存テーブルを更新） |
+| `spring.jpa.hibernate.ddl-auto` | スキーマは Flyway が管理するため `validate`（自動 DDL は使わない） |
 | `spring.jpa.database-platform` | 使用するデータベースの方言（MySQL用） |
-| `spring.jpa.properties.hibernate.jdbc.time_zone` | タイムゾーン設定（日本時間） |
+| `spring.jpa.properties.hibernate.jdbc.time_zone` | JDBC 経由の日時を **UTC** で扱う（DB セッションと揃える） |
 
 #### `spring.jpa.hibernate.ddl-auto=update` とは
 
@@ -325,38 +325,7 @@ spring.jpa.open-in-view=false
 
 ### データベーススキーマ
 
-このプロジェクトでは、`docker/mysql/init.sql`でデータベースの初期化を行います。
-
-```1:34:docker/mysql/init.sql
--- データベースの作成（もしなければ）
-CREATE DATABASE IF NOT EXISTS demo DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
--- データベースの選択
-USE demo;
-
--- セッションの文字コードをUTF-8に設定
-SET NAMES utf8mb4;
-
--- ユーザーテーブルの作成
-CREATE TABLE IF NOT EXISTS users (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    cognito_sub VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- 家計簿テーブルの作成
-CREATE TABLE IF NOT EXISTS expenses (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    date DATE NOT NULL,
-    category VARCHAR(50) NOT NULL,
-    amount INT NOT NULL,
-    description VARCHAR(255) NOT NULL,
-    user_id BIGINT NOT NULL,
-    CONSTRAINT fk_expenses_user
-    FOREIGN KEY (user_id) REFERENCES users(id)
-    ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-```
+このプロジェクトでは、**Flyway** によりスキーマをバージョン管理しています。Spring Boot 起動時に、未適用のマイグレーション（`backend/src/main/resources/db/migration/` 内の `V*.sql`）が順に実行され、テーブルが作成・更新されます。初回は `V1__initial_schema.sql` で `users`・`expenses`・`monthly_reports` が作成されます。詳細は [バックエンド技術スタック資料](./tech-stack-backend.md) の Flyway の節を参照してください。
 
 **テーブル構造の説明**:
 
@@ -529,8 +498,9 @@ description VARCHAR(255) NOT NULL
 
 MySQLの動作をカスタマイズするために、`docker/mysql/my.cnf`を使用しています。
 
-```1:15:docker/mysql/my.cnf
+```1:17:docker/mysql/my.cnf
 [mysqld]
+default-time-zone='+00:00'
 character-set-server=utf8mb4
 collation-server=utf8mb4_unicode_ci
 character-set-client-handshake=FALSE
@@ -553,6 +523,7 @@ default-character-set=utf8mb4
 
 | 設定項目 | 説明 |
 |---------|------|
+| `default-time-zone='+00:00'` | サーバーのデフォルトタイムゾーンを **UTC** に（アプリ・JDBC の UTC 設定と揃える） |
 | `character-set-server=utf8mb4` | サーバーのデフォルト文字セット（データベース・テーブル作成時のデフォルト） |
 | `collation-server=utf8mb4_unicode_ci` | サーバーのデフォルト照合順序 |
 | `character-set-client-handshake=FALSE` | クライアントが送信する文字コード情報を無視 |
@@ -736,86 +707,50 @@ docker run my-app
 
 ### Docker Compose
 
-**Docker Compose**は、複数のコンテナを定義・管理するためのツールです。`docker-compose.yaml`ファイルで、アプリケーション全体の構成を定義します。
+**Docker Compose**は、複数のコンテナを定義・管理するためのツールです。YAML ファイルでサービス・ネットワーク・ボリュームをまとめて記述します。
 
-#### 本番環境用のDocker Compose
+#### 単一ホスト用（MySQL + Spring Boot）
 
-```1:45:docker-compose.yaml
-services:
-  backend:
-    container_name: backend
-    build:
-      context: ./
-      dockerfile: backend/Dockerfile
-    ports:
-      - "8080:8080"
-      - "5005:5005" # デバッグ用ポート
-    environment:
-      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_PROD}
-      SPRING_DATASOURCE_USERNAME: ${MYSQL_ROOT_USER}
-      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      SPRING_JPA_HIBERNATE_DDL_AUTO: update
-      SPRING_JPA_SHOW_SQL: "true"
-      COGNITO_JWK_SET_URL: ${COGNITO_JWK_SET_URL}
-    command: >
-      sh -c "java -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005 -jar app.jar"
-    # ↑ デバッグオプション付きでSpring Bootを起動  
-    depends_on:
-      mysql:
-        condition: service_healthy
+本リポジトリでは **EC2 1 台＋Docker** に近い形で検証できるよう、次の 3 ファイルに分けています。
 
-  mysql:
-    image: mysql:8.0
-    container_name: mysql
-    ports:
-      - "3306:3306"
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-      MYSQL_DATABASE: ${MYSQL_DATABASE}
-    volumes:
-      - mysql_data:/var/lib/mysql
-      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
-      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
-    healthcheck:
-      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_ROOT_USER}", "-p${MYSQL_ROOT_PASSWORD}" ]
-      interval: 5s
-      timeout: 5s
-      retries: 20
+| ファイル | 役割 |
+|----------|------|
+| **`docker-compose.single-host.yaml`** | **ベース**: `mysql` と `backend` を**同一 Docker ネットワーク**上に配置。JDBC は `jdbc:mysql://mysql:3306/...`（サービス名 `mysql` がホスト名になる）。バックエンドは **`127.0.0.1:8080`** のみ公開（ホストの Nginx が `proxy_pass` する想定）。 |
+| **`docker-compose.single-host.local.yaml`** | **ローカル上書き**: MySQL を **`127.0.0.1:3306`** にも公開、`SHOW_SQL` を見やすくする等。 |
+| **`docker-compose.single-host.prod.yaml`** | **本番寄せ上書き**: `SHOW_SQL=false` など。 |
 
-volumes:
-  mysql_data:
-    name: smart_household_mysql_data
+**Flyway と Hibernate**: スキーマの正は **Flyway** です。Compose および `application.properties` では **`spring.jpa.hibernate.ddl-auto=validate`**（自動 DDL は使わない）に揃えます。
+
+**起動例**:
+```bash
+# ローカル
+docker compose -f docker-compose.single-host.yaml -f docker-compose.single-host.local.yaml --env-file .env up -d --build
+
+# 本番寄せ
+docker compose -f docker-compose.single-host.yaml -f docker-compose.single-host.prod.yaml --env-file .env up -d --build
 ```
 
-**主要な設定項目**:
+**主要な設定項目**（ベース YAML の考え方）:
 
 | 設定項目 | 説明 | 例 |
 |---------|------|-----|
-| **`container_name`** | コンテナの名前 | `backend`、`mysql` |
+| **`container_name`** | コンテナの名前 | `smart_household_backend_single` 等 |
 | **`build`** | イメージのビルド設定 | `context: ./`、`dockerfile: backend/Dockerfile` |
-| **`ports`** | ポートマッピング（ホスト:コンテナ） | `"8080:8080"`、`"5005:5005"` |
-| **`environment`** | 環境変数の設定 | `${変数名}`で`.env`ファイルから読み込み |
-| **`depends_on`** | 依存関係の定義 | `mysql`サービスが起動してから`backend`を起動 |
-| **`volumes`** | データの永続化とファイルのマウント | `mysql_data:/var/lib/mysql` |
-| **`healthcheck`** | コンテナの健康状態をチェック | MySQLが応答するか確認 |
+| **`ports`** | ポートマッピング（ホスト:コンテナ） | バックエンド: `127.0.0.1:8080:8080`（ローカル上書きで MySQL のみ 3306 を追加） |
+| **`environment`** | 環境変数 | `${変数名}` で `.env` から読み込み |
+| **`depends_on`** | 依存関係 | `mysql` の **healthcheck** 成功後に `backend` を起動 |
+| **`volumes`** | データ永続化 | `mysql_data_single:/var/lib/mysql` 等 |
+| **`healthcheck`** | 健全性チェック | `mysqladmin ping` で DB 準備完了を待つ |
 
 **重要なポイント**:
 
-1. **ポートマッピング**: `"8080:8080"`は「ホストの8080 → コンテナの8080」を意味します。コンテナ内のポートは外部から直接アクセスできないため、ホスト経由でアクセスできるようにします。
+1. **ポート**: バックエンドの `127.0.0.1:8080` は「同一マシン上の Nginx やブラウザだけが叩ける」バインド。本番では **443 を Nginx** が受け、**8080 はセキュリティグループで開けない**運用と組み合わせます。
 
-2. **ボリューム（データ永続化）**:
-   - **`mysql_data:/var/lib/mysql`**: 名前付きボリュームでデータベースファイルを永続化
-     - コンテナ内の`/var/lib/mysql`ディレクトリをボリュームとして保存します
-     - `mysql_data`はDocker Compose内での参照名、実際のボリューム名は`smart_household_mysql_data`
-   - ✅ **コンテナを削除・再作成してもデータが残ります**
-   - **例**: 
-     - 1回目: テーブル作成、データ投入
-     - コンテナ削除: `docker-compose down`
-     - 2回目起動: `docker-compose up` → **データがそのまま残っている**
+2. **ボリューム**: 名前付きボリュームで `/var/lib/mysql` を永続化。**`docker compose down` ではボリュームは消えません**（`-v` を付けた場合のみ削除）。
 
-3. **ファイルマウント**:
-   - `./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql`: 初期化SQLをマウント（初回起動時に自動実行）
-   - `./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf`: MySQL設定ファイルをマウント
+3. **ファイルマウント**: `./docker/mysql/my.cnf` で文字セット等を指定。**テーブル定義は Flyway マイグレーション**が適用します。
+
+4. **ビルド**: [backend/Dockerfile](../../backend/Dockerfile) 内のビルドは **Maven Wrapper（`./mvnw`）** で行い、Maven のバージョンをリポジトリで固定します。
 
 #### 開発環境用のDocker Compose
 
@@ -837,8 +772,6 @@ services:
     volumes:
       # データ永続化
       - mysql_dev_data:/var/lib/mysql
-      # 初期化スクリプト
-      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
       # MySQL設定
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
     healthcheck:
@@ -889,8 +822,9 @@ docker-compose -f docker-compose.dev.yaml up -d
 # ボリュームの一覧を表示
 docker volume ls
 
-# ボリュームを削除（データが消える）
-docker volume rm smart_household_mysql_data
+# ボリュームを削除（データが消える。名前は docker volume ls で確認）
+docker volume rm smart_household_mysql_data_single
+# 開発用のみ MySQL を起動している場合: smart_household_mysql_dev_data
 ```
 
 ---

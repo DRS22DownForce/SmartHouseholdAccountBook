@@ -64,11 +64,13 @@
 - その他（`/`）: 動的ページ（SSR） → Next.jsサーバーにプロキシ
 
 **Docker Composeファイルの構成**:
-本番環境では、MySQLとSpring Bootを**別々のDocker Composeファイル**で管理します：
-- **`docker-compose.mysql.yaml`**: MySQLのみを起動（データベースの独立性を確保）
-- **`docker-compose.backend.yaml`**: Spring Bootのみを起動（既存のMySQLコンテナに接続）
+本番環境では **`docker-compose.single-host.yaml`**（ベース）と **`docker-compose.single-host.prod.yaml`**（本番寄せ）で、**MySQL と Spring Boot を同一ホスト・同一 Docker ネットワーク**上で起動します。
 
-**分離する理由**: 独立性、リソース管理、スケーラビリティ、セキュリティの向上
+- **スキーマ**: **Flyway** がマイグレーションの正。**Hibernate の `ddl-auto` は `validate` のみ**（自動 DDL は使わない）。
+- **バックエンド**: コンテナは **`127.0.0.1:8080`** のみにバインド。ホスト上の **Nginx** が `proxy_pass http://127.0.0.1:8080;` で API に中継し、**443 で TLS 終端**する想定です（8080 をインターネットに直接開けない）。
+- **MySQL**: **3306 はホストにマップしない**（コンテナ間通信のみ）。外部から DB に直結されません。
+
+**コンテナ名の目安**: MySQL は `smart_household_mysql_single`、バックエンドは `smart_household_backend_single`（Compose ファイルで定義）。
 
 ### ポート構成
 
@@ -399,10 +401,11 @@ MYSQL_ROOT_PASSWORD=your-secure-password-here
 MYSQL_DATABASE=smart_household_db
 
 # ========================================
-# Spring Boot データソース設定
+# Spring Boot データソース（ローカル IDE で起動する場合）
 # ========================================
-# 本番環境用のMySQL接続URL
-SPRING_DATASOURCE_URL_PROD=jdbc:mysql://mysql:3306/smart_household_db?useSSL=true&serverTimezone=Asia/Tokyo
+# 単一ホスト Docker Compose では compose 内で JDBC URL を組み立てるため不要。
+# IDE から `localhost` の MySQL に繋ぐ場合用:
+SPRING_DATASOURCE_URL_DEV=jdbc:mysql://localhost:3306/smart_household_db?serverTimezone=UTC
 
 # ========================================
 # AWS Cognito設定
@@ -424,66 +427,68 @@ OPENAI_API_KEY=your-openai-api-key-here
 
 **Docker Composeでの使用方法**:
 ```bash
-# 本番環境（.env.productionファイルを明示的に指定）
-docker compose --env-file .env.production -f docker-compose.mysql.yaml up -d
-docker compose --env-file .env.production -f docker-compose.backend.yaml up -d
+# 本番寄せ（.env.production を明示的に指定）
+docker compose --env-file .env.production \
+  -f docker-compose.single-host.yaml \
+  -f docker-compose.single-host.prod.yaml \
+  up -d --build
 ```
 
 ---
 
 ## データベース（MySQL）のセットアップ
 
-### ステップ1: MySQLコンテナを起動
+### ステップ1: MySQL とバックエンドをまとめて起動
+
+単一ホスト Compose では **MySQL と Spring Boot を一度に起動**します。Compose の `depends_on` と MySQL の **healthcheck** により、DB が準備できてからバックエンドが立ち上がります。
 
 ```bash
-# 本番環境用の環境変数ファイルを指定してMySQLコンテナを起動
-docker compose --env-file .env.production -f docker-compose.mysql.yaml up -d
+docker compose --env-file .env.production \
+  -f docker-compose.single-host.yaml \
+  -f docker-compose.single-host.prod.yaml \
+  up -d --build
 
 # コンテナの状態を確認
 docker ps
 
 # MySQLのログを確認（エラーがないか確認）
-docker logs smart_household_mysql
+docker logs smart_household_mysql_single
 
 # ネットワークが作成されたことを確認
-docker network ls | grep smart_household_app_network
+docker network ls | grep smart_household_app_network_single
 ```
 
-**初心者向けの解説**: `docker-compose.mysql.yaml`はMySQL専用のDocker Compose設定ファイルです。`restart: always`により、コンテナが停止した場合、自動的に再起動します。`127.0.0.1:3306:3306`により、MySQLをローカルホストのみにバインドし、外部から直接アクセスできなくなります（セキュリティ向上）。
+**初心者向けの解説**: 本番寄せファイルでは MySQL の **3306 をホストに公開しません**。DB への接続は **Docker 内部ネットワーク**上のホスト名 `mysql` のみです。初回起動時に **Flyway** がマイグレーションを流し、テーブルが作成されます。
 
 ### ステップ2: MySQL接続の確認
 
 ```bash
 # MySQLコンテナに接続してデータベースを確認
-docker exec -it smart_household_mysql mysql -u root -p${MYSQL_ROOT_PASSWORD} -e "SHOW DATABASES;"
+docker exec -it smart_household_mysql_single mysql -u root -p${MYSQL_ROOT_PASSWORD} -e "SHOW DATABASES;"
 ```
 
-`smart_household_db`が表示されていれば、データベースの作成は成功しています。
+`smart_household_db`（または `.env` の `MYSQL_DATABASE`）が表示されていれば、データベースの作成は成功しています。
 
 ---
 
 ## バックエンド（Spring Boot）のデプロイ
 
-### ステップ1: MySQLが起動していることを確認
-
-**重要**: このステップを実行する前に、MySQLが既に起動していることを確認してください。
+### ステップ1: スタックが起動していることを確認
 
 ```bash
-# MySQLコンテナが起動していることを確認
-docker ps | grep smart_household_mysql
-
-# MySQLが起動していない場合は、先にMySQLを起動
-docker compose --env-file .env.production -f docker-compose.mysql.yaml up -d
+docker ps | grep smart_household_mysql_single
+docker ps | grep smart_household_backend_single
 ```
 
-### ステップ2: バックエンドのビルドと起動
+いずれかが止まっている場合は、上記の **単一ホスト Compose** を再度 `up -d` してください。
+
+### ステップ2: ログの確認（ビルドはステップ1に含まれる）
 
 ```bash
-# 本番環境用の環境変数ファイルを指定してバックエンドをビルドして起動
-docker compose --env-file .env.production -f docker-compose.backend.yaml up -d --build
-
-# ビルドと起動の進行状況を確認
-docker compose -f docker-compose.backend.yaml logs -f backend
+docker compose --env-file .env.production \
+  -f docker-compose.single-host.yaml \
+  -f docker-compose.single-host.prod.yaml \
+  logs -f backend
 ```
 
 **初心者向けの解説**: `--build`はイメージを再ビルドします。初回実行時やコードを更新した後に使用します。`logs -f`はログをリアルタイムで表示します（`Ctrl + C`で終了）。
@@ -503,7 +508,7 @@ curl http://localhost:8080/api/expenses/months
 - `/actuator/health`: 認証不要なので、バックエンドが正常に起動していればHTTPレスポンス（通常は200 OK）が返ってきます。
 - `/api/expenses/months`: Cognito認証が必要なため、JWTトークンなしでは`401 Unauthorized`が返ります。これは正常な動作です（認証が正しく機能している証拠）。
 
-**エラーが発生している場合**: ログを確認してください：`docker logs smart_household_backend`
+**エラーが発生している場合**: ログを確認してください：`docker logs smart_household_backend_single`
 
 ---
 
@@ -702,7 +707,7 @@ server {
 - **SSL証明書**: Certbotが自動的に設定したSSL証明書のパスが記載されています。これにより、HTTPS通信が有効になります。
 - **セキュリティヘッダー**: HSTS（Strict-Transport-Security）により、ブラウザにHTTPS接続を強制します。その他のセキュリティヘッダーも追加されています。
 - `location /_next/static`: Next.jsのビルド時に生成される静的ファイルをNginxが直接配信します。これにより、Next.jsサーバーを経由せずに高速に配信できます。
-- `location /api`: `/api`で始まるリクエストをバックエンド（Spring Boot、ポート8080）に転送します。`proxy_set_header Authorization $http_authorization;`により、JWTトークンなどの認証情報をバックエンドに正しく渡します。
+- `location /api`: `/api`で始まるリクエストをバックエンド（Spring Boot、**Docker ではホストの 127.0.0.1:8080**）に転送します。`proxy_pass http://localhost:8080` は同一サーバー上では **127.0.0.1:8080** と同じ意味です。`proxy_set_header Authorization $http_authorization;` により JWT などをバックエンドに渡します。`X-Forwarded-Proto` 等は HTTPS 判定に使われます。
 - `location /`: その他のリクエスト（動的ページ、SSRが必要なページなど）をフロントエンド（Next.js、ポート3000）に転送します。
 
 **この構成の利点**: セキュリティ強化（HTTPS、HSTS）、パフォーマンス向上（HTTP/2、静的ファイルの直接配信）、リソース節約、キャッシュ最適化
@@ -813,8 +818,11 @@ git pull origin main
 ### ステップ2: アプリケーションの再ビルドと再起動
 
 ```bash
-# バックエンドを再ビルドして再起動
-docker compose --env-file .env.production -f docker-compose.backend.yaml up -d --build
+# バックエンド（と MySQL）を再ビルドして再起動
+docker compose --env-file .env.production \
+  -f docker-compose.single-host.yaml \
+  -f docker-compose.single-host.prod.yaml \
+  up -d --build
 
 # フロントエンドディレクトリに移動してビルド
 cd frontend-nextjs
@@ -914,8 +922,8 @@ docker ps
 docker stats
 
 # コンテナのログを確認
-docker logs -f smart_household_backend
-docker logs -f smart_household_mysql
+docker logs -f smart_household_backend_single
+docker logs -f smart_household_mysql_single
 ```
 
 ### Nginxのログ確認
@@ -951,7 +959,7 @@ free -h
 
 #### 1. バックエンドが起動しない
 
-**症状**: `docker logs smart_household_backend`でエラーが表示される
+**症状**: `docker logs smart_household_backend_single` でエラーが表示される
 
 **確認事項**:
 ```bash
@@ -959,15 +967,15 @@ free -h
 docker ps | grep mysql
 
 # MySQLのログを確認
-docker logs smart_household_mysql
+docker logs smart_household_mysql_single
 
 # 環境変数が正しく設定されているか確認
-cat .env.production | grep SPRING_DATASOURCE_URL
+cat .env.production | grep SPRING_DATASOURCE
 ```
 
 **解決方法**:
-- MySQLが起動していない場合: `docker compose --env-file .env.production -f docker-compose.mysql.yaml up -d`
-- 環境変数が間違っている場合: `.env.production`ファイルを確認して修正
+- スタック全体が止まっている場合: `docker compose --env-file .env.production -f docker-compose.single-host.yaml -f docker-compose.single-host.prod.yaml up -d --build`
+- 環境変数が間違っている場合: `.env.production` ファイルを確認して修正（Compose 内では `SPRING_DATASOURCE_URL` が JDBC にマップされます）
 
 #### 2. フロントエンドが表示されない
 
@@ -1072,20 +1080,20 @@ sudo certbot certificates
 docker ps | grep mysql
 
 # MySQLに直接接続してテスト
-docker exec -it smart_household_mysql mysql -u root -p${MYSQL_ROOT_PASSWORD} -e "SELECT 1;"
+docker exec -it smart_household_mysql_single mysql -u root -p${MYSQL_ROOT_PASSWORD} -e "SELECT 1;"
 ```
 
 **解決方法**:
-- MySQLコンテナが停止している場合: `docker compose --env-file .env.production -f docker-compose.mysql.yaml up -d`
-- 接続URLが間違っている場合: `.env.production`ファイルの`SPRING_DATASOURCE_URL_PROD`を確認
+- MySQL またはバックエンドが停止している場合: `docker compose --env-file .env.production -f docker-compose.single-host.yaml -f docker-compose.single-host.prod.yaml up -d`
+- 接続URLが間違っている場合: Compose の `SPRING_DATASOURCE_URL`（ベース YAML 内）と `.env` の `MYSQL_DATABASE` が一致しているか確認
 
 ### ログファイルの場所
 
 | サービス | ログファイルの場所 |
 |---------|-----------------|
 | Next.js (PM2) | `~/.pm2/logs/` |
-| Spring Boot (Docker) | `docker logs smart_household_backend` |
-| MySQL (Docker) | `docker logs smart_household_mysql` |
+| Spring Boot (Docker) | `docker logs smart_household_backend_single` |
+| MySQL (Docker) | `docker logs smart_household_mysql_single` |
 | Nginx | `/var/log/nginx/smart-household-*.log` |
 | システムログ | `/var/log/syslog` |
 

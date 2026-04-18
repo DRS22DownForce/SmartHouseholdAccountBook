@@ -1,0 +1,13 @@
+# ========================================
+# ローカル上書き: MySQL を 127.0.0.1:3306 で公開、SQL ログを見やすく
+# ddl-auto はベースの validate のまま（Flyway 前提）
+# ========================================
+
+services:
+  mysql:
+    ports:
+      - "127.0.0.1:3306:3306"
+
+  backend:
+    environment:
+      SPRING_JPA_SHOW_SQL: "true"

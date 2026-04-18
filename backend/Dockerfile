@@ -1,19 +1,23 @@
 # --- Build stage ---
-FROM maven:3.9-eclipse-temurin-21 AS builder
+# JDK とネットワークは公式 Maven イメージ。実際のビルドコマンドはプロジェクトの Maven Wrapper でバージョン固定。
+FROM maven:3.9.9-eclipse-temurin-21 AS builder
 WORKDIR /app
+
+COPY backend/mvnw backend/mvnw.cmd ./
+COPY backend/.mvn .mvn
+RUN chmod +x mvnw
 
 #依存関係を事前にダウンロードするコマンド
 #Dockerの機能でRUNコマンドまでのレイヤーに変更がない場合はRUNコマンドはスキップされキャッシュを利用する
 #pomに変更がない場合はキャッシュが利用され、イメージのビルドが速くなる
 COPY backend/pom.xml .
-#依存関係を事前にダウンロードする
-RUN mvn dependency:go-offline
+RUN ./mvnw -B dependency:go-offline
 
 COPY backend/src ./src
 COPY openapi ./openapi
 
-#Mavenの並列ビルドを有効化
-RUN mvn clean package -T 1C -DskipTests -Pdocker
+#Mavenの並列ビルドを有効化（-B: バッチモードでログを簡潔に）
+RUN ./mvnw -B clean package -T 1C -DskipTests -Pdocker
 
 # --- Runtime stage ---
 FROM eclipse-temurin:21-jre
@@ -24,4 +28,3 @@ COPY --from=builder /app/target/*.jar app.jar
 EXPOSE 8080
 
 CMD ["java", "-jar", "app.jar"]
-

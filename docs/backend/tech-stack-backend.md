@@ -8,6 +8,7 @@
 2. [コア技術](#コア技術)
 3. [フレームワーク・ライブラリ](#フレームワークライブラリ)
    - [Resilience4j](#resilience4jレート制限リトライサーキットブレーカー)
+   - [Flyway](#flywayデータベースマイグレーション)
 4. [データベース・インフラ](#データベースインフラ)
 5. [認証・セキュリティ](#認証セキュリティ)
 6. [アーキテクチャパターン](#アーキテクチャパターン)
@@ -19,12 +20,12 @@
 
 ## 概要
 
-このプロジェクトのバックエンドは、**Spring Boot 3.5.0**を基盤としたモダンなJavaアプリケーションです。ドメイン駆動設計（DDD）の原則に従って設計され、保守性と拡張性を重視しています。
+このプロジェクトのバックエンドは、**Spring Boot 3.5**（親 POM は `3.5.13`）を基盤としたモダンなJavaアプリケーションです。ドメイン駆動設計（DDD）の原則に従って設計され、保守性と拡張性を重視しています。
 
 ### 主な特徴
 
 - **Java 21**: 最新のJava機能を活用
-- **Spring Boot 3.5.0**: エンタープライズレベルのアプリケーションフレームワーク
+- **Spring Boot 3.5.x**: エンタープライズレベルのアプリケーションフレームワーク（`pom.xml` の親バージョンを参照）
 - **ドメイン駆動設計（DDD）**: ビジネスロジックを明確に表現
 - **RESTful API**: OpenAPI 3.0仕様に基づく型安全なAPI設計
 - **JWT認証**: AWS Cognitoによるセキュアな認証・認可
@@ -128,6 +129,56 @@ callForContent（実際の HTTP 呼び出し）
 |------|----------------|---------------------|
 | **RequestNotPermitted** | Resilience4j の Rate Limiter が「許可数超過」と判断したとき。 | 429 と「リクエスト数が上限を超えました」メッセージを返す。 |
 | **QuotaExceededException** | OpenAI API が 429 を返したとき。`OpenAiClient` が `HttpClientErrorException.TooManyRequests` をキャッチし、この例外に変換してスロー。 | 429 と「利用枠を超過しました」メッセージを返す。 |
+
+---
+
+### Flyway（データベースマイグレーション）
+
+**役割**: データベーススキーマをバージョン管理するライブラリ。未適用のマイグレーション（SQL ファイル）だけを起動時に順に実行し、テーブル作成・変更の履歴を `flyway_schema_history` に記録する。本番と開発で同じスクリプトを適用することでスキーマの食い違いを防ぐ。
+
+**このプロジェクトでの使用箇所**:
+- `backend/src/main/resources/db/migration/V1__initial_schema.sql`（初回スキーマ: users, expenses, monthly_reports）
+- `application.properties`（`spring.jpa.hibernate.ddl-auto=validate` で Hibernate の DDL を無効化し、スキーマは Flyway 任せ）
+- `application-test.properties`（`spring.flyway.enabled=false` でテスト時は Flyway を実行しない）
+
+#### 処理の流れ（アプリ起動時）
+
+```
+Spring Boot 起動
+      ↓
+Flyway が DB に接続し、flyway_schema_history を参照
+      ↓
+未適用の V*.sql をバージョン順に実行（初回は V1__initial_schema.sql のみ）
+      ↓
+実行済みマイグレーションを flyway_schema_history に登録
+      ↓
+Hibernate が validate でエンティティとスキーマの整合をチェック
+      ↓
+アプリ起動続行
+```
+
+#### ファイル命名規則
+
+マイグレーションは `src/main/resources/db/migration/` に配置する。ファイル名は **`V{バージョン}__{説明}.sql`**（`V` は大文字、バージョンと説明の間はアンダースコア2つ）。
+
+| 例 | 意味 |
+|----|------|
+| `V1__initial_schema.sql` | 1番目のマイグレーション。初回スキーマ作成。 |
+| `V2__add_xxx_column.sql` | 2番目。カラム追加など。 |
+
+バージョン番号で実行順が決まるため、複数人で並行してスキーマ変更する場合もマージ後に順序が明確になる。
+
+#### application.properties の設定
+
+| プロパティ | 意味 |
+|------------|------|
+| `spring.jpa.hibernate.ddl-auto=validate` | Hibernate にテーブル作成・更新をさせない。起動時にエンティティと DB のスキーマが一致しているか検証するだけ。スキーマ変更は Flyway のマイグレーションで行う。 |
+
+Flyway はクラスパスに `flyway-core` と `flyway-mysql` があれば Spring Boot が自動設定するため、追加のプロパティは不要（マイグレーションの配置場所はデフォルトの `db/migration` を使用）。
+
+#### テストでの扱い
+
+テスト用（`application-test.properties`）では **`spring.flyway.enabled=false`** を指定している。テストは H2 メモリ DB と `spring.jpa.hibernate.ddl-auto=create-drop` でスキーマを自前作成するため、Flyway は実行しない。これにより既存のテストが Flyway や MySQL 専用の SQL に依存せずそのまま動作する。
 
 ---
 
