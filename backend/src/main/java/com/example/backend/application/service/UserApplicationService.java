@@ -5,14 +5,16 @@ import com.example.backend.entity.User;
 import com.example.backend.exception.UserNotFoundException;
 import com.example.backend.repository.UserRepository;
 
-import java.sql.SQLException;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.cache.annotation.Cacheable;
 
 /**
  * ユーザーに関するアプリケーションサービス。
@@ -20,67 +22,85 @@ import org.springframework.cache.annotation.Cacheable;
  */
 @Service
 public class UserApplicationService {
-    /** Flyway V1 の UNIQUE キー名（重複判定に使用） */
-    private static final String UK_USERS_COGNITO_SUB = "uk_users_cognito_sub";
+    /** 「該当 sub のユーザーは DB に存在する」ことを記録する軽量キャッシュ名 */
+    private static final String ENSURED_CACHE = "userEnsured";
 
     private static final Logger logger = LoggerFactory.getLogger(UserApplicationService.class);
     private final UserRepository userRepository;
     private final CurrentAuthProvider currentAuthProvider;
-    private final UserRegistrationTxService userRegistrationTxService;
+    private final CacheManager cacheManager;
+
+    /**
+     * 同一 {@code cognitoSub} に対する登録処理を JVM 内で直列化するためのロック。
+     * ロック対象は「ユーザー登録という1度きりの初期化処理」のみに限定し、
+     * 使い終わったら {@link ConcurrentMap#remove(Object, Object)} で必ず破棄して
+     * マップが肥大化しないようにする（= 攻撃的なサインインを浴びてもメモリリークしない）。
+     */
+    private final ConcurrentMap<String, Object> ensureLocks = new ConcurrentHashMap<>();
 
     public UserApplicationService(
             UserRepository userRepository,
             CurrentAuthProvider currentAuthProvider,
-            UserRegistrationTxService userRegistrationTxService) {
+            CacheManager cacheManager) {
         this.userRepository = userRepository;
         this.currentAuthProvider = currentAuthProvider;
-        this.userRegistrationTxService = userRegistrationTxService;
+        this.cacheManager = cacheManager;
     }
 
     /**
      * 現在の認証ユーザーがDBに存在することを保証する。
      * 存在しなければ新規作成する。UserRegistrationFilter から呼ばれる。
      * <p>
-     * ログイン直後に複数 API が同時に来ると「存在チェック → INSERT」の隙間で競合し、
-     * {@code cognito_sub} の一意制約違反が起きうる。INSERT は {@link UserRegistrationTxService} の
-     * {@code REQUIRES_NEW} で行い、その制約違反だけ冪等扱いする。
+     * パフォーマンスとログノイズの観点から次の2段構造で守っている：
+     * <ol>
+     *   <li>キャッシュ {@value #ENSURED_CACHE} に「確認済み」が載っていれば即 return（DB ヒットなし）</li>
+     *   <li>{@code sub} 単位のロックで並行登録を直列化（初回ログイン時の同時リクエストでも INSERT は1回だけ）</li>
+     * </ol>
      */
     public void ensureUserExists() {
         String sub = currentAuthProvider.getCurrentSub();
+        // 1段目: キャッシュに「確認済み」が載っていれば DB アクセスなしで抜ける
+        if (isEnsured(sub)) {
+            return;
+        }
+        // 2段目: sub 単位のロックで直列化。別ユーザーは互いにブロックしない
+        Object lock = ensureLocks.computeIfAbsent(sub, k -> new Object());
+        try {
+            synchronized (lock) {
+                // ロック取得後にもう一度確認（ダブルチェック）。
+                if (isEnsured(sub)) {
+                    return;
+                }
+                ensureUserExistsInternal(sub);
+                markEnsured(sub);
+            }
+        } finally {
+            ensureLocks.remove(sub, lock);
+        }
+    }
+
+    /**
+     * DB 上の存在確認と、未登録なら INSERT を行う。並行呼び出しはロック済みである前提。
+     */
+    private void ensureUserExistsInternal(String sub) {
         if (userRepository.findByCognitoSub(sub).isPresent()) {
             return;
         }
         logger.info("ユーザが見つからないため新規作成します。cognitoSub: {}", sub);
         String email = currentAuthProvider.getCurrentEmail();
-        try {
-            userRegistrationTxService.insertNewUser(sub, email);
-        } catch (DataIntegrityViolationException ex) {
-            if (!isDuplicateCognitoSubConstraint(ex)) {
-                throw ex;
-            }
-            // 別スレッドが先に INSERT 済み。想定外なら行が無いはずなので確認する。
-            if (userRepository.findByCognitoSub(sub).isEmpty()) {
-                logger.error("cognito_sub の重複エラーだが行が見つかりません。cognitoSub: {}", sub);
-                throw ex;
-            }
-            logger.debug("並行登録により一意制約に達したためスキップします。cognitoSub: {}", sub);
-        }
+        userRepository.save(new User(sub, email));
     }
 
-    /**
-     * MySQL の重複エントリ（1062 / SQLState 23000）かつ {@code uk_users_cognito_sub} 由来か判定する。
-     * 他 UNIQUE 制約の誤飲み込みを避けるため、インデックス名をメッセージで確認する。
-     */
-    private static boolean isDuplicateCognitoSubConstraint(DataIntegrityViolationException ex) {
-        Throwable cause = ex.getMostSpecificCause();
-        if (cause instanceof SQLException sqlEx) {
-            if ("23000".equals(sqlEx.getSQLState()) && sqlEx.getErrorCode() == 1062) {
-                String msg = sqlEx.getMessage();
-                return msg != null && msg.contains(UK_USERS_COGNITO_SUB);
-            }
+    private boolean isEnsured(String sub) {
+        Cache cache = cacheManager.getCache(ENSURED_CACHE);
+        return cache != null && cache.get(sub) != null;
+    }
+
+    private void markEnsured(String sub) {
+        Cache cache = cacheManager.getCache(ENSURED_CACHE);
+        if (cache != null) {
+            cache.put(sub, Boolean.TRUE);
         }
-        String msg = ex.getMessage();
-        return msg != null && msg.contains(UK_USERS_COGNITO_SUB);
     }
 
     /**
