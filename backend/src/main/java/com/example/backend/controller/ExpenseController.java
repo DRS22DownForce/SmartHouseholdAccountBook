@@ -207,7 +207,8 @@ public class ExpenseController implements ExpensesApi {
      * 
      * このメソッドはコントローラー層として、HTTPリクエストの受け取りとレスポンスの返却に専念します。
      * 
-     * @param file      アップロードされたCSVファイル
+     * @param file      {@code multipart/form-data} のパート名 {@code file} に対応するアップロード内容。
+     *                  Spring が {@link MultipartFile} にバインドする。
      * @param csvFormat CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード
      *                  2025/12以前、MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 2026/1以降）
      * @return CSVアップロード結果（成功件数、エラー件数、エラー詳細）
