@@ -30,7 +30,8 @@ import java.util.Objects;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Table(name = "monthly_reports",
-        indexes = { @Index(name = "idx_monthly_reports_user_id_month", columnList = "user_id, month", unique = true) })
+        // month は DB 予約語に当たりやすいためプロパティは reportMonth（既定の camelCase→snake_case で report_month 列）
+        indexes = { @Index(name = "idx_monthly_reports_user_id_month", columnList = "user_id, report_month", unique = true) })
 public class MonthlyReport {
 
     @Id
@@ -42,7 +43,7 @@ public class MonthlyReport {
     private User user;
 
     @Column(nullable = false, length = 7)
-    private String month;
+    private String reportMonth;
 
     @Column(nullable = false, columnDefinition = "TEXT")
     private String summary;
@@ -54,9 +55,9 @@ public class MonthlyReport {
     @Column(nullable = false)
     private Instant generatedAt;
 
-    public MonthlyReport(User user, String month, String summary, List<String> suggestions) {
+    public MonthlyReport(User user, String reportMonth, String summary, List<String> suggestions) {
         this.user = Objects.requireNonNull(user, "ユーザーはnullであってはなりません。");
-        this.month = Objects.requireNonNull(month, "対象月はnullであってはなりません。");
+        this.reportMonth = Objects.requireNonNull(reportMonth, "対象月はnullであってはなりません。");
         this.summary = Objects.requireNonNull(summary, "総評はnullであってはなりません。");
         this.suggestions = Objects.requireNonNull(suggestions, "改善提案はnullであってはなりません。");
         this.generatedAt = Instant.now();

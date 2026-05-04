@@ -225,7 +225,7 @@ public class ExpenseMapper {
      */
     public MonthlyReportResponse toMonthlyReportResponse(MonthlyReport report) {
         MonthlyReportResponse response = new MonthlyReportResponse();
-        response.setMonth(report.getMonth());
+        response.setMonth(report.getReportMonth());
         response.setSummary(report.getSummary());
         response.setSuggestions(report.getSuggestions());
         response.setGeneratedAt(report.getGeneratedAt().atOffset(ZoneOffset.UTC));

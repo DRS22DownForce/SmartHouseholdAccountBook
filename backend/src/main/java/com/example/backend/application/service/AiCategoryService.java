@@ -4,7 +4,7 @@ import com.example.backend.application.service.openai.OpenAiClient;
 import com.example.backend.exception.QuotaExceededException;
 import com.example.backend.valueobject.CategoryType;
 import com.example.backend.exception.AiServiceException;
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;

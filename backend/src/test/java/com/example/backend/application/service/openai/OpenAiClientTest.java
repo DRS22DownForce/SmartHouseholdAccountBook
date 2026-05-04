@@ -2,8 +2,8 @@ package com.example.backend.application.service.openai;
 
 import com.example.backend.exception.AiServiceException;
 import com.example.backend.exception.QuotaExceededException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,7 @@ class OpenAiClientTest {
     void setUp() {
         RestClient.Builder builder = RestClient.builder();
         mockServer = MockRestServiceServer.bindTo(builder).build();
-        openAiClient = new OpenAiClient(builder, new ObjectMapper(), OPEN_AI_API_KEY, OPEN_AI_URL);
+        openAiClient = new OpenAiClient(builder, JsonMapper.builder().build(), OPEN_AI_API_KEY, OPEN_AI_URL);
     }
 
     @Test

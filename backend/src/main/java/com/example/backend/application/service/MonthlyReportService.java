@@ -9,7 +9,7 @@ import com.example.backend.repository.ExpenseRepository;
 import com.example.backend.repository.MonthlyReportRepository;
 import com.example.backend.valueobject.MonthlySummary;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import tools.jackson.core.type.TypeReference;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -61,7 +61,7 @@ public class MonthlyReportService {
     @Transactional
     public Optional<MonthlyReport> generateReport(String month, boolean generate) {
         User user = userApplicationService.getUser();
-        Optional<MonthlyReport> existing = monthlyReportRepository.findByUserAndMonth(user, month);
+        Optional<MonthlyReport> existing = monthlyReportRepository.findByUserAndReportMonth(user, month);
 
         if (!generate) {
             return existing;

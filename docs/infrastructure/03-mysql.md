@@ -248,7 +248,7 @@ KEY idx_expenses_user_id_and_date (user_id, date)
 `monthly_reports` には、同じユーザー・同じ月のレポートが重複しないように UNIQUE 制約があります。
 
 ```sql
-UNIQUE KEY idx_monthly_reports_user_id_month (user_id, month)
+UNIQUE KEY idx_monthly_reports_user_id_month (user_id, report_month)
 ```
 
 これは検索高速化だけでなく、「同じ月のレポートを 2 件作らない」という業務ルールも表しています。

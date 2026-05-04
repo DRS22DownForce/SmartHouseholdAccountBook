@@ -17,7 +17,7 @@
 ## 🛠️ 技術スタック
 
 - **フロントエンド**: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS 4, shadcn/ui, Recharts, AWS Amplify, OpenAPI Generator
-- **バックエンド**: Spring Boot 3.5（3.5.13）, Java 21, MySQL 8, Flyway, AWS Cognito, OpenAI API, DDD（ドメイン・アプリケーション・プレゼンテーション層）
+- **バックエンド**: Spring Boot 4.0（4.0.6）, Java 25, MySQL 8, Flyway, AWS Cognito, OpenAI API, DDD（ドメイン・アプリケーション・プレゼンテーション層）
 - **インフラ**: Docker Compose, OpenAPI 3.0
 
 ## 🚀 主な機能
@@ -47,7 +47,7 @@ SmartHouseholdAccountBook/
 ### 前提条件
 - Docker & Docker Compose がインストールされていること
 - Node.js 18以上（フロントエンド開発用）
-- Java 21（バックエンド開発用。ビルドは Maven Wrapper `./mvnw` を推奨）
+- Java 25（バックエンド開発用。ビルドは Maven Wrapper `./mvnw` を推奨）
 
 ### 1. リポジトリのクローン
 ```bash

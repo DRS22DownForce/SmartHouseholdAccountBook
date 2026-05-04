@@ -12,15 +12,15 @@ import com.example.backend.repository.UserRepository;
 import com.example.backend.valueobject.CategoryType;
 import com.example.backend.valueobject.ExpenseAmount;
 import com.example.backend.valueobject.ExpenseDate;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.CacheManager;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -48,7 +48,7 @@ class ExpenseIntegrationTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private JsonMapper jsonMapper;
 
     @Autowired
     private ExpenseRepository expenseRepository;
@@ -106,7 +106,7 @@ class ExpenseIntegrationTest {
             // when
             mockMvc.perform(post("/api/expenses")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+                            .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isCreated());
 
             // then
@@ -167,7 +167,7 @@ class ExpenseIntegrationTest {
             // when
             mockMvc.perform(put("/api/expenses/" + expense.getId())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(request)))
+                            .content(jsonMapper.writeValueAsString(request)))
                     .andExpect(status().isOk());
 
             // then
@@ -193,7 +193,7 @@ class ExpenseIntegrationTest {
             String responseBody = mockMvc.perform(get("/api/expenses/summary").param("month", "2024-01"))
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();
-            MonthlySummaryDto dto = objectMapper.readValue(responseBody, MonthlySummaryDto.class);
+            MonthlySummaryDto dto = jsonMapper.readValue(responseBody, MonthlySummaryDto.class);
 
             // then
             assertThat(dto.getTotal()).isEqualTo(3000);
@@ -219,7 +219,7 @@ class ExpenseIntegrationTest {
                             .param("endMonth", "2024-02"))
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();
-            List<MonthlySummaryDto> list = objectMapper.readValue(responseBody, new TypeReference<List<MonthlySummaryDto>>() {});
+            List<MonthlySummaryDto> list = jsonMapper.readValue(responseBody, new TypeReference<List<MonthlySummaryDto>>() {});
 
             // then
             assertThat(list).hasSize(2);
@@ -243,7 +243,7 @@ class ExpenseIntegrationTest {
             String responseBody = mockMvc.perform(get("/api/expenses/months"))
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();
-            List<String> months = objectMapper.readValue(responseBody, new TypeReference<List<String>>() {});
+            List<String> months = jsonMapper.readValue(responseBody, new TypeReference<List<String>>() {});
 
             // then
             assertThat(months).containsExactly("2024-02", "2024-01");
@@ -265,7 +265,7 @@ class ExpenseIntegrationTest {
             String responseBody = mockMvc.perform(get("/api/expenses").param("month", "2024-01"))
                     .andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString();
-            ExpensePageDto page = objectMapper.readValue(
+            ExpensePageDto page = jsonMapper.readValue(
                     responseBody, ExpensePageDto.class);
 
             // then
