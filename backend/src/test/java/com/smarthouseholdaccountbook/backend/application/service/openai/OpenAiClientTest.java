@@ -1,7 +1,7 @@
-package com.example.backend.application.service.openai;
+package com.smarthouseholdaccountbook.backend.application.service.openai;
 
-import com.example.backend.exception.AiServiceException;
-import com.example.backend.exception.QuotaExceededException;
+import com.smarthouseholdaccountbook.backend.exception.AiServiceException;
+import com.smarthouseholdaccountbook.backend.exception.QuotaExceededException;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.BeforeEach;

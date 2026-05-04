@@ -1,10 +1,10 @@
-package com.example.backend.repository;
+package com.smarthouseholdaccountbook.backend.repository;
 
-import com.example.backend.entity.Expense;
-import com.example.backend.entity.User;
-import com.example.backend.valueobject.CategoryType;
-import com.example.backend.valueobject.ExpenseAmount;
-import com.example.backend.valueobject.ExpenseDate;
+import com.smarthouseholdaccountbook.backend.entity.Expense;
+import com.smarthouseholdaccountbook.backend.entity.User;
+import com.smarthouseholdaccountbook.backend.valueobject.CategoryType;
+import com.smarthouseholdaccountbook.backend.valueobject.ExpenseAmount;
+import com.smarthouseholdaccountbook.backend.valueobject.ExpenseDate;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

@@ -1,8 +1,8 @@
-package com.example.backend.controller;
+package com.smarthouseholdaccountbook.backend.controller;
 
-import com.example.backend.application.service.AiCategoryService;
-import com.example.backend.generated.model.CategoryPredictionRequest;
-import com.example.backend.generated.model.CategoryPredictionResponse;
+import com.smarthouseholdaccountbook.backend.application.service.AiCategoryService;
+import com.smarthouseholdaccountbook.backend.generated.model.CategoryPredictionRequest;
+import com.smarthouseholdaccountbook.backend.generated.model.CategoryPredictionResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

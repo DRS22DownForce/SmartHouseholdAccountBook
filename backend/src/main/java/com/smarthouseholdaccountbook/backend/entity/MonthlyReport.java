@@ -1,6 +1,6 @@
-package com.example.backend.entity;
+package com.smarthouseholdaccountbook.backend.entity;
 
-import com.example.backend.entity.converter.StringListJsonConverter;
+import com.smarthouseholdaccountbook.backend.entity.converter.StringListJsonConverter;
 import jakarta.persistence.Column;
 import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;

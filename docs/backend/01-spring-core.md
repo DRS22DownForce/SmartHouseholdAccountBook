@@ -165,7 +165,7 @@ public class BackendApplication {
 }
 ```
 
-- `com.example.backend` パッケージの**ルート**に置かれているため、配下の `controller` / `service` / `repository` などがすべて `@ComponentScan` で拾われます。
+- `com.smarthouseholdaccountbook.backend` パッケージの**ルート**に置かれているため、配下の `controller` / `service` / `repository` などがすべて `@ComponentScan` で拾われます。
 - `main` が呼ばれると `ApplicationContext` が起動し、組み込み Tomcat が 8080 番ポートで待ち受け開始します。
 
 ---
@@ -427,7 +427,7 @@ public class SomeLibraryAutoConfiguration {
 
 ```text
 # META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
-com.example.SomeLibraryAutoConfiguration
+com.acme.SomeLibraryAutoConfiguration
 ```
 
 この登録があることで、`@EnableAutoConfiguration` が候補として読み込めます。`@ComponentScan` のように、自分のパッケージ配下から `@AutoConfiguration` 付きクラスを探し回るわけではありません。

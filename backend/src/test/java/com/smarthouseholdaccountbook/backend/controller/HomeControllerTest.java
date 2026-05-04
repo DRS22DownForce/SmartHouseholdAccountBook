@@ -1,4 +1,4 @@
-package com.example.backend.controller;
+package com.smarthouseholdaccountbook.backend.controller;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

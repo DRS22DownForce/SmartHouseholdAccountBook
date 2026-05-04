@@ -1,7 +1,7 @@
-package com.example.backend.repository;
+package com.smarthouseholdaccountbook.backend.repository;
 
-import com.example.backend.entity.MonthlyReport;
-import com.example.backend.entity.User;
+import com.smarthouseholdaccountbook.backend.entity.MonthlyReport;
+import com.smarthouseholdaccountbook.backend.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;

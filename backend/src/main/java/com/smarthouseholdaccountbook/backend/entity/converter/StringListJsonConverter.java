@@ -1,4 +1,4 @@
-package com.example.backend.entity.converter;
+package com.smarthouseholdaccountbook.backend.entity.converter;
 
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.json.JsonMapper;

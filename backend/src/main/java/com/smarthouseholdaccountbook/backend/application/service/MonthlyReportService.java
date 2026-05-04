@@ -1,13 +1,13 @@
-package com.example.backend.application.service;
+package com.smarthouseholdaccountbook.backend.application.service;
 
-import com.example.backend.entity.Expense;
-import com.example.backend.entity.MonthlyReport;
-import com.example.backend.entity.User;
-import com.example.backend.application.service.openai.OpenAiClient;
-import com.example.backend.exception.AiServiceException;
-import com.example.backend.repository.ExpenseRepository;
-import com.example.backend.repository.MonthlyReportRepository;
-import com.example.backend.valueobject.MonthlySummary;
+import com.smarthouseholdaccountbook.backend.entity.Expense;
+import com.smarthouseholdaccountbook.backend.entity.MonthlyReport;
+import com.smarthouseholdaccountbook.backend.entity.User;
+import com.smarthouseholdaccountbook.backend.application.service.openai.OpenAiClient;
+import com.smarthouseholdaccountbook.backend.exception.AiServiceException;
+import com.smarthouseholdaccountbook.backend.repository.ExpenseRepository;
+import com.smarthouseholdaccountbook.backend.repository.MonthlyReportRepository;
+import com.smarthouseholdaccountbook.backend.valueobject.MonthlySummary;
 
 import tools.jackson.core.type.TypeReference;
 

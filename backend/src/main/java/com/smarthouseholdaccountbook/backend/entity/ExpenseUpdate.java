@@ -1,10 +1,10 @@
-package com.example.backend.entity;
+package com.smarthouseholdaccountbook.backend.entity;
 
 import java.util.Objects;
 
-import com.example.backend.valueobject.CategoryType;
-import com.example.backend.valueobject.ExpenseAmount;
-import com.example.backend.valueobject.ExpenseDate;
+import com.smarthouseholdaccountbook.backend.valueobject.CategoryType;
+import com.smarthouseholdaccountbook.backend.valueobject.ExpenseAmount;
+import com.smarthouseholdaccountbook.backend.valueobject.ExpenseDate;
 
 /**
  * 支出の更新内容を表すレコード。

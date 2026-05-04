@@ -1,4 +1,4 @@
-package com.example.backend.exception;
+package com.smarthouseholdaccountbook.backend.exception;
 
 /**
  * AIサービスとの通信でエラーが発生した場合の例外

@@ -1,4 +1,4 @@
-package com.example.backend.application.service.csv.model;
+package com.smarthouseholdaccountbook.backend.application.service.csv.model;
 
 import java.time.LocalDate;
 

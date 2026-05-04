@@ -1,7 +1,7 @@
-package com.example.backend.valueobject;
+package com.smarthouseholdaccountbook.backend.valueobject;
 
-import com.example.backend.entity.Expense;
-import com.example.backend.entity.User;
+import com.smarthouseholdaccountbook.backend.entity.Expense;
+import com.smarthouseholdaccountbook.backend.entity.User;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -1,6 +1,6 @@
-package com.example.backend.auth.filter;
+package com.smarthouseholdaccountbook.backend.auth.filter;
 
-import com.example.backend.application.service.UserApplicationService;
+import com.smarthouseholdaccountbook.backend.application.service.UserApplicationService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

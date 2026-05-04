@@ -1,19 +1,19 @@
-package com.example.backend.application.service;
+package com.smarthouseholdaccountbook.backend.application.service;
 
-import com.example.backend.application.service.csv.CsvFormat;
-import com.example.backend.application.service.csv.CsvParserFactory;
-import com.example.backend.application.service.csv.model.CsvParseError;
-import com.example.backend.application.service.csv.model.CsvParsedExpense;
-import com.example.backend.application.service.csv.model.CsvParseResult;
-import com.example.backend.entity.Expense;
-import com.example.backend.entity.User;
-import com.example.backend.exception.AiServiceException;
-import com.example.backend.exception.CsvUploadException;
-import com.example.backend.exception.QuotaExceededException;
-import com.example.backend.repository.ExpenseRepository;
-import com.example.backend.valueobject.CategoryType;
-import com.example.backend.valueobject.ExpenseAmount;
-import com.example.backend.valueobject.ExpenseDate;
+import com.smarthouseholdaccountbook.backend.application.service.csv.CsvFormat;
+import com.smarthouseholdaccountbook.backend.application.service.csv.CsvParserFactory;
+import com.smarthouseholdaccountbook.backend.application.service.csv.model.CsvParseError;
+import com.smarthouseholdaccountbook.backend.application.service.csv.model.CsvParsedExpense;
+import com.smarthouseholdaccountbook.backend.application.service.csv.model.CsvParseResult;
+import com.smarthouseholdaccountbook.backend.entity.Expense;
+import com.smarthouseholdaccountbook.backend.entity.User;
+import com.smarthouseholdaccountbook.backend.exception.AiServiceException;
+import com.smarthouseholdaccountbook.backend.exception.CsvUploadException;
+import com.smarthouseholdaccountbook.backend.exception.QuotaExceededException;
+import com.smarthouseholdaccountbook.backend.repository.ExpenseRepository;
+import com.smarthouseholdaccountbook.backend.valueobject.CategoryType;
+import com.smarthouseholdaccountbook.backend.valueobject.ExpenseAmount;
+import com.smarthouseholdaccountbook.backend.valueobject.ExpenseDate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -1,8 +1,8 @@
-package com.example.backend.application.service.csv.mitsuisumitomo;
+package com.smarthouseholdaccountbook.backend.application.service.csv.mitsuisumitomo;
 
-import com.example.backend.application.service.csv.model.CsvParseError;
-import com.example.backend.application.service.csv.model.CsvParseResult;
-import com.example.backend.application.service.csv.model.CsvParsedExpense;
+import com.smarthouseholdaccountbook.backend.application.service.csv.model.CsvParseError;
+import com.smarthouseholdaccountbook.backend.application.service.csv.model.CsvParseResult;
+import com.smarthouseholdaccountbook.backend.application.service.csv.model.CsvParsedExpense;
 import org.slf4j.Logger;
 
 import java.io.BufferedReader;

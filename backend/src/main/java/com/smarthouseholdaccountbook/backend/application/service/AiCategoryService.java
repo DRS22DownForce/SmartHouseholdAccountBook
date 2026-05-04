@@ -1,9 +1,9 @@
-package com.example.backend.application.service;
+package com.smarthouseholdaccountbook.backend.application.service;
 
-import com.example.backend.application.service.openai.OpenAiClient;
-import com.example.backend.exception.QuotaExceededException;
-import com.example.backend.valueobject.CategoryType;
-import com.example.backend.exception.AiServiceException;
+import com.smarthouseholdaccountbook.backend.application.service.openai.OpenAiClient;
+import com.smarthouseholdaccountbook.backend.exception.QuotaExceededException;
+import com.smarthouseholdaccountbook.backend.valueobject.CategoryType;
+import com.smarthouseholdaccountbook.backend.exception.AiServiceException;
 import tools.jackson.core.type.TypeReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

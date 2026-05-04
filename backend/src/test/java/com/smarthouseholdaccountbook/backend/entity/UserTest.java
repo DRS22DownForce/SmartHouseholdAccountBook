@@ -1,4 +1,4 @@
-package com.example.backend.entity;
+package com.smarthouseholdaccountbook.backend.entity;
 
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.DisplayName;

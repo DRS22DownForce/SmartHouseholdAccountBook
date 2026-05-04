@@ -1,12 +1,12 @@
-package com.example.backend.application.mapper;
+package com.smarthouseholdaccountbook.backend.application.mapper;
 
-import com.example.backend.entity.Expense;
-import com.example.backend.entity.User;
-import com.example.backend.generated.model.ExpenseDto;
-import com.example.backend.generated.model.ExpenseRequestDto;
-import com.example.backend.valueobject.CategoryType;
-import com.example.backend.valueobject.ExpenseAmount;
-import com.example.backend.valueobject.ExpenseDate;
+import com.smarthouseholdaccountbook.backend.entity.Expense;
+import com.smarthouseholdaccountbook.backend.entity.User;
+import com.smarthouseholdaccountbook.backend.generated.model.ExpenseDto;
+import com.smarthouseholdaccountbook.backend.generated.model.ExpenseRequestDto;
+import com.smarthouseholdaccountbook.backend.valueobject.CategoryType;
+import com.smarthouseholdaccountbook.backend.valueobject.ExpenseAmount;
+import com.smarthouseholdaccountbook.backend.valueobject.ExpenseDate;
 
 import org.junit.jupiter.api.Test;
 

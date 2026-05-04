@@ -1,18 +1,18 @@
-package com.example.backend.application.service;
+package com.smarthouseholdaccountbook.backend.application.service;
 
-import com.example.backend.entity.Expense;
-import com.example.backend.entity.ExpenseUpdate;
-import com.example.backend.entity.User;
+import com.smarthouseholdaccountbook.backend.entity.Expense;
+import com.smarthouseholdaccountbook.backend.entity.ExpenseUpdate;
+import com.smarthouseholdaccountbook.backend.entity.User;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import com.example.backend.exception.ExpenseNotFoundException;
-import com.example.backend.repository.ExpenseRepository;
-import com.example.backend.valueobject.CategoryType;
-import com.example.backend.valueobject.ExpenseAmount;
-import com.example.backend.valueobject.ExpenseDate;
+import com.smarthouseholdaccountbook.backend.exception.ExpenseNotFoundException;
+import com.smarthouseholdaccountbook.backend.repository.ExpenseRepository;
+import com.smarthouseholdaccountbook.backend.valueobject.CategoryType;
+import com.smarthouseholdaccountbook.backend.valueobject.ExpenseAmount;
+import com.smarthouseholdaccountbook.backend.valueobject.ExpenseDate;
 
 import java.time.LocalDate;
 import java.util.Arrays;
@@ -138,7 +138,7 @@ class ExpenseApplicationServiceTest {
         )).thenReturn(Arrays.asList(expense1, expense2));
 
         // テスト実行
-        com.example.backend.valueobject.MonthlySummary result = 
+        com.smarthouseholdaccountbook.backend.valueobject.MonthlySummary result = 
             expenseApplicationService.getMonthlySummary(month);
 
         // 検証

@@ -1,9 +1,9 @@
-package com.example.backend.application.service;
+package com.smarthouseholdaccountbook.backend.application.service;
 
-import com.example.backend.auth.provider.CurrentAuthProvider;
-import com.example.backend.entity.User;
-import com.example.backend.exception.UserNotFoundException;
-import com.example.backend.repository.UserRepository;
+import com.smarthouseholdaccountbook.backend.auth.provider.CurrentAuthProvider;
+import com.smarthouseholdaccountbook.backend.entity.User;
+import com.smarthouseholdaccountbook.backend.exception.UserNotFoundException;
+import com.smarthouseholdaccountbook.backend.repository.UserRepository;
 
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;

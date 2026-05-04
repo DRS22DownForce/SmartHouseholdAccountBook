@@ -1,4 +1,4 @@
-package com.example.backend.exception;
+package com.smarthouseholdaccountbook.backend.exception;
 
 import org.springframework.http.HttpStatus;
 

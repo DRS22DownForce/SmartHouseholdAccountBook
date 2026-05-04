@@ -1,10 +1,10 @@
 // UserRegistrationIntegrationTest.java
-package com.example.backend.auth.filter;
+package com.smarthouseholdaccountbook.backend.auth.filter;
 
-import com.example.backend.config.TestJwtAuthenticationFilter;
-import com.example.backend.config.TestSecurityConfig;
-import com.example.backend.entity.User;
-import com.example.backend.repository.UserRepository;
+import com.smarthouseholdaccountbook.backend.config.TestJwtAuthenticationFilter;
+import com.smarthouseholdaccountbook.backend.config.TestSecurityConfig;
+import com.smarthouseholdaccountbook.backend.entity.User;
+import com.smarthouseholdaccountbook.backend.repository.UserRepository;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

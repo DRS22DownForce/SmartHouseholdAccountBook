@@ -1,4 +1,4 @@
-package com.example.backend.entity;
+package com.smarthouseholdaccountbook.backend.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embedded;
@@ -19,9 +19,9 @@ import lombok.NoArgsConstructor;
 
 import java.util.Objects;
 
-import com.example.backend.valueobject.CategoryType;
-import com.example.backend.valueobject.ExpenseAmount;
-import com.example.backend.valueobject.ExpenseDate;
+import com.smarthouseholdaccountbook.backend.valueobject.CategoryType;
+import com.smarthouseholdaccountbook.backend.valueobject.ExpenseAmount;
+import com.smarthouseholdaccountbook.backend.valueobject.ExpenseDate;
 
 /**
  * 支出エンティティ
