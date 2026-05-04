@@ -129,13 +129,13 @@ public class OpenAiClient {
         return message.content().trim();
     }
 
-    //callText の Circuit Breaker フォールバック（サーキットが開いているときに呼ばれる）
+    @SuppressWarnings("unused") // このメソッドはCircuit Breakerのフォールバックとして使用されるため、警告を抑制
     private String callTextFallback(String systemPrompt, String userPrompt, Throwable t) {
         logger.warn("AIサービスが一時的に利用できません（サーキットブレーカー開）: {}", t.getMessage());
         throw new AiServiceException("AIサービスが一時的に利用できません。", t);
     }
 
-    //callJson の Circuit Breaker フォールバック（サーキットが開いているときに呼ばれる）
+    @SuppressWarnings("unused") // このメソッドはCircuit Breakerのフォールバックとして使用されるため、警告を抑制
     private <T> T callJsonFallback(String systemPrompt, String userPrompt, TypeReference<T> responseType, Throwable t) {
         logger.warn("AIサービスが一時的に利用できません（サーキットブレーカー開）: {}", t.getMessage());
         throw new AiServiceException("AIサービスが一時的に利用できません。", t);

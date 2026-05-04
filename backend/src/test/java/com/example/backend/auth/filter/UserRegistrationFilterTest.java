@@ -29,7 +29,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional // テストごとにDBをロールバック
 @ActiveProfiles("test") //application-test.propertiesを読み込む
 @Import(TestSecurityConfig.class) //テスト用のセキュリティ設定を読み込む
-@SuppressWarnings("null")
 class UserRegistrationFilterTest {
 
     @Autowired
