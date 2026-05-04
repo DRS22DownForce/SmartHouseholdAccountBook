@@ -231,6 +231,8 @@
 	     ビルド設定
 	     ======================================== -->
 	<build>
+		<!-- Docker / ローカルで成果物パスを固定（target/app.jar） -->
+		<finalName>app</finalName>
 		<!-- ========================================
 		     Cursor（m2e）との統合設定
 		     m2eにOpenAPI Generatorを無視するよう指示
