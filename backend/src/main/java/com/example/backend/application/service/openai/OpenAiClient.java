@@ -2,8 +2,8 @@ package com.example.backend.application.service.openai;
 
 import com.example.backend.exception.AiServiceException;
 import com.example.backend.exception.QuotaExceededException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -31,17 +31,17 @@ public class OpenAiClient {
     private static final String MODEL_NAME = "gpt-4o-mini";
 
     private final RestClient restClient;
-    private final ObjectMapper objectMapper;
+    private final JsonMapper jsonMapper;
     private final String openAiApiKey;
     private final String openAiApiUrl;
 
     public OpenAiClient(
             RestClient.Builder restClientBuilder,
-            ObjectMapper objectMapper,
+            JsonMapper jsonMapper,
             @Value("${openai.api.key}") String openAiApiKey,
             @Value("${openai.api.url}") String openAiApiUrl) {
         this.restClient = restClientBuilder.build();
-        this.objectMapper = objectMapper;
+        this.jsonMapper = jsonMapper;
         this.openAiApiKey = openAiApiKey;
         this.openAiApiUrl = openAiApiUrl;
     }
@@ -78,9 +78,9 @@ public class OpenAiClient {
     public <T> T callJson(String systemPrompt, String userPrompt, TypeReference<T> responseType) {
         String content = callForContent(systemPrompt, userPrompt, true);
         try {
-            return objectMapper.readValue(content, responseType);
+            return jsonMapper.readValue(content, responseType);
         } catch (Exception e) {
-            logger.error("OpenAIレスポンスのJSONパースに失敗しました: content={}", content, e);
+            logger.error("OpenAIレスポンスのJSONパースに失敗しました: content={}", content);
             throw new AiServiceException("AIレスポンスのパースに失敗しました。", e);
         }
     }

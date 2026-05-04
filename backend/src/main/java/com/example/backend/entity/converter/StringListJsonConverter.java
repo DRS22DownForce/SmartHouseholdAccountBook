@@ -1,7 +1,7 @@
 package com.example.backend.entity.converter;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.json.JsonMapper;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 import jakarta.persistence.PersistenceException;
@@ -16,7 +16,7 @@ import java.util.List;
  */
 @Converter
 public class StringListJsonConverter implements AttributeConverter<List<String>, String> {
-    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+    private static final JsonMapper OBJECT_MAPPER = JsonMapper.builder().build();
 
     @Override
     public String convertToDatabaseColumn(List<String> attribute) {

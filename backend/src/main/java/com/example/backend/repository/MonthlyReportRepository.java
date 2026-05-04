@@ -15,8 +15,8 @@ public interface MonthlyReportRepository extends JpaRepository<MonthlyReport, Lo
      * ユーザーと対象月を指定してレポートを取得する
      *
      * @param user  ユーザーエンティティ
-     * @param month 対象月（YYYY-MM形式）
+     * @param reportMonth 対象月（YYYY-MM形式）
      * @return 月次レポート（存在しない場合は空）
      */
-    Optional<MonthlyReport> findByUserAndMonth(User user, String month);
+    Optional<MonthlyReport> findByUserAndReportMonth(User user, String reportMonth);
 }
