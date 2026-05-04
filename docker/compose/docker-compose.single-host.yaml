@@ -2,8 +2,8 @@
 # 単一ホスト用ベース: MySQL + Spring Boot（同一 Docker ネットワーク）
 # Flyway がスキーマの正。Hibernate は validate のみ。
 #
-# ローカル: -f docker-compose.single-host.local.yaml を追加
-# 本番寄せ: -f docker-compose.single-host.prod.yaml を追加
+# ローカル: -f docker/compose/docker-compose.single-host.local.yaml を追加
+# 本番寄せ: -f docker/compose/docker-compose.single-host.prod.yaml を追加
 # ========================================
 
 services:
