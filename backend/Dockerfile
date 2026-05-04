@@ -23,7 +23,7 @@ RUN ./mvnw -B clean package -T 1C -DskipTests -Pdocker
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
-COPY --from=builder /app/target/*.jar app.jar
+COPY --from=builder /app/target/app.jar app.jar
 #このコンテナ内のアプリケーションが8080ポートをリッスンすることを明示
 EXPOSE 8080
 

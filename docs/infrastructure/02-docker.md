@@ -283,11 +283,13 @@ Runtime stage では、JRE だけが入った軽いイメージに JAR をコピ
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
-COPY --from=builder /app/target/*.jar app.jar
+COPY --from=builder /app/target/app.jar app.jar
 EXPOSE 8080
 
 CMD ["java", "-jar", "app.jar"]
 ```
+
+`backend/pom.xml` の `<finalName>app</finalName>` により、ビルドステージの成果物は常に `/app/target/app.jar` です。ワイルドカードではなくこのパスを明示することで、意図しない JAR を拾うリスクを避けています。
 
 ビルドには JDK と Maven が必要ですが、実行には JRE と JAR があれば十分です。
 
