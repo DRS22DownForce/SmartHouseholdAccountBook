@@ -190,10 +190,11 @@ Docker に関係する主なファイルは次の通りです。
 ```text
 .
 ├── backend/Dockerfile
-├── docker-compose.dev.yaml
-├── docker-compose.single-host.yaml
-├── docker-compose.single-host.local.yaml
-├── docker-compose.single-host.prod.yaml
+├── docker/compose/docker-compose.dev.yaml
+├── docker/compose/docker-compose.single-host.yaml
+├── docker/compose/docker-compose.single-host.local.yaml
+├── docker/compose/docker-compose.single-host.prod.yaml
+├── docker/scripts/stack.sh            # Compose + Next.js の up / down（モードは引数で指定）
 └── docker/mysql/my.cnf
 ```
 
@@ -202,10 +203,26 @@ Docker に関係する主なファイルは次の通りです。
 | ファイル | 役割 |
 |----------|------|
 | `backend/Dockerfile` | Spring Boot バックエンドの Docker イメージを作る |
-| `docker-compose.dev.yaml` | MySQL だけを起動し、Spring Boot はローカルで動かす |
-| `docker-compose.single-host.yaml` | MySQL と Spring Boot を同一ホストでまとめて起動する基本設定 |
-| `docker-compose.single-host.local.yaml` | ローカル開発向けの上書き設定 |
-| `docker-compose.single-host.prod.yaml` | 本番寄せの上書き設定 |
+| `docker/compose/docker-compose.dev.yaml` | MySQL だけを起動し、Spring Boot はローカルで動かす |
+| `docker/compose/docker-compose.single-host.yaml` | MySQL と Spring Boot を同一ホストでまとめて起動する基本設定 |
+| `docker/compose/docker-compose.single-host.local.yaml` | ローカル開発向けの上書き設定 |
+| `docker/compose/docker-compose.single-host.prod.yaml` | 本番寄せの上書き設定 |
+| `docker/scripts/stack.sh` | Compose と Next.js を `up` / `down` とモード引数でまとめて操作する |
+
+### `docker/scripts/stack.sh`
+
+手動で `docker compose` と `npm run dev` を打ち分けなくてよいように、**第 1 引数に `up` または `down`、第 2 引数にモード**を渡します。
+
+- `dev` … `docker-compose.dev.yaml`（MySQL のみ）。`up` のときだけ続けて Next.js の開発サーバーを起動します。
+- `single-host-local` / `single-host-prod` … 単一ホスト用の 2 ファイルをマージして起動・停止します。
+- `down` … 先に **ポート 3000** で待ち受けているプロセスを終了させ（`npm run dev` / `next dev -p 3000` 用）、続けて `docker compose down` します。別アプリが 3000 を使っている場合は注意してください。
+
+```bash
+./docker/scripts/stack.sh up dev
+./docker/scripts/stack.sh down dev
+./docker/scripts/stack.sh up single-host-local
+./docker/scripts/stack.sh down single-host-prod
+```
 
 ### バックエンドの Dockerfile
 
@@ -278,9 +295,9 @@ CMD ["java", "-jar", "app.jar"]
 
 `docker build -t 名前 .` でビルドしたとき、**`-t` が付く（最終成果物となる）のは Dockerfile 最後の `FROM` から始まるステージ（この例では Runtime）だけ**です。
 
-### `docker-compose.dev.yaml`
+### `docker/compose/docker-compose.dev.yaml`
 
-`docker-compose.dev.yaml` は、MySQL だけを Docker で起動するための設定です。
+`docker/compose/docker-compose.dev.yaml` は、MySQL だけを Docker で起動するための設定です。
 
 Spring Boot はローカルの IDE や `./mvnw spring-boot:run` で動かしたい場合に使います。
 
@@ -295,9 +312,9 @@ services:
 
 この設定では、PC の `localhost:3306` から MySQL コンテナへ接続できます。
 
-### `docker-compose.single-host.yaml`
+### `docker/compose/docker-compose.single-host.yaml`
 
-`docker-compose.single-host.yaml` は、MySQL とバックエンドを同じ Docker ネットワーク内で起動する基本設定です。
+`docker/compose/docker-compose.single-host.yaml` は、MySQL とバックエンドを同じ Docker ネットワーク内で起動する基本設定です。
 
 ```yaml
 services:
@@ -346,13 +363,16 @@ depends_on:
 
 Compose は複数ファイルを重ねて使えます。
 
-ローカル向け:
+ローカル向け（リポジトリルートで実行。`--project-directory` で `./backend` などの相対パスをルート基準に解決します）:
 
 ```bash
-docker compose -f docker-compose.single-host.yaml -f docker-compose.single-host.local.yaml --env-file .env up -d --build
+docker compose --project-directory "$(pwd)" --env-file .env \
+  -f docker/compose/docker-compose.single-host.yaml \
+  -f docker/compose/docker-compose.single-host.local.yaml \
+  up -d --build
 ```
 
-`docker-compose.single-host.local.yaml` では、MySQL を `127.0.0.1:3306` に公開し、SQL ログを見やすくしています。
+`docker/compose/docker-compose.single-host.local.yaml` では、MySQL を `127.0.0.1:3306` に公開し、SQL ログを見やすくしています。
 
 ```yaml
 mysql:
@@ -367,10 +387,13 @@ backend:
 本番寄せ:
 
 ```bash
-docker compose -f docker-compose.single-host.yaml -f docker-compose.single-host.prod.yaml --env-file .env up -d --build
+docker compose --project-directory "$(pwd)" --env-file .env \
+  -f docker/compose/docker-compose.single-host.yaml \
+  -f docker/compose/docker-compose.single-host.prod.yaml \
+  up -d --build
 ```
 
-`docker-compose.single-host.prod.yaml` では SQL ログを無効化し、DDL 自動生成は `validate` のままにしています。
+`docker/compose/docker-compose.single-host.prod.yaml` では SQL ログを無効化し、DDL 自動生成は `validate` のままにしています。
 
 ```yaml
 SPRING_JPA_SHOW_SQL: "false"
@@ -389,6 +412,7 @@ SPRING_JPA_HIBERNATE_DDL_AUTO: validate
 |------|------|
 | `docker compose` | Docker Compose V2 の CLI。`compose.yaml` などに書いた複数コンテナをまとめて操作します。 |
 | `-f` / `--file`（`compose` の直後） | 使う Compose ファイルのパス。複数回指定すると、後から指定したファイルの内容が前のファイルにマージされます（ローカル用・本番寄せ用の差分を分けるときに使います）。 |
+| `--project-directory` | 相対パス（`build.context` やボリュームの `./docker/...` など）を解決するときの基準ディレクトリ。このリポジトリでは **リポジトリルート** を指定してください（Compose ファイルを `docker/compose/` に置いたため）。 |
 | `--env-file` | 変数代入用に読み込む環境変数ファイル（例: `.env`）。Compose が `${VAR}` を展開するときや、`env_file` でコンテナに渡す値の元になります。 |
 | `up` | ネットワーク・ボリューム・コンテナを作成し、定義どおり起動します。 |
 | `-d` / `--detach` | バックグラウンドで起動し、端末はすぐに返ります。付けないとログが前面に出続け、`Ctrl+C` で止めるまでアタッチしたままになります。 |
@@ -404,7 +428,7 @@ SPRING_JPA_HIBERNATE_DDL_AUTO: validate
 Spring Boot をローカルで動かし、DB だけ Docker にしたい場合です。
 
 ```bash
-docker compose -f docker-compose.dev.yaml --env-file .env up -d
+docker compose --project-directory "$(pwd)" --env-file .env -f docker/compose/docker-compose.dev.yaml up -d
 ```
 
 ### MySQL とバックエンドをまとめて起動する
@@ -412,7 +436,10 @@ docker compose -f docker-compose.dev.yaml --env-file .env up -d
 ローカル開発向けです。
 
 ```bash
-docker compose -f docker-compose.single-host.yaml -f docker-compose.single-host.local.yaml --env-file .env up -d --build
+docker compose --project-directory "$(pwd)" --env-file .env \
+  -f docker/compose/docker-compose.single-host.yaml \
+  -f docker/compose/docker-compose.single-host.local.yaml \
+  up -d --build
 ```
 
 ### 本番寄せ設定で起動する
@@ -420,25 +447,37 @@ docker compose -f docker-compose.single-host.yaml -f docker-compose.single-host.
 EC2 など単一ホスト上で、Nginx が `127.0.0.1:8080` にリバースプロキシする想定です。
 
 ```bash
-docker compose -f docker-compose.single-host.yaml -f docker-compose.single-host.prod.yaml --env-file .env up -d --build
+docker compose --project-directory "$(pwd)" --env-file .env \
+  -f docker/compose/docker-compose.single-host.yaml \
+  -f docker/compose/docker-compose.single-host.prod.yaml \
+  up -d --build
 ```
 
 ### ログを見る
 
 ```bash
-docker compose -f docker-compose.single-host.yaml -f docker-compose.single-host.local.yaml logs -f backend
+docker compose --project-directory "$(pwd)" --env-file .env \
+  -f docker/compose/docker-compose.single-host.yaml \
+  -f docker/compose/docker-compose.single-host.local.yaml \
+  logs -f backend
 ```
 
 ### 停止する
 
 ```bash
-docker compose -f docker-compose.single-host.yaml -f docker-compose.single-host.local.yaml down
+docker compose --project-directory "$(pwd)" --env-file .env \
+  -f docker/compose/docker-compose.single-host.yaml \
+  -f docker/compose/docker-compose.single-host.local.yaml \
+  down
 ```
 
 ### ボリュームも消す
 
 ```bash
-docker compose -f docker-compose.single-host.yaml -f docker-compose.single-host.local.yaml down -v
+docker compose --project-directory "$(pwd)" --env-file .env \
+  -f docker/compose/docker-compose.single-host.yaml \
+  -f docker/compose/docker-compose.single-host.local.yaml \
+  down -v
 ```
 
 `-v` を付けると DB データを保存しているボリュームも削除されます。学習用に作り直したいときは便利ですが、必要なデータが消えるため注意してください。
@@ -469,5 +508,5 @@ docker compose -f docker-compose.single-host.yaml -f docker-compose.single-host.
 - Docker はアプリの実行環境をコンテナとしてまとめる道具です。
 - Dockerfile はイメージの作り方、Docker Compose は複数コンテナの起動方法を書きます。
 - このプロジェクトでは、`backend/Dockerfile` で Spring Boot JAR を作り、Compose で MySQL とバックエンドをまとめて起動します。
-- ローカルでは `docker-compose.dev.yaml` で MySQL だけを起動する方法と、`docker-compose.single-host.*.yaml` でバックエンドごと起動する方法があります。
+- ローカルでは `docker/compose/docker-compose.dev.yaml` で MySQL だけを起動する方法と、`docker/compose/docker-compose.single-host.*.yaml` でバックエンドごと起動する方法があります。
 - 本番寄せでは、アプリを直接外部公開せず、Nginx などの前段を置く想定になっています。

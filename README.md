@@ -35,9 +35,10 @@ SmartHouseholdAccountBook/
 ├── backend/                 # Spring Boot（controller / application / domain / entity / auth / config）
 ├── frontend-nextjs/         # Next.js（app/, src/components, hooks, api, config）
 ├── openapi/                 # OpenAPI 仕様
-├── docker/                  # MySQL 設定
-├── docker-compose.single-host*.yaml  # MySQL + バックエンド（単一ホスト）
-├── docker-compose.dev.yaml           # MySQL のみ（IDE で Spring を動かす場合）
+├── docker/
+│   ├── compose/             # Docker Compose（dev / single-host など）
+│   ├── scripts/             # Compose + フロント（stack.sh）
+│   └── mysql/               # MySQL 設定（my.cnf）
 └── docs/
 ```
 
@@ -106,22 +107,57 @@ OPENAI_API_KEY=your-openai-api-key
 
 スキーマは **Flyway** が管理し、Hibernate は **`validate` のみ**です。
 
+Compose ファイルは [`docker/compose/`](docker/compose/) にあります。`build.context` などがリポジトリルート基準のため、**リポジトリルートで** `--project-directory "$(pwd)"` を付けて実行してください。
+
 **ローカル**（MySQL を `127.0.0.1:3306` にも公開し、SQL ログを出す）:
 
 ```bash
-docker compose -f docker-compose.single-host.yaml -f docker-compose.single-host.local.yaml --env-file .env up -d --build
+docker compose --project-directory "$(pwd)" --env-file .env \
+  -f docker/compose/docker-compose.single-host.yaml \
+  -f docker/compose/docker-compose.single-host.local.yaml \
+  up -d --build
 ```
 
 **本番寄せ**（EC2 ではホストの Nginx が `http://127.0.0.1:8080` にリバースプロキシする想定）:
 
 ```bash
-docker compose -f docker-compose.single-host.yaml -f docker-compose.single-host.prod.yaml --env-file .env up -d --build
+docker compose --project-directory "$(pwd)" --env-file .env \
+  -f docker/compose/docker-compose.single-host.yaml \
+  -f docker/compose/docker-compose.single-host.prod.yaml \
+  up -d --build
 ```
+
+**Docker + フロント（Next.js）をまとめて起動・停止**する場合:
+
+```bash
+./docker/scripts/stack.sh up single-host-local
+./docker/scripts/stack.sh up single-host-prod
+./docker/scripts/stack.sh down single-host-local
+./docker/scripts/stack.sh down single-host-prod
+```
+
+`stack.sh down` は **ポート 3000** のプロセス（`next dev -p 3000`）を終了してから `docker compose down` します。別アプリが 3000 を使っているときは注意してください。
 
 停止・削除:
 
 ```bash
-docker compose -f docker-compose.single-host.yaml -f docker-compose.single-host.local.yaml down
+docker compose --project-directory "$(pwd)" --env-file .env \
+  -f docker/compose/docker-compose.single-host.yaml \
+  -f docker/compose/docker-compose.single-host.local.yaml \
+  down
+```
+
+**MySQL のみ Docker**（Spring Boot は IDE や `./mvnw spring-boot:run` で起動する場合）:
+
+```bash
+docker compose --project-directory "$(pwd)" --env-file .env -f docker/compose/docker-compose.dev.yaml up -d
+```
+
+MySQL と Next.js をまとめて起動する場合（Spring は別途ローカル起動）:
+
+```bash
+./docker/scripts/stack.sh up dev
+./docker/scripts/stack.sh down dev
 ```
 
 **MySQL を外部（RDS 等）だけ使う**場合は、単一ホスト Compose は使わず、接続先を `SPRING_DATASOURCE_URL` 等の環境変数で渡して Spring を起動してください（接続文字列はインフラに合わせて設定）。

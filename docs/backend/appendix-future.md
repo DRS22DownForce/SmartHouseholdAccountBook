@@ -56,7 +56,7 @@
 ### docker-compose
 
 - サービス間通信 / ネットワーク / volumes
-- 本プロジェクトの `docker-compose.single-host.yaml` の構成
+- 本プロジェクトの `docker/compose/docker-compose.single-host.yaml` の構成
 
 ### Kubernetes / ECS へのデプロイ
 
