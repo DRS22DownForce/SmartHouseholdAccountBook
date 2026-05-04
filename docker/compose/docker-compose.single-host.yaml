@@ -1,0 +1,61 @@
+# ========================================
+# 単一ホスト用ベース: MySQL + Spring Boot（同一 Docker ネットワーク）
+# Flyway がスキーマの正。Hibernate は validate のみ。
+#
+# ローカル: -f docker/compose/docker-compose.single-host.local.yaml を追加
+# 本番寄せ: -f docker/compose/docker-compose.single-host.prod.yaml を追加
+# ========================================
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: smart_household_mysql_single
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    volumes:
+      - mysql_data_single:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./
+      dockerfile: backend/Dockerfile
+    container_name: smart_household_backend_single
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_ROOT_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      SPRING_JPA_SHOW_SQL: "false"
+      COGNITO_JWK_SET_URL: ${COGNITO_JWK_SET_URL}
+      COGNITO_ISSUER_URL: ${COGNITO_ISSUER_URL}
+      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_API_URL: ${OPENAI_API_URL:-https://api.openai.com/v1}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - app-network
+
+volumes:
+  mysql_data_single:
+    name: smart_household_mysql_data_single
+
+networks:
+  app-network:
+    name: smart_household_app_network_single
+    driver: bridge

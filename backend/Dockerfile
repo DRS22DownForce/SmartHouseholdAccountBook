@@ -1,6 +1,6 @@
 # --- Build stage ---
 # JDK とネットワークは公式 Maven イメージ。実際のビルドコマンドはプロジェクトの Maven Wrapper でバージョン固定。
-FROM maven:3.9.9-eclipse-temurin-21 AS builder
+FROM maven:3.9.15-eclipse-temurin-25 AS builder
 WORKDIR /app
 
 COPY backend/mvnw backend/mvnw.cmd ./
@@ -20,10 +20,10 @@ COPY openapi ./openapi
 RUN ./mvnw -B clean package -T 1C -DskipTests -Pdocker
 
 # --- Runtime stage ---
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
 WORKDIR /app
 
-COPY --from=builder /app/target/*.jar app.jar
+COPY --from=builder /app/target/app.jar app.jar
 #このコンテナ内のアプリケーションが8080ポートをリッスンすることを明示
 EXPOSE 8080
 

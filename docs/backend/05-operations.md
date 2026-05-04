@@ -73,12 +73,12 @@ public class MyClass {
 
 ```properties
 logging.level.root=WARN
-logging.level.com.example.backend=WARN
+logging.level.com.smarthouseholdaccountbook.backend=WARN
 logging.level.org.hibernate.SQL=WARN
 logging.level.org.springframework=WARN
 ```
 
-`logging.level.<パッケージ名>=<レベル>` の形で指定します。`root` は全体のデフォルト、`com.example.backend` は自作コード配下、`org.springframework` は Spring 本体配下のように、パッケージ名が細かいほど優先されます。
+`logging.level.<パッケージ名>=<レベル>` の形で指定します。`root` は全体のデフォルト、`com.smarthouseholdaccountbook.backend` は自作コード配下、`org.springframework` は Spring 本体配下のように、パッケージ名が細かいほど優先されます。
 
 ### 正しいログの書き方
 
@@ -101,7 +101,7 @@ log.error("failed to save expense: id={}", id, e);
 ```text
 ERROR ... failed to save expense: id=123
 java.lang.RuntimeException: database connection failed
-    at com.example.backend...
+    at com.smarthouseholdaccountbook.backend...
 ```
 
 ### MDC（Mapped Diagnostic Context）— リクエスト追跡

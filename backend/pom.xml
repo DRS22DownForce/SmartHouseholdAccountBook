@@ -6,10 +6,10 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.5.13</version>
+		<version>4.0.6</version>
 		<relativePath />
 	</parent>
-	<groupId>com.example</groupId>
+	<groupId>com.smarthouseholdaccountbook</groupId>
 	<artifactId>backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>backend</name>
@@ -32,8 +32,8 @@
 	     プロパティ設定
 	     ======================================== -->
 	<properties>
-		<!-- Javaバージョン -->
-		<java.version>21</java.version>
+		<!-- Javaバージョン-->
+		<java.version>25</java.version>
 		<!-- OpenAPI仕様ファイルのパス -->
 		<openapi.file>../openapi/openapi.yaml</openapi.file>
 	</properties>
@@ -54,6 +54,10 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-restclient</artifactId>
+		</dependency>
 
 		<!-- ========================================
 		     Security
@@ -71,10 +75,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-oauth2-client</artifactId>
 		</dependency>
+		<!-- JWT 検証で Nimbus API を直接使用するため明示（親 BOM 未管理のためバージョン指定） -->
 		<dependency>
 			<groupId>com.nimbusds</groupId>
 			<artifactId>nimbus-jose-jwt</artifactId>
-			<version>9.37.3</version>
+			<version>9.48</version>
 		</dependency>
 
 		<!-- ========================================
@@ -91,10 +96,10 @@
 			<artifactId>h2</artifactId>
 			<scope>test</scope>
 		</dependency>
-		<!-- Flyway: スキーマをバージョン管理。未適用のマイグレーションを起動時に適用 -->
+		<!-- Flyway: Boot 4 では専用スターターが必須。 -->
 		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-core</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-flyway</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.flywaydb</groupId>
@@ -142,28 +147,24 @@
 		     ======================================== -->
 		<dependency>
 			<groupId>io.github.resilience4j</groupId>
-			<artifactId>resilience4j-spring-boot3</artifactId>
-			<version>2.2.0</version>
+			<artifactId>resilience4j-spring-boot4</artifactId>
+			<version>2.4.0</version>
 		</dependency>
 
 		<!-- ========================================
 		     OpenAPI / Swagger
 		     API仕様書の自動生成とSwagger UI
 		     ======================================== -->
+		<!-- OpenAPI 生成モデルの JsonNullable 用（springdoc と整合する版に固定） -->
 		<dependency>
 			<groupId>org.openapitools</groupId>
 			<artifactId>jackson-databind-nullable</artifactId>
-			<version>0.2.6</version>
-		</dependency>
-		<dependency>
-			<groupId>io.swagger.core.v3</groupId>
-			<artifactId>swagger-annotations</artifactId>
-			<version>2.2.20</version>
+			<version>0.2.10</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-			<version>2.5.0</version>
+			<version>3.0.3</version>
 		</dependency>
 
 		<!-- ========================================
@@ -187,7 +188,7 @@
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
-			<version>33.3.1-jre</version>
+			<version>33.6.0-jre</version>
 		</dependency>
 
 		<!-- ========================================
@@ -200,8 +201,19 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-test</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa-test</artifactId>
+			<scope>test</scope>
+		</dependency>
+		<!-- Boot 4: @WithMockUser 等は security-test スターター経由が推奨 -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
@@ -231,6 +243,8 @@
 	     ビルド設定
 	     ======================================== -->
 	<build>
+		<!-- Docker / ローカルで成果物パスを固定（target/app.jar） -->
+		<finalName>app</finalName>
 		<!-- ========================================
 		     Cursor（m2e）との統合設定
 		     m2eにOpenAPI Generatorを無視するよう指示
@@ -277,7 +291,7 @@
 			<plugin>
 				<groupId>org.openapitools</groupId>
 				<artifactId>openapi-generator-maven-plugin</artifactId>
-				<version>7.13.0</version>
+				<version>7.22.0</version>
 				<executions>
 					<execution>
 						<id>generate-spring</id>
@@ -289,8 +303,8 @@
 							<inputSpec>${openapi.file}</inputSpec>
 							<generatorName>spring</generatorName>
 							<output>${project.build.directory}/generated-sources/openapi</output>
-							<apiPackage>com.example.backend.generated.api</apiPackage>
-							<modelPackage>com.example.backend.generated.model</modelPackage>
+							<apiPackage>com.smarthouseholdaccountbook.backend.generated.api</apiPackage>
+							<modelPackage>com.smarthouseholdaccountbook.backend.generated.model</modelPackage>
 							<configOptions>
 								<!-- インターフェースのみ生成（実装クラスは生成しない） -->
 								<interfaceOnly>true</interfaceOnly>
@@ -298,7 +312,9 @@
 								<useTags>true</useTags>
 								<dateLibrary>java8</dateLibrary>
 								<useJakartaEe>true</useJakartaEe>
-								<useSpringBoot3>true</useSpringBoot3>
+								<!-- Spring Boot 4 + Jackson 3（アプリ本体と一致） -->
+								<useSpringBoot4>true</useSpringBoot4>
+								<useJackson3>true</useJackson3>
 							</configOptions>
 						</configuration>
 					</execution>
@@ -312,7 +328,7 @@
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>build-helper-maven-plugin</artifactId>
-				<version>3.5.0</version>
+				<version>3.6.1</version>
 				<executions>
 					<execution>
 						<id>add-source</id>
@@ -338,7 +354,22 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
-					<mainClass>com.example.backend.BackendApplication</mainClass>
+					<mainClass>com.smarthouseholdaccountbook.backend.BackendApplication</mainClass>
+				</configuration>
+			</plugin>
+
+			<!-- Java 25 で Lombok のアノテーションプロセッサを確実に有効化 -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.projectlombok</groupId>
+							<artifactId>lombok</artifactId>
+							<version>${lombok.version}</version>
+						</path>
+					</annotationProcessorPaths>
 				</configuration>
 			</plugin>
 
@@ -349,7 +380,7 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.11</version>
+				<version>0.8.14</version>
 				<executions>
 					<execution>
 						<goals>

@@ -26,11 +26,11 @@ CREATE TABLE expenses (
 CREATE TABLE monthly_reports (
     id BIGINT NOT NULL AUTO_INCREMENT,
     user_id BIGINT NOT NULL,
-    month VARCHAR(7) NOT NULL,
+    report_month VARCHAR(7) NOT NULL,
     summary TEXT NOT NULL,
     suggestions_json TEXT NOT NULL,
     generated_at TIMESTAMP(6) NOT NULL,
     PRIMARY KEY (id),
-    UNIQUE KEY idx_monthly_reports_user_id_month (user_id, month),
+    UNIQUE KEY idx_monthly_reports_user_id_month (user_id, report_month),
     CONSTRAINT fk_monthly_reports_user FOREIGN KEY (user_id) REFERENCES users (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
