@@ -1,4 +1,4 @@
-package com.example.backend.auth.filter;
+package com.smarthouseholdaccountbook.backend.auth.filter;
 
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.proc.BadJOSEException;

@@ -1,6 +1,6 @@
-package com.example.backend.valueobject;
+package com.smarthouseholdaccountbook.backend.valueobject;
 
-import com.example.backend.entity.Expense;
+import com.smarthouseholdaccountbook.backend.entity.Expense;
 
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;

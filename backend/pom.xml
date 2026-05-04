@@ -9,7 +9,7 @@
 		<version>4.0.6</version>
 		<relativePath />
 	</parent>
-	<groupId>com.example</groupId>
+	<groupId>com.smarthouseholdaccountbook</groupId>
 	<artifactId>backend</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>backend</name>
@@ -303,8 +303,8 @@
 							<inputSpec>${openapi.file}</inputSpec>
 							<generatorName>spring</generatorName>
 							<output>${project.build.directory}/generated-sources/openapi</output>
-							<apiPackage>com.example.backend.generated.api</apiPackage>
-							<modelPackage>com.example.backend.generated.model</modelPackage>
+							<apiPackage>com.smarthouseholdaccountbook.backend.generated.api</apiPackage>
+							<modelPackage>com.smarthouseholdaccountbook.backend.generated.model</modelPackage>
 							<configOptions>
 								<!-- インターフェースのみ生成（実装クラスは生成しない） -->
 								<interfaceOnly>true</interfaceOnly>
@@ -354,7 +354,7 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 				<configuration>
-					<mainClass>com.example.backend.BackendApplication</mainClass>
+					<mainClass>com.smarthouseholdaccountbook.backend.BackendApplication</mainClass>
 				</configuration>
 			</plugin>
 

@@ -1,4 +1,4 @@
-package com.example.backend.config.security;
+package com.smarthouseholdaccountbook.backend.config.security;
 
 import org.springframework.boot.health.actuate.endpoint.HealthEndpoint;
 import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
@@ -13,8 +13,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import com.example.backend.auth.filter.JwtAuthFilter;
-import com.example.backend.auth.filter.UserRegistrationFilter;
+import com.smarthouseholdaccountbook.backend.auth.filter.JwtAuthFilter;
+import com.smarthouseholdaccountbook.backend.auth.filter.UserRegistrationFilter;
 
 /**
  * Spring Securityの設定クラス

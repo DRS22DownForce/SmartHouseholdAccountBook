@@ -1,4 +1,4 @@
-package com.example.backend.valueobject;
+package com.smarthouseholdaccountbook.backend.valueobject;
 
 import java.util.Arrays;
 import java.util.List;

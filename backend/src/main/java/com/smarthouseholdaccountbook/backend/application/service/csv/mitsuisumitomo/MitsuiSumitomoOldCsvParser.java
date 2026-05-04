@@ -1,7 +1,7 @@
-package com.example.backend.application.service.csv.mitsuisumitomo;
+package com.smarthouseholdaccountbook.backend.application.service.csv.mitsuisumitomo;
 
-import com.example.backend.application.service.csv.CsvParser;
-import com.example.backend.application.service.csv.model.CsvParseResult;
+import com.smarthouseholdaccountbook.backend.application.service.csv.CsvParser;
+import com.smarthouseholdaccountbook.backend.application.service.csv.model.CsvParseResult;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;

@@ -8,7 +8,7 @@
       "type": "java",
       "name": "Spring Boot (Local)",
       "request": "launch",
-      "mainClass": "com.example.backend.BackendApplication",
+      "mainClass": "com.smarthouseholdaccountbook.backend.BackendApplication",
       "projectName": "backend",
       "cwd": "${workspaceFolder}/backend",
       "envFile": "${workspaceFolder}/.env",

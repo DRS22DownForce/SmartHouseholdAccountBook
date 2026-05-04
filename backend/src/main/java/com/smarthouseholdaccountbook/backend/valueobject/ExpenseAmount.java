@@ -1,4 +1,4 @@
-package com.example.backend.valueobject;
+package com.smarthouseholdaccountbook.backend.valueobject;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

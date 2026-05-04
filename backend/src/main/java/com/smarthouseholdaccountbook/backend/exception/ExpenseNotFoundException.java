@@ -1,4 +1,4 @@
-package com.example.backend.exception;
+package com.smarthouseholdaccountbook.backend.exception;
 /**
  * 支出が見つからない場合の例外
  * 404 Not Foundのステータスコードを返す

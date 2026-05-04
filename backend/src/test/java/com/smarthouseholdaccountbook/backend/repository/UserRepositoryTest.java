@@ -1,6 +1,6 @@
-package com.example.backend.repository;
+package com.smarthouseholdaccountbook.backend.repository;
 
-import com.example.backend.entity.User;
+import com.smarthouseholdaccountbook.backend.entity.User;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

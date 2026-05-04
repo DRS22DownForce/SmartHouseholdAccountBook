@@ -1,9 +1,9 @@
-package com.example.backend.controller;
+package com.smarthouseholdaccountbook.backend.controller;
 
-import com.example.backend.application.service.AiCategoryService;
-import com.example.backend.generated.api.AiApi;
-import com.example.backend.generated.model.CategoryPredictionRequest;
-import com.example.backend.generated.model.CategoryPredictionResponse;
+import com.smarthouseholdaccountbook.backend.application.service.AiCategoryService;
+import com.smarthouseholdaccountbook.backend.generated.api.AiApi;
+import com.smarthouseholdaccountbook.backend.generated.model.CategoryPredictionRequest;
+import com.smarthouseholdaccountbook.backend.generated.model.CategoryPredictionResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 

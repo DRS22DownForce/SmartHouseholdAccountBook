@@ -1,4 +1,4 @@
-package com.example.backend.exception;
+package com.smarthouseholdaccountbook.backend.exception;
 
 /**
  * OpenAI APIの利用枠（クォータ）を超過した場合の例外

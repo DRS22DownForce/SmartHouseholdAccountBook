@@ -1,22 +1,22 @@
-package com.example.backend.application.mapper;
+package com.smarthouseholdaccountbook.backend.application.mapper;
 
-import com.example.backend.entity.Expense;
-import com.example.backend.entity.ExpenseUpdate;
-import com.example.backend.entity.MonthlyReport;
-import com.example.backend.entity.User;
-import com.example.backend.application.service.CsvExpenseService;
-import com.example.backend.application.service.csv.model.CsvParseError;
-import com.example.backend.generated.model.CsvUploadResponseDto;
-import com.example.backend.generated.model.CsvUploadResponseDtoErrorsInner;
-import com.example.backend.generated.model.ExpenseDto;
-import com.example.backend.generated.model.ExpenseRequestDto;
-import com.example.backend.generated.model.MonthlyReportResponse;
-import com.example.backend.generated.model.MonthlySummaryDto;
-import com.example.backend.valueobject.CategorySummary;
-import com.example.backend.valueobject.CategoryType;
-import com.example.backend.valueobject.ExpenseAmount;
-import com.example.backend.valueobject.ExpenseDate;
-import com.example.backend.valueobject.MonthlySummary;
+import com.smarthouseholdaccountbook.backend.entity.Expense;
+import com.smarthouseholdaccountbook.backend.entity.ExpenseUpdate;
+import com.smarthouseholdaccountbook.backend.entity.MonthlyReport;
+import com.smarthouseholdaccountbook.backend.entity.User;
+import com.smarthouseholdaccountbook.backend.application.service.CsvExpenseService;
+import com.smarthouseholdaccountbook.backend.application.service.csv.model.CsvParseError;
+import com.smarthouseholdaccountbook.backend.generated.model.CsvUploadResponseDto;
+import com.smarthouseholdaccountbook.backend.generated.model.CsvUploadResponseDtoErrorsInner;
+import com.smarthouseholdaccountbook.backend.generated.model.ExpenseDto;
+import com.smarthouseholdaccountbook.backend.generated.model.ExpenseRequestDto;
+import com.smarthouseholdaccountbook.backend.generated.model.MonthlyReportResponse;
+import com.smarthouseholdaccountbook.backend.generated.model.MonthlySummaryDto;
+import com.smarthouseholdaccountbook.backend.valueobject.CategorySummary;
+import com.smarthouseholdaccountbook.backend.valueobject.CategoryType;
+import com.smarthouseholdaccountbook.backend.valueobject.ExpenseAmount;
+import com.smarthouseholdaccountbook.backend.valueobject.ExpenseDate;
+import com.smarthouseholdaccountbook.backend.valueobject.MonthlySummary;
 
 import org.springframework.stereotype.Component;
 
@@ -159,9 +159,9 @@ public class ExpenseMapper {
         dto.setCount(monthlySummary.count());
 
         // CategorySummaryのリストをDTOのリストに変換
-        List<com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner> byCategoryList = new ArrayList<>();
+        List<com.smarthouseholdaccountbook.backend.generated.model.MonthlySummaryDtoByCategoryInner> byCategoryList = new ArrayList<>();
         for (CategorySummary categorySummary : monthlySummary.categorySummaries()) {
-            com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner categoryDto = new com.example.backend.generated.model.MonthlySummaryDtoByCategoryInner();
+            com.smarthouseholdaccountbook.backend.generated.model.MonthlySummaryDtoByCategoryInner categoryDto = new com.smarthouseholdaccountbook.backend.generated.model.MonthlySummaryDtoByCategoryInner();
             categoryDto.setCategory(categorySummary.getDisplayName());
             categoryDto.setAmount(categorySummary.getAmount());
             byCategoryList.add(categoryDto);

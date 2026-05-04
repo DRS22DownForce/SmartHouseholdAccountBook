@@ -1,4 +1,4 @@
-package com.example.backend.auth.filter;
+package com.smarthouseholdaccountbook.backend.auth.filter;
 
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -31,7 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import com.example.backend.config.security.JwtProperties;
+import com.smarthouseholdaccountbook.backend.config.security.JwtProperties;
 
 /**
  * JWT認証フィルター

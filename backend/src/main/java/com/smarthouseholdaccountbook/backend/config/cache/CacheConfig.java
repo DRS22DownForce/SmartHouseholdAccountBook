@@ -1,4 +1,4 @@
-package com.example.backend.config.cache;
+package com.smarthouseholdaccountbook.backend.config.cache;
 
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Configuration;

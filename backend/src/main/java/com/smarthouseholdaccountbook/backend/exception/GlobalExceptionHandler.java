@@ -1,11 +1,11 @@
-package com.example.backend.exception;
+package com.smarthouseholdaccountbook.backend.exception;
 
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.HttpStatus;
-import com.example.backend.generated.model.ErrorResponse;
+import com.smarthouseholdaccountbook.backend.generated.model.ErrorResponse;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import org.slf4j.Logger;

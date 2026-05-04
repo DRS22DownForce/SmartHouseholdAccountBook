@@ -1,4 +1,4 @@
-package com.example.backend.config;
+package com.smarthouseholdaccountbook.backend.config;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

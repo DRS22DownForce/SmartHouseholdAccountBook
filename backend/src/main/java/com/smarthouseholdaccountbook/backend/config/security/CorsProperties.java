@@ -1,4 +1,4 @@
-package com.example.backend.config.security;
+package com.smarthouseholdaccountbook.backend.config.security;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;

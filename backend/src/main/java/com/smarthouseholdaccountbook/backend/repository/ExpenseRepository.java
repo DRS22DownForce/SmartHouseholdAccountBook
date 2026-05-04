@@ -1,7 +1,7 @@
-package com.example.backend.repository;
+package com.smarthouseholdaccountbook.backend.repository;
 
-import com.example.backend.entity.Expense;
-import com.example.backend.entity.User;
+import com.smarthouseholdaccountbook.backend.entity.Expense;
+import com.smarthouseholdaccountbook.backend.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;

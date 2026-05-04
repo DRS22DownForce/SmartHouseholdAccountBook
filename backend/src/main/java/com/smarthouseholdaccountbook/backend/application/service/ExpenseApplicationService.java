@@ -1,15 +1,15 @@
-package com.example.backend.application.service;
+package com.smarthouseholdaccountbook.backend.application.service;
 
-import com.example.backend.entity.Expense;
-import com.example.backend.entity.ExpenseUpdate;
-import com.example.backend.entity.User;
+import com.smarthouseholdaccountbook.backend.entity.Expense;
+import com.smarthouseholdaccountbook.backend.entity.ExpenseUpdate;
+import com.smarthouseholdaccountbook.backend.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.example.backend.exception.ExpenseNotFoundException;
-import com.example.backend.repository.ExpenseRepository;
-import com.example.backend.valueobject.MonthlySummary;
+import com.smarthouseholdaccountbook.backend.exception.ExpenseNotFoundException;
+import com.smarthouseholdaccountbook.backend.repository.ExpenseRepository;
+import com.smarthouseholdaccountbook.backend.valueobject.MonthlySummary;
 
 import java.time.LocalDate;
 import java.time.YearMonth;

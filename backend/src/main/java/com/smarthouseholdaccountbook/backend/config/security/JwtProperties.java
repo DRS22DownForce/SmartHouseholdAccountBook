@@ -1,4 +1,4 @@
-package com.example.backend.config.security;
+package com.smarthouseholdaccountbook.backend.config.security;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;

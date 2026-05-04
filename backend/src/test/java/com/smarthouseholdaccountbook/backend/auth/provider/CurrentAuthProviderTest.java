@@ -1,4 +1,4 @@
-package com.example.backend.auth.provider;
+package com.smarthouseholdaccountbook.backend.auth.provider;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
