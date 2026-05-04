@@ -5,7 +5,6 @@ import com.example.backend.entity.ExpenseUpdate;
 import com.example.backend.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.example.backend.exception.ExpenseNotFoundException;
@@ -118,7 +117,7 @@ public class ExpenseApplicationService {
      * @return 支出エンティティのページ
      */
     @Transactional(readOnly = true)
-    public Page<Expense> getExpensesByMonth(@NonNull String month, Pageable pageable) {
+    public Page<Expense> getExpensesByMonth(String month, Pageable pageable) {
         YearMonth yearMonth = parseMonth(month);
         User user = userApplicationService.getUser();
 

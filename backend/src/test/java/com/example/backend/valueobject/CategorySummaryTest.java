@@ -2,9 +2,6 @@ package com.example.backend.valueobject;
 
 import org.junit.jupiter.api.Test;
 
-import com.example.backend.valueobject.CategorySummary;
-import com.example.backend.valueobject.CategoryType;
-
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.DisplayName;
 
