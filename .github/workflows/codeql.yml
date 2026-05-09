@@ -55,7 +55,8 @@ jobs:
 
       - name: Build Java project for CodeQL
         if: matrix.language == 'java-kotlin'
-        run: mvn -B -ntp -f backend/pom.xml -DskipTests package
+        working-directory: backend
+        run: mvn -B -ntp -DskipTests package
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v3

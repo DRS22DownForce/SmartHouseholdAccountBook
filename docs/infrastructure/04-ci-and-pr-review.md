@@ -271,7 +271,8 @@ strategy:
     build-mode: ${{ matrix.build-mode }}
 
 - if: matrix.language == 'java-kotlin'
-  run: mvn -B -ntp -f backend/pom.xml -DskipTests package
+  working-directory: backend
+  run: mvn -B -ntp -DskipTests package
 
 - uses: github/codeql-action/analyze@v3
 ```
@@ -280,10 +281,10 @@ strategy:
 |----------|------|
 | `matrix` | `java-kotlin` と `javascript-typescript` を分けて実行し、言語ごとに `build-mode` を切り替える。 |
 | `init` | その回で解析する言語（`matrix.language`）とビルド方式（`matrix.build-mode`）を設定する。 |
-| `run (Javaのみ)` | Java のときだけ Maven を手動実行し、CodeQL が解析に必要なコンパイル情報を取得できるようにする。 |
+| `run (Javaのみ)` | Java のときだけ `backend` ディレクトリで Maven を手動実行し、CodeQL が解析に必要なコンパイル情報を取得できるようにする。 |
 | `analyze` | 実際の静的解析を行い、結果を GitHub に反映する。 |
 
-> **なぜこの形にしたか（初心者向け）**: `javascript-typescript` は CodeQL の仕様で `autobuild` 非対応なので `build-mode: none` を使います。`java-kotlin` はリポジトリ構成上 `autobuild` が失敗しやすいため、`-f backend/pom.xml` を指定して手動ビルドしています。これで PR 時の「自動ビルド失敗」を避けやすくなります。
+> **なぜこの形にしたか（初心者向け）**: `javascript-typescript` は CodeQL の仕様で `autobuild` 非対応なので `build-mode: none` を使います。`java-kotlin` はリポジトリ構成上、Maven をリポジトリルート起点で実行すると OpenAPI の相対パス解決で失敗しやすいため、`working-directory: backend` で手動ビルドしています。これで PR 時の「自動ビルド失敗」を避けやすくなります。
 >
 > **補足**: 静的解析は「アプリを起動して試す」のではなく、コードを読み取って危険パターンを探します。テストと役割が違うので、両方走らせることで見落としを減らせます。
 
