@@ -22,27 +22,40 @@ permissions:
   security-events: write
 
 jobs:
-  analyze-java:
-    name: Analyze (Java / CodeQL)
+  analyze-codeql:
+    name: Analyze (${{ matrix.language }} / CodeQL)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        language: [java-kotlin, javascript-typescript]
+        include:
+          - language: java-kotlin
+            build-mode: manual
+          - language: javascript-typescript
+            build-mode: none
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up JDK 25
+        if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
           languages: ${{ matrix.language }}
-          build-mode: autobuild
+          build-mode: ${{ matrix.build-mode }}
 
-      - name: Autobuild
-        uses: github/codeql-action/autobuild@v3
+      - name: Build Java project for CodeQL
+        if: matrix.language == 'java-kotlin'
+        run: mvn -B -ntp -f backend/pom.xml -DskipTests package
 
       - name: Perform CodeQL analysis
         uses: github/codeql-action/analyze@v3

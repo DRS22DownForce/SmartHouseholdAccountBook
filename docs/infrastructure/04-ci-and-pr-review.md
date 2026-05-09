@@ -240,37 +240,52 @@ permissions:
 
 必要最小限の権限だけを与えるのが、GitHub Actions の安全な基本方針です。
 
-### ジョブとステップ（`jobs.analyze-java`）
+### ジョブとステップ（`jobs.analyze-codeql`）
 
 ```yaml
 jobs:
-  analyze-java:
-    name: Analyze (Java / CodeQL)
+  analyze-codeql:
+    name: Analyze (${{ matrix.language }} / CodeQL)
     runs-on: ubuntu-latest
     timeout-minutes: 30
 ```
 
 `name` を `CI` と明確に分けることで、PR の Checks タブで失敗箇所を判断しやすくなります。
 
-続くステップでは、初期化・ビルド・解析を順に実行します。
+> **matrix とジョブ数の関係（初心者向け）**: YAML 上では `jobs.analyze-java` は 1 つですが、`strategy.matrix` を使うと GitHub Actions がジョブを展開して実行します。今回の `include` は 2 件（`java-kotlin` と `javascript-typescript`）なので、Checks 画面では実質 2 本の実行として表示されます。片方だけ成功・失敗することもあります。
+
+続くステップでは、**言語ごとに適切なビルド方式を切り替え**ながら、初期化・ビルド・解析を順に実行します。
 
 ```yaml
+strategy:
+  matrix:
+    include:
+      - language: java-kotlin
+        build-mode: manual
+      - language: javascript-typescript
+        build-mode: none
+
 - uses: github/codeql-action/init@v3
   with:
-    languages: java-kotlin, javascript-typescript
-    build-mode: autobuild
+    languages: ${{ matrix.language }}
+    build-mode: ${{ matrix.build-mode }}
 
-- uses: github/codeql-action/autobuild@v3
+- if: matrix.language == 'java-kotlin'
+  run: mvn -B -ntp -f backend/pom.xml -DskipTests package
+
 - uses: github/codeql-action/analyze@v3
 ```
 
 | ステップ | 役割 |
 |----------|------|
-| `init` | 解析対象言語（Java/Kotlin と JavaScript/TypeScript）や実行モードを設定する。 |
-| `autobuild` | 解析に必要なビルドを自動で実行する。 |
+| `matrix` | `java-kotlin` と `javascript-typescript` を分けて実行し、言語ごとに `build-mode` を切り替える。 |
+| `init` | その回で解析する言語（`matrix.language`）とビルド方式（`matrix.build-mode`）を設定する。 |
+| `run (Javaのみ)` | Java のときだけ Maven を手動実行し、CodeQL が解析に必要なコンパイル情報を取得できるようにする。 |
 | `analyze` | 実際の静的解析を行い、結果を GitHub に反映する。 |
 
-> **補足（初心者向け）**: 静的解析は「アプリを起動して試す」のではなく、コードを読み取って危険パターンを探します。テストと役割が違うので、両方走らせることで見落としを減らせます。
+> **なぜこの形にしたか（初心者向け）**: `javascript-typescript` は CodeQL の仕様で `autobuild` 非対応なので `build-mode: none` を使います。`java-kotlin` はリポジトリ構成上 `autobuild` が失敗しやすいため、`-f backend/pom.xml` を指定して手動ビルドしています。これで PR 時の「自動ビルド失敗」を避けやすくなります。
+>
+> **補足**: 静的解析は「アプリを起動して試す」のではなく、コードを読み取って危険パターンを探します。テストと役割が違うので、両方走らせることで見落としを減らせます。
 
 ---
 
