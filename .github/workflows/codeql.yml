@@ -1,3 +1,5 @@
+# CodeQL を PR / master への push で自動実行する。
+# backend と frontend-nextjs のコードを解析する。
 name: CodeQL
 
 on:
