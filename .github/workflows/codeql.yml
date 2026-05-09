@@ -4,10 +4,6 @@ name: CodeQL
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    paths:
-      - "backend/**"
-      - "frontend-nextjs/**"
-      - ".github/workflows/codeql.yml"
   push:
     branches:
       - master
