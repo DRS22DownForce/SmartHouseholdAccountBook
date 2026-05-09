@@ -1,3 +1,4 @@
+# CodeQL を PR / master への push で自動実行する。
 name: CodeQL
 
 on:
