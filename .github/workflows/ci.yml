@@ -7,7 +7,7 @@ on:
     types: [opened, synchronize, reopened] # PR が作成された、更新された、または再オープンされた場合に実行
   push:
     branches:
-      - main
+      - master
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}

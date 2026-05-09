@@ -9,7 +9,7 @@ on:
       - ".github/workflows/codeql.yml"
   push:
     branches:
-      - main
+      - master
   schedule:
     - cron: "0 3 * * 1" # 毎週月曜 03:00 UTC に定期実行
 
