@@ -196,13 +196,9 @@ CodeQL   : 静的解析の失敗かどうか
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-    paths:
-      - "backend/**"
-      - "frontend-nextjs/**"
-      - ".github/workflows/codeql.yml"
   push:
     branches:
-      - main
+      - master
   schedule:
     - cron: "0 3 * * 1"
 ```
@@ -210,7 +206,6 @@ on:
 | 要素 | 意味 |
 |------|------|
 | `pull_request` | PR の作成・更新・再オープン時に実行。 |
-| `paths` | `backend` / `frontend-nextjs` 配下やワークフロー自身に変更があるときだけ回す。不要な実行を減らし、待ち時間とコストを抑える。 |
 | `push: main` | main へ入ったコードも解析し、基準ブランチの安全性を維持する。 |
 | `schedule` | 週次で再解析。依存やルール更新で新たに見つかる問題を拾いやすい。 |
 
@@ -338,8 +333,8 @@ strategy:
 
 ## まず覚えるポイント
 
-- **CI**は、PR や main への変更のたびに **ビルドとテストを自動実行**し、壊れ込みを早く見つける仕組み。
-- **CodeQL**は、PR / main / 定期実行で **静的解析**を行い、テストだけでは見えにくい問題を検出する仕組み。
+- **CI**は、PR や `master` への変更のたびに **ビルドとテストを自動実行**し、壊れ込みを早く見つける仕組み。
+- **CodeQL**は、PR / `master` への push / 定期実行で **静的解析**を行い、テストだけでは見えにくい問題を検出する仕組み。
 - **GitHub Actions**は、`.github/workflows/*.yml` に **イベント・ジョブ・ステップ**を書く。
 - このプロジェクトでは **`backend` で `mvn verify`** し、OpenAPI 生成を含む一連の検証を行う。
 - **Bugbot**は Cursor の **GitHub 連携とダッシュボード設定**が必要で、**ワークフロー YAML だけでは有効にならない**。
