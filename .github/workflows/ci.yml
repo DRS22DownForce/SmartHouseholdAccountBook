@@ -1,4 +1,4 @@
-# バックエンドのビルドとテストを PR / main への push で自動実行する。
+# バックエンドのビルドとテストを PR / master への push で自動実行する。
 # OpenAPI 生成は backend の Maven がリポジトリルートの openapi/ を参照するため、checkout は常にリポジトリルートで行う。
 name: CI
 
