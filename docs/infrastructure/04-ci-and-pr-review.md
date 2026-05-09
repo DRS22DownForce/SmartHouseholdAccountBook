@@ -1,6 +1,6 @@
 # 04. CI と PR レビュー：壊れ込みを防ぎ、人の見落としを減らす
 
-> この章で学ぶこと: **GitHub Actions が何をするか**、**このリポジトリで CI が `mvn verify` になる理由**、**PR をきっかけにした自動化の流れ**、**Cursor Bugbot の最小構成（概要・`.cursor/BUGBOT.md`・設定方針）**、**セキュリティとパフォーマンスの注意点**。
+> この章で学ぶこと: **GitHub Actions が何をするか**、**このリポジトリで CI が `mvn verify` になる理由**、**PR をきっかけにした自動化の流れ**、**CodeQL による静的解析の流れ**、**Cursor Bugbot の最小構成（概要・`.cursor/BUGBOT.md`・設定方針）**、**セキュリティとパフォーマンスの注意点**。
 
 ## 目次
 
@@ -11,13 +11,14 @@
 3. [このプロジェクトの CI で行うこと](#このプロジェクトの-ci-で行うこと)
 4. [ワークフローファイル（ジョブ部分）を読む](#ワークフローファイルジョブ部分を読む)
 5. [CI 側のセキュリティとパフォーマンス](#ci-側のセキュリティとパフォーマンス)
+6. [CodeQL（静的解析）を PR で動かす](#codeql静的解析を-pr-で動かす)
 
 ### 後半: Cursor Bugbot（簡潔版）
 
-6. [Bugbot の概要（これだけ把握すれば OK）](#bugbot-の概要これだけ把握すれば-ok)
-7. [`.cursor/BUGBOT.md` の役割](#cursorbugbotmd-の役割)
-8. [Cursor 側の設定方針（本リポジトリ）](#cursor-側の設定方針本リポジトリ)
-9. [CI と Bugbot の使い分け](#ci-と-bugbot-の使い分け)
+7. [Bugbot の概要（これだけ把握すれば OK）](#bugbot-の概要これだけ把握すれば-ok)
+8. [`.cursor/BUGBOT.md` の役割](#cursorbugbotmd-の役割)
+9. [Cursor 側の設定方針（本リポジトリ）](#cursor-側の設定方針本リポジトリ)
+10. [CI・CodeQL と Bugbot の使い分け](#cicodeql-と-bugbot-の使い分け)
 
 ---
 
@@ -179,6 +180,100 @@ jobs:
 
 ---
 
+## CodeQL（静的解析）を PR で動かす
+
+ここからは、追加した [`.github/workflows/codeql.yml`](../../.github/workflows/codeql.yml) を読み解きます。  
+`ci.yml`（ビルド・テスト）とは**別ワークフロー**に分けることで、PR 画面で次のように失敗原因を切り分けしやすくなります。
+
+```text
+CI       : mvn verify の失敗かどうか
+CodeQL   : 静的解析の失敗かどうか
+```
+
+### いつ動くか（`on:`）
+
+```yaml
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - "backend/**"
+      - "frontend-nextjs/**"
+      - ".github/workflows/codeql.yml"
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "0 3 * * 1"
+```
+
+| 要素 | 意味 |
+|------|------|
+| `pull_request` | PR の作成・更新・再オープン時に実行。 |
+| `paths` | `backend` / `frontend-nextjs` 配下やワークフロー自身に変更があるときだけ回す。不要な実行を減らし、待ち時間とコストを抑える。 |
+| `push: main` | main へ入ったコードも解析し、基準ブランチの安全性を維持する。 |
+| `schedule` | 週次で再解析。依存やルール更新で新たに見つかる問題を拾いやすい。 |
+
+### 同時実行の制御（`concurrency`）
+
+```yaml
+concurrency:
+  group: codeql-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+```
+
+`ci.yml` と同じ設計で、同じ PR に連続 push したときは古い実行を止めます。  
+これにより、常に**最新コミットの結果**を見られます。
+
+### 権限（`permissions`）
+
+```yaml
+permissions:
+  contents: read
+  security-events: write
+```
+
+| 権限 | 理由 |
+|------|------|
+| `contents: read` | リポジトリのコードを読むため。 |
+| `security-events: write` | 解析結果を GitHub のセキュリティ画面へ書き込むため。 |
+
+必要最小限の権限だけを与えるのが、GitHub Actions の安全な基本方針です。
+
+### ジョブとステップ（`jobs.analyze-java`）
+
+```yaml
+jobs:
+  analyze-java:
+    name: Analyze (Java / CodeQL)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+```
+
+`name` を `CI` と明確に分けることで、PR の Checks タブで失敗箇所を判断しやすくなります。
+
+続くステップでは、初期化・ビルド・解析を順に実行します。
+
+```yaml
+- uses: github/codeql-action/init@v3
+  with:
+    languages: java-kotlin, javascript-typescript
+    build-mode: autobuild
+
+- uses: github/codeql-action/autobuild@v3
+- uses: github/codeql-action/analyze@v3
+```
+
+| ステップ | 役割 |
+|----------|------|
+| `init` | 解析対象言語（Java/Kotlin と JavaScript/TypeScript）や実行モードを設定する。 |
+| `autobuild` | 解析に必要なビルドを自動で実行する。 |
+| `analyze` | 実際の静的解析を行い、結果を GitHub に反映する。 |
+
+> **補足（初心者向け）**: 静的解析は「アプリを起動して試す」のではなく、コードを読み取って危険パターンを探します。テストと役割が違うので、両方走らせることで見落としを減らせます。
+
+---
+
 ## Bugbot の概要（これだけ把握すれば OK）
 
 **Bugbot**は、Cursor が提供する **PR 向けの自動レビュー**です。PR の差分を読んで、バグやセキュリティ上の懸念をコメントで補助します。
@@ -215,18 +310,20 @@ jobs:
 
 ---
 
-## CI と Bugbot の使い分け
+## CI・CodeQL と Bugbot の使い分け
 
 - **CI**: `mvn verify` でビルド・テストが通るかを機械的に確認
+- **CodeQL**: 静的解析で、セキュリティ上の危険パターンや不具合につながる実装を検出
 - **Bugbot**: diff を読み、実装上の見落としを補助
 
-最終判断は人間のレビューで行います。まず CI で壊れ込みを防ぎ、そのうえで Bugbot の指摘を取り込む流れが基本です。
+最終判断は人間のレビューで行います。まず **CI + CodeQL** で機械的な検査を通し、そのうえで Bugbot の指摘を取り込む流れが基本です。
 
 ---
 
 ## まず覚えるポイント
 
 - **CI**は、PR や main への変更のたびに **ビルドとテストを自動実行**し、壊れ込みを早く見つける仕組み。
+- **CodeQL**は、PR / main / 定期実行で **静的解析**を行い、テストだけでは見えにくい問題を検出する仕組み。
 - **GitHub Actions**は、`.github/workflows/*.yml` に **イベント・ジョブ・ステップ**を書く。
 - このプロジェクトでは **`backend` で `mvn verify`** し、OpenAPI 生成を含む一連の検証を行う。
 - **Bugbot**は Cursor の **GitHub 連携とダッシュボード設定**が必要で、**ワークフロー YAML だけでは有効にならない**。
