@@ -1,8 +1,18 @@
-# 💰 Smart Household Account Book (スマート家計簿)
+# Smart Household Account Book
 
-> モダンなWeb技術を活用した、直感的で使いやすい家計簿管理アプリケーション。支出の記録・分析・可視化を一つのプラットフォームで実現します。
+学習用に設計したフルスタック家計簿アプリです。  
+「入力しやすい」「振り返りやすい」「改善につなげやすい」を目標に、Next.js フロントエンドと Spring Boot バックエンドで実装しています。
 
-## アプリケーション画面
+## このプロジェクトでできること
+
+- 支出の登録・編集・削除
+- 月ごとの一覧表示とサマリー表示
+- CSV 一括インポート（三井住友カードの新旧フォーマット対応）
+- AI によるカテゴリ提案
+- AI による月次レポート生成（キャッシュ利用あり）
+- AWS Cognito ベースの認証（JWT 検証）
+
+## アプリ画面
 
 <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;">
   <img src="docs/images/sampleUI.png" style="height: 280px; width: auto; object-fit: contain;" alt="スマート家計簿の画面イメージ" />
@@ -10,75 +20,63 @@
   <img src="docs/images/sampleUI3.png" style="height: 280px; width: auto; object-fit: contain;" alt="スマート家計簿の画面イメージ 3" />
 </div>
 
-## 🎯 概要
+## 技術スタック
 
-フルスタックの家計簿Webアプリ。支出の記録・分析・可視化、CSV取込、AWS Cognito認証、OpenAI連携のAIアドバイザーを備えます。Next.js + Spring Boot、OpenAPI/DDDで構成されています。
+### フロントエンド
 
-## 🛠️ 技術スタック
+- Next.js 15.5（App Router）
+- React 19 / TypeScript 5
+- Tailwind CSS 4 / shadcn-ui
+- AWS Amplify（Cognito 連携）
+- OpenAPI Generator（TypeScript Axios クライアント）
 
-- **フロントエンド**: Next.js 15 (App Router), React 19, TypeScript, Tailwind CSS 4, shadcn/ui, Recharts, AWS Amplify, OpenAPI Generator
-- **バックエンド**: Spring Boot 4.0（4.0.6）, Java 25, MySQL 8, Flyway, AWS Cognito, OpenAI API, DDD（ドメイン・アプリケーション・プレゼンテーション層）
-- **インフラ**: Docker Compose, OpenAPI 3.0
+### バックエンド
 
-## 🚀 主な機能
+- Spring Boot 4.0.6
+- Java 25 / Maven Wrapper
+- Spring Data JPA / Hibernate
+- MySQL 8 / Flyway
+- Spring Security（OAuth2 Resource Server）
+- Resilience4j / Caffeine Cache / Actuator
+- OpenAPI Generator（Spring インターフェース生成）
 
-- **支出管理**: 追加・編集・削除、カテゴリ分類、月別一覧・サマリー
-- **データ可視化**: 棒グラフ（推移）、ドーナツグラフ（カテゴリ別割合）
-- **CSVインポート**: 一括登録（三井住友カード形式等対応）
-- **AI家計アドバイザー**: チャット形式のアドバイス、会話履歴、支出に基づくカテゴリ提案
-- **認証**: AWS Cognito + JWT
+### CI / 品質
 
-## 📁 プロジェクト構造
+- GitHub Actions（`mvn verify`）
+- CodeQL（Java + TypeScript）
+- JaCoCo（カバレッジレポート）
 
-```
+## ディレクトリ構成
+
+```text
 SmartHouseholdAccountBook/
-├── backend/                 # Spring Boot（controller / application / domain / entity / auth / config）
-├── frontend-nextjs/         # Next.js（app/, src/components, hooks, api, config）
-├── openapi/                 # OpenAPI 仕様
+├── backend/                 # Spring Boot API
+├── frontend-nextjs/         # Next.js アプリ
+├── openapi/                 # OpenAPI 仕様と paths/components
 ├── docker/
-│   ├── compose/             # Docker Compose（dev / single-host など）
-│   ├── scripts/             # Compose + フロント（stack.sh）
-│   └── mysql/               # MySQL 設定（my.cnf）
-└── docs/
+│   ├── compose/             # 実行モード別 compose ファイル
+│   └── scripts/             # 起動補助スクリプト（stack.sh）
+└── docs/                    # 学習用ドキュメント
 ```
 
-## 🏃‍♂️ セットアップと実行方法
+## クイックスタート
 
-### 前提条件
-- Docker & Docker Compose がインストールされていること
-- Node.js 18以上（フロントエンド開発用）
-- Java 25（バックエンド開発用。ビルドは Maven Wrapper `./mvnw` を推奨）
+### 前提
 
-### 1. リポジトリのクローン
+- Docker / Docker Compose
+- Node.js 18 以上
+- Java 25（ローカルで Spring を起動する場合）
+
+### 1) リポジトリを取得
+
 ```bash
-git clone https://github.com/your-username/SmartHouseholdAccountBook.git
+git clone <your-repo-url>
+cd SmartHouseholdAccountBook
 ```
 
-### 2. 環境変数の設定
+### 2) 環境変数を設定
 
-#### フロントエンド
-`frontend-nextjs/.env.local` を作成し、以下の環境変数を設定します：
-
-```env
-# バックエンドAPIのベースURL
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
-
-# AWSリージョン
-NEXT_PUBLIC_AWS_REGION=ap-northeast-1
-
-# Cognito User Pool ID（形式: ap-northeast-1_xxxxxxxxxx）
-NEXT_PUBLIC_COGNITO_USER_POOL_ID=your-user-pool-id
-
-# Cognito Client ID
-NEXT_PUBLIC_COGNITO_CLIENT_ID=your-client-id
-```
-
-- `.env.local` は `.gitignore` に含まれるため Git にコミットされません
-- AWS Cognito の値は AWS コンソールで取得してください
-- 変更後は開発サーバーを再起動してください
-
-#### バックエンド
-プロジェクトルートに `.env` を作成し、以下の環境変数を設定します：
+#### ルート `.env`（バックエンド / Docker 用）
 
 ```env
 # MySQL
@@ -86,120 +84,146 @@ MYSQL_ROOT_USER=root
 MYSQL_ROOT_PASSWORD=your-password
 MYSQL_DATABASE=demo
 
-# データソースURL（開発: localhost / 本番Docker: mysql ホスト名）
+# DataSource
 SPRING_DATASOURCE_URL_DEV=jdbc:mysql://localhost:3306/demo?serverTimezone=UTC
 SPRING_DATASOURCE_URL_PROD=jdbc:mysql://mysql:3306/demo?serverTimezone=UTC
 
-# Cognito（JWT検証用）
+# Cognito (JWT 検証)
 COGNITO_JWK_SET_URL=https://cognito-idp.<region>.amazonaws.com/<user-pool-id>/.well-known/jwks.json
 COGNITO_ISSUER_URL=https://cognito-idp.<region>.amazonaws.com/<user-pool-id>
 COGNITO_CLIENT_ID=your-client-id
 
-# OpenAI（AIチャット・カテゴリ提案で使用）
+# OpenAI
 OPENAI_API_KEY=your-openai-api-key
-# 任意（Docker 単一ホストでは未設定時 https://api.openai.com/v1）
-# OPENAI_API_URL=https://api.openai.com/v1
+OPENAI_API_URL=https://api.openai.com/v1
 
-# 任意: CORS 許可オリジン（未設定時は http://localhost:3000）
-# CORS_ALLOWED_ORIGINS=http://localhost:3000
-```
-### 3. Docker でバックエンド + MySQL（単一ホスト）
-
-スキーマは **Flyway** が管理し、Hibernate は **`validate` のみ**です。
-
-Compose ファイルは [`docker/compose/`](docker/compose/) にあります。`build.context` などがリポジトリルート基準のため、**リポジトリルートで** `--project-directory "$(pwd)"` を付けて実行してください。
-
-**ローカル**（MySQL を `127.0.0.1:3306` にも公開し、SQL ログを出す）:
-
-```bash
-docker compose --project-directory "$(pwd)" --env-file .env \
-  -f docker/compose/docker-compose.single-host.yaml \
-  -f docker/compose/docker-compose.single-host.local.yaml \
-  up -d --build
+# CORS
+CORS_ALLOWED_ORIGINS=http://localhost:3000
 ```
 
-**本番寄せ**（EC2 ではホストの Nginx が `http://127.0.0.1:8080` にリバースプロキシする想定）:
+#### `frontend-nextjs/.env.local`（フロント用）
 
-```bash
-docker compose --project-directory "$(pwd)" --env-file .env \
-  -f docker/compose/docker-compose.single-host.yaml \
-  -f docker/compose/docker-compose.single-host.prod.yaml \
-  up -d --build
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+NEXT_PUBLIC_AWS_REGION=ap-northeast-1
+NEXT_PUBLIC_COGNITO_USER_POOL_ID=your-user-pool-id
+NEXT_PUBLIC_COGNITO_CLIENT_ID=your-client-id
 ```
 
-**Docker + フロント（Next.js）をまとめて起動・停止**する場合:
+### 3) 起動方法を選ぶ
+
+#### A. 一番簡単（推奨）
+
+バックエンド + MySQL + フロント（Next.js）をまとめて起動:
 
 ```bash
 ./docker/scripts/stack.sh up single-host-local
-./docker/scripts/stack.sh up single-host-prod
-./docker/scripts/stack.sh down single-host-local
-./docker/scripts/stack.sh down single-host-prod
 ```
 
-`stack.sh down` は **ポート 3000** のプロセス（`next dev -p 3000`）を終了してから `docker compose down` します。別アプリが 3000 を使っているときは注意してください。
+停止:
 
-停止・削除:
+```bash
+./docker/scripts/stack.sh down single-host-local
+```
+
+#### B. Spring をローカルで起動したい場合
+
+MySQL のみ Docker で起動:
 
 ```bash
 docker compose --project-directory "$(pwd)" --env-file .env \
-  -f docker/compose/docker-compose.single-host.yaml \
-  -f docker/compose/docker-compose.single-host.local.yaml \
-  down
+  -f docker/compose/docker-compose.dev.yaml up -d
 ```
 
-**MySQL のみ Docker**（Spring Boot は IDE や `./mvnw spring-boot:run` で起動する場合）:
+バックエンド:
 
-```bash
-docker compose --project-directory "$(pwd)" --env-file .env -f docker/compose/docker-compose.dev.yaml up -d
-```
-
-MySQL と Next.js をまとめて起動する場合（Spring は別途ローカル起動）:
-
-```bash
-./docker/scripts/stack.sh up dev
-./docker/scripts/stack.sh down dev
-```
-
-**MySQL を外部（RDS 等）だけ使う**場合は、単一ホスト Compose は使わず、接続先を `SPRING_DATASOURCE_URL` 等の環境変数で渡して Spring を起動してください（接続文字列はインフラに合わせて設定）。
-
-### 4. OpenAPI コード生成
-
-OpenAPI 仕様（`openapi/openapi.yaml`）を変更した場合、バックエンド・フロントエンドのコードを再生成します。
-
-**バックエンド（Java）**
 ```bash
 cd backend
-./mvnw generate-sources -Plocal
+./mvnw spring-boot:run -Plocal
 ```
-→ `target/generated-sources/openapi/` に API インターフェース・モデルが生成されます。
 
-**フロントエンド（TypeScript）**
+フロントエンド:
+
 ```bash
 cd frontend-nextjs
+npm install
+npm run dev
+```
+
+## 開発でよく使うコマンド
+
+### バックエンド
+
+```bash
+cd backend
+./mvnw verify
+./mvnw test
+./mvnw generate-sources -Plocal
+```
+
+### フロントエンド
+
+```bash
+cd frontend-nextjs
+npm install
+npm run dev
+npm run build
+npm run lint
 npm run generate:api
 ```
-→ `src/api/generated/` に API クライアントが生成されます。
 
-## 📊 API設計
+## OpenAPI 連携
 
-### 主要エンドポイント
+`openapi/openapi.yaml` を変更したら、両方のコード生成を実行します。
 
-#### 支出管理
-- `GET /api/expenses` - 支出一覧取得（ページネーション対応、`month` 必須、`page`/`size` オプション）
-- `POST /api/expenses` - 支出追加
-- `PUT /api/expenses/{id}` - 支出更新
-- `DELETE /api/expenses/{id}` - 支出削除
-- `POST /api/expenses/upload-csv` - CSV 一括アップロード
+- バックエンド生成先: `backend/target/generated-sources/openapi/`
+- フロント生成先: `frontend-nextjs/src/api/generated/`
 
-#### 月別サマリー・集計
-- `GET /api/expenses/summary` - 月別サマリー取得（`month` 必須）
-- `GET /api/expenses/summary/range` - 範囲指定で月別サマリー（`startMonth`, `endMonth` 必須）
-- `GET /api/expenses/months` - 利用可能な月のリスト取得
+## API エンドポイント（現行）
 
-#### AI
-- `GET /api/ai/chat` - 会話履歴取得
-- `POST /api/ai/chat` - AIチャット送信（過去30日間の支出をコンテキストに利用）
-- `POST /api/ai/category` - 支出内容からカテゴリをAI提案
+### 支出
 
-詳細は `openapi/openapi.yaml` を参照してください。
+- `GET /api/expenses`
+- `POST /api/expenses`
+- `PUT /api/expenses/{id}`
+- `DELETE /api/expenses/{id}`
+- `POST /api/expenses/upload-csv`
+
+### 集計
+
+- `GET /api/expenses/summary`
+- `GET /api/expenses/summary/range`
+- `GET /api/expenses/months`
+
+### AI
+
+- `POST /api/ai/category`
+- `GET /api/expenses/report`（`generate` パラメータで生成/キャッシュ切替）
+
+詳細仕様は `openapi/openapi.yaml` を参照してください。
+
+## セキュリティと運用の考え方
+
+- 認証は AWS Cognito + JWT で実施
+- DB スキーマは Flyway で管理し、JPA の DDL 自動変更は無効化（`validate`）
+- シークレット（`.env` / `.env.local`）は Git 管理しない
+- OpenAI 呼び出しには Retry / Circuit Breaker / Rate Limiter を適用
+- ヘルスチェックは Actuator（`/actuator/health`）を利用
+
+## CI / CodeQL
+
+- `CI`: PR と `main` push で `backend` に対して `mvn verify` を実行
+- `CodeQL`: PR / `main` / 週次で Java と TypeScript を静的解析
+
+設定ファイル:
+
+- `.github/workflows/ci.yml`
+- `.github/workflows/codeql.yml`
+
+## 学習ドキュメント
+
+- バックエンド学習ガイド: `docs/backend/README.md`
+- インフラ学習ガイド: `docs/infrastructure/README.md`
+
+このプロジェクトは「実装しながら理解する」前提のため、README は入口、`docs/` は詳細教材という役割で分けています。
 
