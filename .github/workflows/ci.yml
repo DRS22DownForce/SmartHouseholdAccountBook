@@ -1,4 +1,4 @@
-# バックエンドのビルドとテストを PR / master への push で自動実行する。
+# バックエンドのビルド・テストと、フロントエンドの lint・本番ビルドを PR / master への push で自動実行する。
 # OpenAPI 生成は backend の Maven がリポジトリルートの openapi/ を参照するため、checkout は常にリポジトリルートで行う。
 name: CI
 
@@ -37,3 +37,44 @@ jobs:
 
       - name: Run Maven verify
         run: mvn -B -ntp verify
+
+  frontend-verify:
+    name: Frontend (generate / npm ci / lint / build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: frontend-nextjs
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # src/api/generated は .gitignore のためクローンだけでは無い。@openapitools/openapi-generator-cli は JAR を起動するため JDK が必要。
+      - name: Set up JDK for OpenAPI Generator
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend-nextjs/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      # リポジトリの openapi/openapi.yaml からクライアントを生成する（ビルドの import が解決されるまで必須）
+      - name: Generate API client from OpenAPI
+        run: npm run generate:api
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+        env:
+          # 対話プロンプトや計測送信を止め、CI を非対話で安定させる
+          NEXT_TELEMETRY_DISABLED: "1"
