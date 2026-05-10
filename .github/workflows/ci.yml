@@ -39,7 +39,7 @@ jobs:
         run: mvn -B -ntp verify
 
   frontend-verify:
-    name: Frontend (npm ci / lint / build)
+    name: Frontend (generate / npm ci / lint / build)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:
@@ -48,6 +48,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # src/api/generated は .gitignore のためクローンだけでは無い。@openapitools/openapi-generator-cli は JAR を起動するため JDK が必要。
+      - name: Set up JDK for OpenAPI Generator
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -58,6 +65,10 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      # リポジトリの openapi/openapi.yaml からクライアントを生成する（ビルドの import が解決されるまで必須）
+      - name: Generate API client from OpenAPI
+        run: npm run generate:api
 
       - name: Lint
         run: npm run lint
