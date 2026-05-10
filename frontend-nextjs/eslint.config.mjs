@@ -9,8 +9,10 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
+// next/typescript を FlatCompat で重ねると循環参照で ESLint が落ちる事例があるため、
+// next/core-web-vitals のみ適用する（TypeScript は next build の型チェックで担保）。
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  ...compat.extends("next/core-web-vitals"),
   {
     ignores: [
       "node_modules/**",
