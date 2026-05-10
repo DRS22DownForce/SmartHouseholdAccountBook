@@ -75,11 +75,11 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-oauth2-client</artifactId>
 		</dependency>
-		<!-- JWT 検証で Nimbus API を直接使用するため明示（親 BOM 未管理のためバージョン指定） -->
+		<!-- JWT 検証で Nimbus API を直接使用するため明示（親 BOM 未管理のためバージョン指定）。DoS 対策含む 10.0.2 以降を維持する。 -->
 		<dependency>
 			<groupId>com.nimbusds</groupId>
 			<artifactId>nimbus-jose-jwt</artifactId>
-			<version>9.48</version>
+			<version>10.9</version>
 		</dependency>
 
 		<!-- ========================================
