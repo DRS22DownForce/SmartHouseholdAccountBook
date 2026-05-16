@@ -27,7 +27,7 @@
     "ai": "5.0.68",
     "autoprefixer": "^10.4.20",
     "aws-amplify": "^6.17.0",
-    "axios": "^1.16.0",
+    "axios": "^1.16.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "4.1.0",
