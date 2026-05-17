@@ -65,20 +65,25 @@ public class MyClass {
 | **DEBUG** | 開発時の詳細情報 | メソッドの入出力値 |
 | **TRACE** | さらに詳細 | ループ内の状態 |
 
-**本番の推奨設定**: root は WARN / INFO、自作パッケージは INFO、Hibernate の SQL は本番では OFF（パフォーマンス影響）。
+**本番の推奨設定**: root は WARN、自作パッケージは WARN、Hibernate の SQL は OFF。バインド値（`?` に入る実データ）は TRACE にしない。
 
-プロジェクトの例:
+### プロファイル別のログ設定（本プロジェクト）
 
-設定先: `backend/src/main/resources/application.properties`。
+**何を出すか**（レベル・SQL・スタックトレース）は `application-*.properties` で、`dev` / `prod` に分けています。未指定時のデフォルトは `dev`（`application.properties` の `spring.profiles.default=dev`）。
 
-```properties
-logging.level.root=WARN
-logging.level.com.smarthouseholdaccountbook.backend=WARN
-logging.level.org.hibernate.SQL=WARN
-logging.level.org.springframework=WARN
-```
+| プロファイル | 設定ファイル | 用途 |
+|-------------|-------------|------|
+| `dev` | `application-dev.properties` | ローカル IDE、`single-host-local` |
+| `prod` | `application-prod.properties` | EC2 `single-host-prod` |
 
-`logging.level.<パッケージ名>=<レベル>` の形で指定します。`root` は全体のデフォルト、`com.smarthouseholdaccountbook.backend` は自作コード配下、`org.springframework` は Spring 本体配下のように、パッケージ名が細かいほど優先されます。
+| 項目 | dev | prod |
+|------|-----|------|
+| ログレベル（root / 自作） | INFO | WARN |
+| SQL 文 | `show-sql=true` + `org.hibernate.SQL=DEBUG` | OFF |
+| SQL バインド値 | `org.hibernate.orm.jdbc.bind=ERROR`（出さない） | 同左 |
+| スタックトレース | `%wEx`（ログに含める） | `%nopex`（含めない） |
+
+`logging.level.<パッケージ名>=<レベル>` の形で指定します。パッケージ名が細かいほど優先されます。
 
 ### 正しいログの書き方
 
@@ -128,7 +133,28 @@ logging.pattern.console=%d{yyyy-MM-dd HH:mm:ss} %-5level [%X{requestId}] %logger
 
 **使い道**: リクエストが複数のメソッドをまたいでも、同じ `requestId` でログを検索できるため、障害調査がしやすくなります。
 
-### 構造化ログ（本番運用向け）
+### logback-spring.xml（本プロジェクト）
+
+設定先: `backend/src/main/resources/logback-spring.xml`。
+
+**役割**: Logback の出力形式を定義する。**何レベルまで出すか**は上記の `application-dev.properties` / `application-prod.properties`、**1 行の見た目とマスキング**はこのファイルが担当します。
+
+| 設定 | 内容 |
+|------|------|
+| `defaults.xml` の include | Spring Boot 標準の Logback 定数（日付形式・`LOG_EXCEPTION_CONVERSION_WORD` など）を読み込む |
+| `CONSOLE` アペンダー | 標準出力へ UTF-8 で出力（Docker では `docker logs` に流れる） |
+| `MASKED_LOG_PATTERN` | 日時・レベル・スレッド・ロガー名・メッセージを 1 行に整形 |
+| `%replace(...)` | ログ本文中の `Bearer <トークン>` → `Bearer ***`、`sk-...`（API キー風）→ `sk-***` に置換 |
+| `${LOG_EXCEPTION_CONVERSION_WORD}` | 例外の付け方。prod では `%nopex` によりスタックを付けない |
+
+**application.properties との分担**:
+
+- `application-prod.properties` の `logging.exception-conversion-word=%nopex` → 本番でスタックトレースをログに載せない
+- `logback-spring.xml` の `%replace` → うっかり本文に含まれたトークン・キーをマスク（全プロファイル共通）
+
+家計データ（店名・CSV 行など）はアプリコード側でログに載せないよう別途抑制しています（マスキングの対象外）。
+
+### 構造化ログ（本番運用向け・将来の拡張）
 
 本番では、ログを**テキスト**ではなく**JSON**で出力し、CloudWatch Logs Insights や Datadog で検索しやすくする方式が主流です。
 
@@ -136,7 +162,7 @@ logging.pattern.console=%d{yyyy-MM-dd HH:mm:ss} %-5level [%X{requestId}] %logger
 {"timestamp":"2026-04-18T10:00:00Z","level":"INFO","logger":"ExpenseService","message":"created","expenseId":123,"userId":"u-456","requestId":"abc"}
 ```
 
-これを実現するには、Logback の設定ファイルである `src/main/resources/logback-spring.xml` で JSON エンコーダ（`LogstashEncoder` 等）を設定します。
+現状の `logback-spring.xml` はテキスト形式のコンソール出力です。JSON 化する場合は、同ファイルに `LogstashEncoder` 等を追加するか、`springProfile` で prod だけ JSON に切り替えます。
 
 まず、Maven に JSON ログ用のライブラリを追加します。
 
@@ -737,13 +763,15 @@ flowchart LR
 
 2 つのクラスローダー（base / restart）を使い、依存ライブラリは再ロードせず**自作クラスだけ**再ロードするため、起動が速いのが特徴。
 
-### 設定（application.properties）
+### 設定（application-dev.properties）
 
 ```properties
 spring.devtools.restart.enabled=true
 spring.devtools.restart.poll-interval=1000
 spring.devtools.restart.quiet-period=400
 ```
+
+本番プロファイル（`prod`）では `spring.devtools.restart.enabled=false` です。
 
 ### 本番での扱い
 
@@ -761,7 +789,7 @@ spring.devtools.restart.quiet-period=400
 
 ## この章のまとめ
 
-- **ロギングは SLF4J + Logback**、プレースホルダ `{}` を使う、MDC でリクエスト追跡
+- **ロギングは SLF4J + Logback**、レベルは `dev` / `prod` プロファイル、出力形式とマスキングは `logback-spring.xml`
 - **Actuator** の `health` はロードバランサとの連携に必須。**liveness と readiness は別物**
 - **Observability は Logs / Metrics / Traces の 3 本柱**、Micrometer が標準
 - **Spring Cache** は AOP ベース、実装は Caffeine を DI

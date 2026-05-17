@@ -75,8 +75,7 @@ public final class MitsuiSumitomoCsvParseUtil {
                 try {
                     validExpenses.add(parseLine(line, lineNumber, config, logger));
                 } catch (IllegalArgumentException e) {
-                    logger.warn("CSV行の解析に失敗: 行番号={}, 行内容={}, エラー={}",
-                            lineNumber, line, e.getMessage());
+                    logger.warn("CSV行の解析に失敗: 行番号={}, エラー={}", lineNumber, e.getMessage());
                     errors.add(new CsvParseError(lineNumber, line, e.getMessage()));
                 }
             }
@@ -121,7 +120,7 @@ public final class MitsuiSumitomoCsvParseUtil {
         }
 
         if (amount == null || amountColumnIndex == ILLEGAL_AMOUNT_COLUMN) {
-            logger.warn("金額解析失敗: 行番号={}, 列内容={}", lineNumber, java.util.Arrays.toString(columns));
+            logger.warn("金額解析失敗: 行番号={}, 列数={}", lineNumber, columns.length);
             throw new IllegalArgumentException("有効な金額が見つかりません");
         }
 
