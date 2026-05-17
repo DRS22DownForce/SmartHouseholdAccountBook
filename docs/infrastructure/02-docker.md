@@ -147,11 +147,11 @@ services:
 
 このプロジェクトでは、バックエンドが MySQL に接続するときに `mysql` というホスト名を使います。
 
-```properties
-SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/household_book
+```env
+SPRING_DATASOURCE_URL_PROD=jdbc:mysql://mysql:3306/household_book?...
 ```
 
-ここでの `mysql` は Compose のサービス名（DB 名・ユーザーは [03. MySQL](./03-mysql.md)）。
+Compose では `SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_PROD}` として渡します。ここでの `mysql` は Compose のサービス名（詳細は [03. MySQL](./03-mysql.md)）。
 
 ```mermaid
 flowchart LR
@@ -309,10 +309,10 @@ services:
     image: mysql:8.0
     container_name: mysql-dev
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
 ```
 
-この設定では、PC の `localhost:3306` から MySQL コンテナへ接続できます。
+この設定では、PC の `localhost:3306` から MySQL コンテナへ接続できます（ホストのループバックのみ公開）。
 
 ### `docker/compose/docker-compose.single-host.yaml`
 
@@ -332,7 +332,7 @@ services:
 バックエンドの DB 接続先は次のように指定されています。
 
 ```yaml
-SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?...
+SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_PROD}
 SPRING_DATASOURCE_USERNAME: ${MYSQL_APP_USER}
 SPRING_FLYWAY_USER: ${MYSQL_FLYWAY_USER}
 ```

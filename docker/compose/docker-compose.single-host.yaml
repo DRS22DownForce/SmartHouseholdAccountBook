@@ -2,8 +2,8 @@
 # 単一ホスト用ベース: MySQL + Spring Boot（同一 Docker ネットワーク）
 # Flyway がスキーマの正。Hibernate は validate のみ。
 #
-# ローカル: -f docker/compose/docker-compose.single-host.local.yaml を追加
-# 本番寄せ: -f docker/compose/docker-compose.single-host.prod.yaml を追加
+# デプロイ前確認: + docker-compose.single-host.local.yaml（JDBC は .env と prod 同一）
+# 本番（EC2）: + docker-compose.single-host.prod.yaml（local は付けない）
 # ========================================
 
 services:
@@ -39,7 +39,8 @@ services:
     ports:
       - "127.0.0.1:8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
+      # JDBC URL は .env の SPRING_DATASOURCE_URL_PROD を正とする（local / prod で同一）
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_PROD}
       SPRING_DATASOURCE_USERNAME: ${MYSQL_APP_USER}
       SPRING_DATASOURCE_PASSWORD: ${MYSQL_APP_PASSWORD}
       SPRING_FLYWAY_USER: ${MYSQL_FLYWAY_USER}

@@ -1,6 +1,7 @@
 # ========================================
-# ローカル上書き: MySQL を 127.0.0.1:3306 で公開、SQL ログを見やすく
-# ddl-auto はベースの validate のまま（Flyway 前提）
+# デプロイ前の通し確認用（base + 本ファイル）
+# - JDBC / Flyway / validate は prod と同一（.env の SPRING_DATASOURCE_URL_PROD）
+# - 差分: MySQL を 127.0.0.1:3306 で公開、SQL ログ ON
 # ========================================
 
 services:
