@@ -86,7 +86,7 @@ public class UserApplicationService {
         if (userRepository.findByCognitoSub(sub).isPresent()) {
             return;
         }
-        logger.info("ユーザが見つからないため新規作成します。cognitoSub: {}", sub);
+        logger.info("ユーザが見つからないため新規作成します");
         String email = currentAuthProvider.getCurrentEmail();
         userRepository.save(new User(sub, email));
     }

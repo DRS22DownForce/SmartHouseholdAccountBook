@@ -80,7 +80,7 @@ public class OpenAiClient {
         try {
             return jsonMapper.readValue(content, responseType);
         } catch (Exception e) {
-            logger.error("OpenAIレスポンスのJSONパースに失敗しました: content={}", content);
+            logger.error("OpenAIレスポンスのJSONパースに失敗しました: 応答文字数={}", content != null ? content.length() : 0);
             throw new AiServiceException("AIレスポンスのパースに失敗しました。", e);
         }
     }
@@ -131,13 +131,13 @@ public class OpenAiClient {
 
     @SuppressWarnings("unused") // このメソッドはCircuit Breakerのフォールバックとして使用されるため、警告を抑制
     private String callTextFallback(String systemPrompt, String userPrompt, Throwable t) {
-        logger.warn("AIサービスが一時的に利用できません（サーキットブレーカー開）: {}", t.getMessage());
+        logger.warn("AIサービスが一時的に利用できません（サーキットブレーカー開）");
         throw new AiServiceException("AIサービスが一時的に利用できません。", t);
     }
 
     @SuppressWarnings("unused") // このメソッドはCircuit Breakerのフォールバックとして使用されるため、警告を抑制
     private <T> T callJsonFallback(String systemPrompt, String userPrompt, TypeReference<T> responseType, Throwable t) {
-        logger.warn("AIサービスが一時的に利用できません（サーキットブレーカー開）: {}", t.getMessage());
+        logger.warn("AIサービスが一時的に利用できません（サーキットブレーカー開）");
         throw new AiServiceException("AIサービスが一時的に利用できません。", t);
     }
 

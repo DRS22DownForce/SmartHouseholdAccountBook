@@ -55,7 +55,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(QuotaExceededException.class)
     public ResponseEntity<ErrorResponse> handleQuotaExceededException(QuotaExceededException e) {
-        logger.warn("OpenAI APIの利用枠を超過しました: {}", e.getMessage());
+        logger.warn("OpenAI APIの利用枠を超過しました");
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .body(new ErrorResponse(e.getMessage(), Instant.now().atOffset(ZoneOffset.UTC)));
     }
@@ -66,7 +66,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(AiServiceException.class)
     public ResponseEntity<ErrorResponse> handleAiServiceException(AiServiceException e) {
-        logger.error("AIサービスとの通信でエラーが発生しました: {}", e.getMessage(), e);
+        logger.error("AIサービスとの通信でエラーが発生しました");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ErrorResponse(e.getMessage(), Instant.now().atOffset(ZoneOffset.UTC)));
     }
@@ -88,7 +88,7 @@ public class GlobalExceptionHandler {
         if (e.getHttpStatus() == HttpStatus.BAD_REQUEST) {
             logger.warn("CSVファイルの読み込みに失敗しました: {}", e.getMessage());
         } else {
-            logger.error("CSVの処理中にエラーが発生しました: {}", e.getMessage(), e);
+            logger.error("CSVの処理中にエラーが発生しました");
         }
 
         // OpenAPI定義に合わせてErrorResponseを返す
