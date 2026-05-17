@@ -79,23 +79,23 @@ public class AiCategoryService {
         try {
             predictedCategory = openAiClient.callText(systemPrompt, description);
         } catch (QuotaExceededException e) {
-            logger.warn("OpenAI APIの利用枠（クォータ）を超過しました: 説明文={}", description, e);
+            logger.warn("OpenAI APIの利用枠（クォータ）を超過しました");
             throw e;
         } catch (RuntimeException e) {
-            logger.error("AIサービスとの通信でエラーが発生しました: 説明文={}", description, e);
+            logger.error("AIサービスとの通信でエラーが発生しました", e);
             throw e;
         }
 
         // AI応答が取得できなかった場合
         if (predictedCategory == null || predictedCategory.isEmpty()) {
-            logger.error("AIからの応答を取得できませんでした: 説明文={}", description);
+            logger.error("AIからの応答を取得できませんでした");
             throw new AiServiceException("AIからの応答を取得できませんでした。");
         }
 
         // レスポンス検証: AIが返したカテゴリーが有効なカテゴリーリストに含まれることを確認
         if (!validCategories.contains(predictedCategory)) {
-            logger.warn("AIが無効なカテゴリーを返しました: 説明文={}, 返されたカテゴリー={}, デフォルト「その他」を使用",
-                    description, predictedCategory);
+            logger.warn("AIが無効なカテゴリーを返しました: 返されたカテゴリー={}, デフォルト「その他」を使用",
+                    predictedCategory);
             return "その他";
         }
 
@@ -227,13 +227,10 @@ public class AiCategoryService {
         } catch (QuotaExceededException e) {
             // レート制限エラーの場合、警告ログを出力
             // チャンクサイズを記録して、どのくらいのデータ量で問題が発生したかを把握できます
-            logger.warn("OpenAI APIの利用枠（クォータ）を超過しました: チャンクサイズ={}", descriptions.size(), e);
+            logger.warn("OpenAI APIの利用枠（クォータ）を超過しました: チャンクサイズ={}", descriptions.size());
             throw e;
         } catch (RuntimeException e) {
-            // JSONパースエラーなど、その他のエラーの場合、エラーログを出力
-            // チャンクサイズとエラーメッセージを記録します
-            logger.error("AIサービスとの通信でエラーが発生しました: チャンクサイズ={}, エラー={}",
-                    descriptions.size(), e.getMessage(), e);
+            logger.error("AIサービスとの通信でエラーが発生しました: チャンクサイズ={}", descriptions.size(), e);
             throw e;
         }
     }

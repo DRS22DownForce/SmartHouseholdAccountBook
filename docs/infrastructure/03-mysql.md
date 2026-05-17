@@ -1,6 +1,6 @@
 # 03. MySQL：このプロジェクトのデータ保存基盤
 
-> この章で学ぶこと: **このプロジェクトで MySQL が担当する範囲**、**Compose / Spring Boot / Flyway との接続点**、**初期スキーマの読み方**、**文字コード・タイムゾーン・永続化設定**、**開発中によく使う確認コマンド**。
+> この章で学ぶこと: **MySQL の役割**、**接続設定**、**init / Flyway / app ユーザーの分担**、**スキーマ・文字コード・タイムゾーン**、**よく使うコマンド**。
 
 ## 目次
 
@@ -9,13 +9,14 @@
 3. [MySQL 関連ファイル](#mysql-関連ファイル)
 4. [接続設定の読み方](#接続設定の読み方)
 5. [MySQL コンテナ設定](#mysql-コンテナ設定)
-6. [初期スキーマの読み方](#初期スキーマの読み方)
-7. [文字コードとタイムゾーン](#文字コードとタイムゾーン)
-8. [Flyway と Hibernate validate の境界](#flyway-と-hibernate-validate-の境界)
-9. [よく使う確認コマンド](#よく使う確認コマンド)
-10. [トラブルシュート](#トラブルシュート)
-11. [セキュリティとパフォーマンスの注意点](#セキュリティとパフォーマンスの注意点)
-12. [まず覚えるポイント](#まず覚えるポイント)
+6. [初回起動時の DB ユーザー作成（docker-entrypoint-initdb.d）](#初回起動時の-db-ユーザー作成docker-entrypoint-initdbd)
+7. [初期スキーマの読み方](#初期スキーマの読み方)
+8. [文字コードとタイムゾーン](#文字コードとタイムゾーン)
+9. [Flyway と Hibernate validate の境界](#flyway-と-hibernate-validate-の境界)
+10. [よく使う確認コマンド](#よく使う確認コマンド)
+11. [トラブルシュート](#トラブルシュート)
+12. [セキュリティとパフォーマンスの注意点](#セキュリティとパフォーマンスの注意点)
+13. [まず覚えるポイント](#まず覚えるポイント)
 
 ---
 
@@ -74,6 +75,7 @@ MySQL に直接関係するファイルは次の通りです。
 ├── docker/compose/docker-compose.single-host.local.yaml
 ├── docker/compose/docker-compose.single-host.prod.yaml
 ├── docker/mysql/my.cnf
+├── docker/mysql/init/01-create-db-users.sh
 ├── backend/src/main/resources/application.properties
 └── backend/src/main/resources/db/migration/V1__initial_schema.sql
 ```
@@ -85,10 +87,9 @@ MySQL に直接関係するファイルは次の通りです。
 | `docker/compose/docker-compose.single-host.local.yaml` | ローカル用のポート公開と SQL ログ設定 |
 | `docker/compose/docker-compose.single-host.prod.yaml` | 本番寄せの SQL ログ抑制設定 |
 | `docker/mysql/my.cnf` | MySQL サーバーの文字コード・タイムゾーン設定 |
-| `application.properties` | Spring Boot が読む DB 接続設定 |
-| `V1__initial_schema.sql` | Flyway が作成する初期テーブル定義 |
-
-初心者向けに言うと、`docker/compose/docker-compose*.yaml` は「MySQL をどう起動するか」、`application.properties` は「Spring Boot が MySQL へどう接続するか」、`V1__initial_schema.sql` は「MySQL の中にどんな表を作るか」です。
+| `docker/mysql/init/01-create-db-users.sh` | 初回起動時のみ DB ユーザー作成 |
+| `application.properties` | app / Flyway 用の接続設定 |
+| `V1__initial_schema.sql` | Flyway が作る初期テーブル |
 
 ---
 
@@ -107,31 +108,38 @@ MySQL に直接関係するファイルは次の通りです。
 
 ```properties
 spring.datasource.url=${SPRING_DATASOURCE_URL_DEV}
-spring.datasource.username=${MYSQL_ROOT_USER}
-spring.datasource.password=${MYSQL_ROOT_PASSWORD}
+spring.datasource.username=${MYSQL_APP_USER}
+spring.datasource.password=${MYSQL_APP_PASSWORD}
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
+
+# Flyway は DDL 権限を持つ専用ユーザーでマイグレーション
+spring.flyway.user=${MYSQL_FLYWAY_USER}
+spring.flyway.password=${MYSQL_FLYWAY_PASSWORD}
 ```
 
-`.env` 側では、たとえば次のように設定します。
+`.env` の変数一覧は `.env.example` を参照。`MYSQL_ROOT_PASSWORD` は init / 運用用で、Spring のランタイム接続には使わない。
 
-```env
-MYSQL_ROOT_USER=root
-MYSQL_ROOT_PASSWORD=your-password
-MYSQL_DATABASE=demo
-SPRING_DATASOURCE_URL_DEV=jdbc:mysql://localhost:3306/demo?serverTimezone=UTC
-```
-
-`localhost` になる理由は、Spring Boot を Docker ではなくローカルPC側で動かすためです。
+`localhost` は Spring Boot をローカルPCで動かすため。
 
 ### 単一ホスト構成時
 
-`docker/compose/docker-compose.single-host.yaml` では、バックエンドコンテナに次の環境変数を渡します。
+JDBC URL は **`.env` の `SPRING_DATASOURCE_URL_PROD` を正**とし、Compose ではそれをコンテナへ渡します（`single-host.local` / `single-host.prod` で URL は変えません）。
 
 ```yaml
-SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
+SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_PROD}
+SPRING_DATASOURCE_USERNAME: ${MYSQL_APP_USER}
+SPRING_DATASOURCE_PASSWORD: ${MYSQL_APP_PASSWORD}
+SPRING_FLYWAY_USER: ${MYSQL_FLYWAY_USER}
+SPRING_FLYWAY_PASSWORD: ${MYSQL_FLYWAY_PASSWORD}
 ```
 
-ここでの `mysql` は、MySQL コンテナのサービス名です。
+| Compose の組み合わせ | 用途 | JDBC / MySQL ポート / SQL ログ |
+|----------------------|------|--------------------------------|
+| `docker-compose.dev.yaml` | 日常開発（Spring はホスト） | `SPRING_DATASOURCE_URL_DEV`、`127.0.0.1:3306` 公開 |
+| `single-host.yaml` + `single-host.local.yaml` | デプロイ前の通し確認 | `SPRING_DATASOURCE_URL_PROD`、`127.0.0.1:3306` 公開、SQL ログ ON |
+| `single-host.yaml` + `single-host.prod.yaml` | EC2 本番 | 同上 URL、MySQL ポート非公開、SQL ログ OFF |
+
+`SPRING_*` は `spring.*` に対応（[01. Spring コア](../backend/01-spring-core.md)）。`mysql` は Compose のサービス名。
 Docker Compose の同じネットワーク内では、サービス名がホスト名として使えます。
 
 `localhost` は「自分自身」という意味なので、Docker 内のバックエンドから MySQL コンテナへつなぐ場合は `localhost` ではなく `mysql` を使います。
@@ -148,23 +156,26 @@ services:
     image: mysql:8.0
     container_name: mysql-dev
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_FLYWAY_USER: ${MYSQL_FLYWAY_USER}
+      MYSQL_FLYWAY_PASSWORD: ${MYSQL_FLYWAY_PASSWORD}
+      MYSQL_APP_USER: ${MYSQL_APP_USER}
+      MYSQL_APP_PASSWORD: ${MYSQL_APP_PASSWORD}
     volumes:
       - mysql_dev_data:/var/lib/mysql
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d
 ```
-
-見るべき点は 4 つです。
 
 | 設定 | 意味 |
 |------|------|
-| `image: mysql:8.0` | MySQL 8 系の公式イメージを使う |
-| `MYSQL_DATABASE` | 初回起動時に作成するデータベース名 |
-| `/var/lib/mysql` | MySQL の実データ保存場所 |
-| `./docker/mysql/my.cnf` | プロジェクト側の MySQL 設定をコンテナへ渡す |
+| `MYSQL_DATABASE` | 初回起動時に作成する DB 名 |
+| `/var/lib/mysql` | データ永続化（名前付きボリューム） |
+| `./docker/mysql/my.cnf` | 文字コード・タイムゾーン |
+| `./docker/mysql/init:...` | 初回のみユーザー作成（次節） |
 
 MySQL のデータは `/var/lib/mysql` に保存されます。
 
@@ -186,6 +197,18 @@ healthcheck:
 ```
 
 Docker のネットワークやボリュームの基本は [02. Docker](./02-docker.md#ネットワークとボリューム) を参照してください。
+
+---
+
+## 初回起動時の DB ユーザー作成（docker-entrypoint-initdb.d）
+
+```yaml
+- ./docker/mysql/init:/docker-entrypoint-initdb.d
+```
+
+ホストの `docker/mysql/init/` を、MySQL 公式イメージの**初回セットアップ用ディレクトリ**にマウントする。`/var/lib/mysql` が**空のときだけ**中の `.sh` / `.sql` が実行され、2 回目以降やボリューム残存時は走らない。`.env` 変更を反映するには `down -v` か手動 SQL。
+
+`01-create-db-users.sh` は `flyway_user`（DDL 可）と `app_user`（DML のみ）を作る。`root` は healthcheck / 手動操作用。
 
 ---
 
@@ -329,37 +352,18 @@ spring.jackson.time-zone=UTC
 
 ## Flyway と Hibernate validate の境界
 
-このプロジェクトでは、DB スキーマの作成・変更は Flyway が担当します。
+`spring-boot-starter-flyway` により起動時に Flyway が自動実行され、`db/migration/` の未適用 SQL を適用する。Hibernate は `ddl-auto=validate` で Entity と DB の整合のみ確認する。
 
-```text
-backend/src/main/resources/db/migration/V1__initial_schema.sql
-```
+**DB ユーザー（起動時の順）**: `spring.flyway.user` があればマイグレーションはそのユーザー（未設定なら `spring.datasource` と同じ）→ 以降 API は `spring.datasource` の app ユーザー。リクエストごとの切替ではない。
 
-Hibernate はテーブルを自動生成せず、Entity と DB の形が合っているかだけ確認します。
-
-```properties
-spring.jpa.hibernate.ddl-auto=validate
-```
-
-役割を分けると次のようになります。
-
-| 役割 | 担当 |
+| 担当 | 実装 |
 |------|------|
-| テーブルを作る | Flyway |
-| カラムやインデックスを変更する | 新しい Flyway マイグレーション |
-| Entity とテーブルのズレを検出する | Hibernate `validate` |
-| Repository から SQL を実行する | Spring Data JPA / Hibernate |
+| MySQL ユーザー作成 | `docker/mysql/init/`（初回のみ） |
+| テーブル作成・変更 | Flyway（`flyway_user`） |
+| 日常の SQL | JPA（`app_user`） |
+| スキーマ整合チェック | Hibernate `validate` |
 
-重要なのは、**一度適用済みの `V1__initial_schema.sql` を後から編集しない**ことです。
-
-すでに適用された DB を変更したい場合は、新しいファイルを追加します。
-
-```text
-V2__add_xxx_column.sql
-V3__create_xxx_index.sql
-```
-
-Flyway の詳しいルールは [03. データ層](../backend/03-data.md#flywaydb-マイグレーション) を参照してください。
+**一度適用した `V1__...sql` は編集しない。** 変更は `V2__...` を追加。命名規則などは [03. データ層](../backend/03-data.md#flywaydb-マイグレーション) を参照。
 
 ---
 
@@ -396,11 +400,11 @@ docker exec -it smart_household_mysql_single mysql -u root -p
 
 ```sql
 SHOW DATABASES;
-USE demo;
+USE household_book;
 SHOW TABLES;
 ```
 
-`demo` の部分は `.env` の `MYSQL_DATABASE` に合わせます。
+データベース名の部分は `.env` の `MYSQL_DATABASE`（例: `household_book`）に合わせます。
 
 ### テーブル定義を見る
 
@@ -448,12 +452,13 @@ Docker 内のバックエンドから `localhost` を指定すると、MySQL で
 `.env` のユーザー名・パスワードを確認します。
 
 ```env
-MYSQL_ROOT_USER=root
 MYSQL_ROOT_PASSWORD=your-password
-MYSQL_DATABASE=demo
+MYSQL_DATABASE=household_book
+MYSQL_APP_USER=app_user
+MYSQL_APP_PASSWORD=your-app-password
 ```
 
-MySQL の初期化後に `.env` のパスワードを変えても、既存ボリューム内のユーザー設定は自動では変わりません。
+MySQL の初期化後に `.env` のパスワードを変えても、既存ボリューム内のユーザー設定は自動では変わりません（[初回起動時の DB ユーザー作成](#初回起動時の-db-ユーザー作成docker-entrypoint-initdbd) を参照）。
 学習用に作り直す場合は、データ削除を理解したうえで `down -v` を使います。
 
 ### `Table ... doesn't exist` が出る
@@ -492,9 +497,10 @@ spring.jackson.time-zone=UTC
 ### セキュリティ
 
 - `.env` には DB パスワードや API キーが入るため、Git にコミットしません。
-- 本番では MySQL ポートをインターネットへ公開しません。
+- 本番では MySQL ポートをインターネットへ公開しません（`single-host.prod` では `ports` を付けない）。
 - 本番では SQL ログを出しっぱなしにしません。支出内容やメールアドレスがログに混ざる可能性があります。
-- 本番では root ユーザーではなく、必要な権限だけを持つアプリ専用ユーザーを使う方が安全です。
+- ランタイムは `app_user`、Flyway は `flyway_user`。`root` は init / healthcheck のみ。
+- **JDBC の `useSSL=false`** は、backend と MySQL が同一 Docker ネットワーク内の single-host 向けです。DB をネットワーク越し（RDS 等）に置く場合は `.env` の URL を `sslMode=VERIFY_IDENTITY` 等に切り替え、`allowPublicKeyRetrieval=true` は原則外してください。
 - SQL インジェクション対策は、文字列結合ではなく Repository / JPQL のパラメータバインディングに寄せます。詳しくは [03. データ層](../backend/03-data.md#sql-インジェクション対策の仕組み) を参照してください。
 
 ### パフォーマンス
@@ -511,6 +517,6 @@ spring.jackson.time-zone=UTC
 - このプロジェクトの MySQL は、`users`、`expenses`、`monthly_reports` を保存します。
 - ローカル Spring Boot からは `localhost:3306`、Docker 内バックエンドからは `mysql:3306` に接続します。
 - MySQL の実データは `/var/lib/mysql` にあり、Docker ボリュームで永続化しています。
-- 初期テーブルは Flyway の `V1__initial_schema.sql` が作ります。
-- Hibernate は `ddl-auto=validate` で、テーブルを作るのではなく Entity とのズレを検出します。
+- init は初回のみ `flyway_user` / `app_user` を作成。スキーマは Flyway、API は app ユーザー。`spring.flyway.user` 未設定時は DataSource と同じユーザーでマイグレーション。
+- Hibernate は `validate` のみ（テーブルは作らない）。
 - `utf8mb4` と UTC を明示して、文字化けや日時ずれを減らしています。
