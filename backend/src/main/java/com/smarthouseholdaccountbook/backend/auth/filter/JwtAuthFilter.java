@@ -68,9 +68,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             );       
             this.jwtProcessor.setJWTClaimsSetVerifier(claimsVerifier);
 
-            logger.info("JWT認証フィルターを初期化しました。JWK URL: {}", jwtProperties.getJwkSetUrl());
+            logger.info("JWT認証フィルターを初期化しました");
         } catch (MalformedURLException e) {
-            logger.error("JWT認証フィルターの初期化に失敗しました。JWK URLの形式を確認してください: {}", jwtProperties.getJwkSetUrl(), e);
+            logger.error("JWT認証フィルターの初期化に失敗しました（JWK URL の形式を確認してください）", e);
             throw new IllegalStateException("JWT認証フィルターの初期化に失敗しました", e);
         }
     }

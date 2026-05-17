@@ -794,6 +794,8 @@ sequenceDiagram
 
 **Flyway**: DB スキーマをバージョン管理するツール。「未適用の SQL だけを順に実行」してくれる。
 
+DB ユーザー作成（init）と Flyway / app ユーザーの切り分けは [03. MySQL](../infrastructure/03-mysql.md) を参照。
+
 ### 起動時の流れ
 
 ```mermaid
