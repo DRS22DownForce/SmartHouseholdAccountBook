@@ -79,14 +79,19 @@ cd SmartHouseholdAccountBook
 #### ルート `.env`（バックエンド / Docker 用）
 
 ```env
-# MySQL
-MYSQL_ROOT_USER=root
-MYSQL_ROOT_PASSWORD=your-password
-MYSQL_DATABASE=demo
+# MySQL（root はコンテナ運用・init 用。Spring には渡さない）
+MYSQL_ROOT_PASSWORD=your-strong-password
+MYSQL_DATABASE=household_book
 
-# DataSource
-SPRING_DATASOURCE_URL_DEV=jdbc:mysql://localhost:3306/demo?serverTimezone=UTC
-SPRING_DATASOURCE_URL_PROD=jdbc:mysql://mysql:3306/demo?serverTimezone=UTC
+# Flyway / アプリ専用ユーザー（init スクリプトで作成）
+MYSQL_FLYWAY_USER=flyway_user
+MYSQL_FLYWAY_PASSWORD=your-flyway-password
+MYSQL_APP_USER=app_user
+MYSQL_APP_PASSWORD=your-app-password
+
+# DataSource（ローカル IDE / dev 用）
+SPRING_DATASOURCE_URL_DEV=jdbc:mysql://localhost:3306/household_book?serverTimezone=UTC&characterEncoding=UTF-8
+SPRING_DATASOURCE_URL_PROD=jdbc:mysql://mysql:3306/household_book?serverTimezone=UTC&characterEncoding=UTF-8
 
 # Cognito (JWT 検証)
 COGNITO_JWK_SET_URL=https://cognito-idp.<region>.amazonaws.com/<user-pool-id>/.well-known/jwks.json
