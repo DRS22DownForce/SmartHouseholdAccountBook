@@ -148,10 +148,10 @@ services:
 このプロジェクトでは、バックエンドが MySQL に接続するときに `mysql` というホスト名を使います。
 
 ```properties
-SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/demo
+SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/household_book
 ```
 
-ここでの `mysql` は、インターネット上のドメインではなく、Compose のサービス名です。
+ここでの `mysql` は Compose のサービス名（DB 名・ユーザーは [03. MySQL](./03-mysql.md)）。
 
 ```mermaid
 flowchart LR
@@ -332,10 +332,12 @@ services:
 バックエンドの DB 接続先は次のように指定されています。
 
 ```yaml
-SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
+SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?...
+SPRING_DATASOURCE_USERNAME: ${MYSQL_APP_USER}
+SPRING_FLYWAY_USER: ${MYSQL_FLYWAY_USER}
 ```
 
-`mysql` は Compose のサービス名です。バックエンドコンテナから見ると、MySQL コンテナを `mysql` という名前で見つけられます。
+`mysql` はサービス名。DB ユーザー init は [03. MySQL](./03-mysql.md#初回起動時の-db-ユーザー作成docker-entrypoint-initdbd)。
 
 ### healthcheck と depends_on
 
