@@ -123,15 +123,21 @@ spring.flyway.password=${MYSQL_FLYWAY_PASSWORD}
 
 ### 単一ホスト構成時
 
-`docker/compose/docker-compose.single-host.yaml` では、バックエンドコンテナに次の環境変数を渡します。
+JDBC URL は **`.env` の `SPRING_DATASOURCE_URL_PROD` を正**とし、Compose ではそれをコンテナへ渡します（`single-host.local` / `single-host.prod` で URL は変えません）。
 
 ```yaml
-SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE}?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
+SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_PROD}
 SPRING_DATASOURCE_USERNAME: ${MYSQL_APP_USER}
 SPRING_DATASOURCE_PASSWORD: ${MYSQL_APP_PASSWORD}
 SPRING_FLYWAY_USER: ${MYSQL_FLYWAY_USER}
 SPRING_FLYWAY_PASSWORD: ${MYSQL_FLYWAY_PASSWORD}
 ```
+
+| Compose の組み合わせ | 用途 | JDBC / MySQL ポート / SQL ログ |
+|----------------------|------|--------------------------------|
+| `docker-compose.dev.yaml` | 日常開発（Spring はホスト） | `SPRING_DATASOURCE_URL_DEV`、`127.0.0.1:3306` 公開 |
+| `single-host.yaml` + `single-host.local.yaml` | デプロイ前の通し確認 | `SPRING_DATASOURCE_URL_PROD`、`127.0.0.1:3306` 公開、SQL ログ ON |
+| `single-host.yaml` + `single-host.prod.yaml` | EC2 本番 | 同上 URL、MySQL ポート非公開、SQL ログ OFF |
 
 `SPRING_*` は `spring.*` に対応（[01. Spring コア](../backend/01-spring-core.md)）。`mysql` は Compose のサービス名。
 Docker Compose の同じネットワーク内では、サービス名がホスト名として使えます。
@@ -150,7 +156,7 @@ services:
     image: mysql:8.0
     container_name: mysql-dev
     ports:
-      - "3306:3306"
+      - "127.0.0.1:3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
       MYSQL_DATABASE: ${MYSQL_DATABASE}
@@ -491,9 +497,10 @@ spring.jackson.time-zone=UTC
 ### セキュリティ
 
 - `.env` には DB パスワードや API キーが入るため、Git にコミットしません。
-- 本番では MySQL ポートをインターネットへ公開しません。
+- 本番では MySQL ポートをインターネットへ公開しません（`single-host.prod` では `ports` を付けない）。
 - 本番では SQL ログを出しっぱなしにしません。支出内容やメールアドレスがログに混ざる可能性があります。
 - ランタイムは `app_user`、Flyway は `flyway_user`。`root` は init / healthcheck のみ。
+- **JDBC の `useSSL=false`** は、backend と MySQL が同一 Docker ネットワーク内の single-host 向けです。DB をネットワーク越し（RDS 等）に置く場合は `.env` の URL を `sslMode=VERIFY_IDENTITY` 等に切り替え、`allowPublicKeyRetrieval=true` は原則外してください。
 - SQL インジェクション対策は、文字列結合ではなく Repository / JPQL のパラメータバインディングに寄せます。詳しくは [03. データ層](../backend/03-data.md#sql-インジェクション対策の仕組み) を参照してください。
 
 ### パフォーマンス
