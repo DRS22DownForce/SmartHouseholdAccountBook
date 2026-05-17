@@ -152,19 +152,13 @@
 		</dependency>
 
 		<!-- ========================================
-		     OpenAPI / Swagger
-		     API仕様書の自動生成とSwagger UI
+		     OpenAPI Generator（ビルド時）
+		     生成モデルの JsonNullable サポート
 		     ======================================== -->
-		<!-- OpenAPI 生成モデルの JsonNullable 用（springdoc と整合する版に固定） -->
 		<dependency>
 			<groupId>org.openapitools</groupId>
 			<artifactId>jackson-databind-nullable</artifactId>
 			<version>0.2.10</version>
-		</dependency>
-		<dependency>
-			<groupId>org.springdoc</groupId>
-			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-			<version>3.0.3</version>
 		</dependency>
 
 		<!-- ========================================
@@ -308,6 +302,9 @@
 							<configOptions>
 								<!-- インターフェースのみ生成（実装クラスは生成しない） -->
 								<interfaceOnly>true</interfaceOnly>
+								<!-- SpringDoc 未使用のため Swagger アノテーションは生成しない -->
+								<documentationProvider>none</documentationProvider>
+								<annotationLibrary>none</annotationLibrary>
 								<!-- タグを使用してAPIをグループ化 -->
 								<useTags>true</useTags>
 								<dateLibrary>java8</dateLibrary>
