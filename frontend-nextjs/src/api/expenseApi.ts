@@ -3,7 +3,6 @@
  */
 
 import { getExpenseApiClient } from './apiClient';
-import { withAuthHeader } from './authUtils';
 import {
     toExpense,
     toExpenseRequestDto,
@@ -35,8 +34,7 @@ export async function fetchMonthlyExpenses(
     size?: number
 ): Promise<MonthlyExpensesPage> {
     const api = getExpenseApiClient();
-    const options = await withAuthHeader();
-    const response = await api.apiExpensesGet(month, page, size, options);
+    const response = await api.apiExpensesGet(month, page, size);
     const dto = response.data;
     return {
         content: (dto.content ?? []).map(toExpense),
@@ -52,9 +50,8 @@ export async function fetchMonthlyExpenses(
  */
 export async function createExpense(data: ExpenseFormData): Promise<Expense> {
     const api = getExpenseApiClient();
-    const options = await withAuthHeader();
     const requestDto = toExpenseRequestDto(data);
-    const response = await api.apiExpensesPost(requestDto, options);
+    const response = await api.apiExpensesPost(requestDto);
     return toExpense(response.data);
 }
 
@@ -63,9 +60,8 @@ export async function createExpense(data: ExpenseFormData): Promise<Expense> {
  */
 export async function createExpenses(dataArray: ExpenseFormData[]): Promise<Expense[]> {
     const api = getExpenseApiClient();
-    const options = await withAuthHeader();
     const responses = await Promise.all(
-        dataArray.map((data) => api.apiExpensesPost(toExpenseRequestDto(data), options))
+        dataArray.map((data) => api.apiExpensesPost(toExpenseRequestDto(data)))
     );
     return responses.map((response) => toExpense(response.data));
 }
@@ -75,9 +71,8 @@ export async function createExpenses(dataArray: ExpenseFormData[]): Promise<Expe
  */
 export async function updateExpense(id: string, data: ExpenseFormData): Promise<Expense> {
     const api = getExpenseApiClient();
-    const options = await withAuthHeader();
     const requestDto = toExpenseRequestDto(data);
-    const response = await api.apiExpensesIdPut(Number(id), requestDto, options);
+    const response = await api.apiExpensesIdPut(Number(id), requestDto);
     return toExpense(response.data);
 }
 
@@ -86,8 +81,7 @@ export async function updateExpense(id: string, data: ExpenseFormData): Promise<
  */
 export async function deleteExpense(id: string): Promise<void> {
     const api = getExpenseApiClient();
-    const options = await withAuthHeader();
-    await api.apiExpensesIdDelete(Number(id), options);
+    await api.apiExpensesIdDelete(Number(id));
 }
 
 /**
@@ -95,8 +89,7 @@ export async function deleteExpense(id: string): Promise<void> {
  */
 export async function fetchAvailableMonths(): Promise<string[]> {
     const api = getExpenseApiClient();
-    const options = await withAuthHeader();
-    const response = await api.apiExpensesMonthsGet(options);
+    const response = await api.apiExpensesMonthsGet();
     return response.data ?? [];
 }
 
@@ -105,8 +98,7 @@ export async function fetchAvailableMonths(): Promise<string[]> {
  */
 export async function fetchMonthlySummary(month: string): Promise<MonthlySummary> {
     const api = getExpenseApiClient();
-    const options = await withAuthHeader();
-    const response = await api.apiExpensesSummaryGet(month, options);
+    const response = await api.apiExpensesSummaryGet(month);
     return toMonthlySummary(response.data);
 }
 
@@ -118,8 +110,7 @@ export async function fetchMonthlySummaryRange(
     endMonth: string
 ): Promise<MonthlySummary[]> {
     const api = getExpenseApiClient();
-    const options = await withAuthHeader();
-    const response = await api.apiExpensesSummaryRangeGet(startMonth, endMonth, options);
+    const response = await api.apiExpensesSummaryRangeGet(startMonth, endMonth);
     return response.data.map(toMonthlySummary);
 }
 
@@ -146,12 +137,8 @@ export interface CsvUploadResponse {
  */
 export async function uploadCsvFile(file: File, csvFormat: "MITSUISUMITOMO_OLD_FORMAT" | "MITSUISUMITOMO_NEW_FORMAT"): Promise<CsvUploadResponse> {
     const api = getExpenseApiClient();
-    const options = await withAuthHeader();
-    
-    // 生成された列挙型に変換
     const csvFormatEnum = csvFormat as ApiExpensesUploadCsvPostCsvFormatEnum;
-    
-    const response = await api.apiExpensesUploadCsvPost(file, csvFormatEnum, options);
+    const response = await api.apiExpensesUploadCsvPost(file, csvFormatEnum);
     const d = response.data;
     return {
         successCount: d.successCount,

@@ -82,7 +82,7 @@ export function transformMonthlySummariesToChartData(
             total: summary?.total ?? 0, // 合計金額を追加
         }
 
-        // 各カテゴリーの金額を設定
+        // カテゴリ別フィールドは将来の内訳表示用（現在の棒グラフ UI は total のみ使用）
         categories.forEach((category) => {
             const categoryItem = summary?.byCategory.find((item) => item.category === category)
             data[category] = categoryItem?.amount ?? 0 // データがない場合は0を設定

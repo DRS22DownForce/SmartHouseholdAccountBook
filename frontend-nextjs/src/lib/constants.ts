@@ -26,9 +26,3 @@ export const MONTH_RANGES = [
   { value: "24", label: "24ヶ月" },
 ] as const
 
-export const DATE_FORMAT = {
-  ISO_DATE: "YYYY-MM-DD",
-  DISPLAY_MONTH: "YYYY年MM月",
-  CHART_MONTH: "YYYY/MM",
-} as const
-

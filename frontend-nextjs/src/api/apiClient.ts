@@ -1,31 +1,29 @@
 /**
- * APIクライアント作成ユーティリティ
+ * API クライアント作成ユーティリティ
  */
 
-import { Configuration } from './generated/configuration';
-import { ExpensesApi, AiApi } from './generated/api';
+import { Configuration } from "./generated/configuration"
+import { ExpensesApi, AiApi } from "./generated/api"
+import { authenticatedAxios } from "./authenticatedAxios"
 
-/**
- * 環境変数からベースURLを取得
- */
 function getBasePath(): string {
-    return process.env.NEXT_PUBLIC_API_BASE_URL || '';
+  return process.env.NEXT_PUBLIC_API_BASE_URL || ""
 }
 
-/**
- * Expense APIクライアントのインスタンスを作成
- */
+/** Expense API クライアント（認証付き Axios を共有） */
 export function getExpenseApiClient(): ExpensesApi {
-    return new ExpensesApi(new Configuration({
-        basePath: getBasePath()
-    }));
+  return new ExpensesApi(
+    new Configuration({ basePath: getBasePath() }),
+    undefined,
+    authenticatedAxios
+  )
 }
 
-/**
- * AI APIクライアントのインスタンスを作成
- */
+/** AI API クライアント（認証付き Axios を共有） */
 export function getAiApiClient(): AiApi {
-    return new AiApi(new Configuration({
-        basePath: getBasePath()
-    }));
+  return new AiApi(
+    new Configuration({ basePath: getBasePath() }),
+    undefined,
+    authenticatedAxios
+  )
 }
