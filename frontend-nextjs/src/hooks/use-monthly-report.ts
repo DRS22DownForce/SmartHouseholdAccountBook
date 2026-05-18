@@ -1,84 +1,99 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useCallback, useState } from "react"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { getMonthlyReport } from "@/api/reportApi"
+import { reportKeys } from "@/lib/query-keys"
+import { showApiErrorMessage } from "@/lib/api-error-handler"
 import type { MonthlyReportResponse } from "@/api/generated/api"
 
-interface UseMonthlyReportReturn {
-    report: MonthlyReportResponse | null
-    isLoading: boolean
-    error: string | null
-    fetchReport: (month: string) => Promise<void>
-    regenerateReport: (month: string) => Promise<void>
-    loadCachedReport: (month: string) => Promise<void>
-    clearReport: () => void
-}
-
 /**
- * 月次AIレポートを取得するカスタムフック
+ * 月次 AI レポートを取得するフック（TanStack Query）。
+ * 月切替時はキャッシュのみ取得し、明示操作時に生成する。
  */
-export function useMonthlyReport(): UseMonthlyReportReturn {
-    const [report, setReport] = useState<MonthlyReportResponse | null>(null)
-    const [isLoading, setIsLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+export function useMonthlyReport(month: string) {
+  const queryClient = useQueryClient()
+  const [reportError, setReportError] = useState<string | null>(null)
 
-    /**
-     * レポートを表示する。キャッシュがあればそれを返し、なければ新規生成する。
-     * generate=false → キャッシュのみ取得（204ならなし）。null なら generate=true で生成。
-     */
-    const fetchReport = useCallback(async (month: string) => {
-        setIsLoading(true)
-        setError(null)
-        try {
-            const cached = await getMonthlyReport(month, false)
-            if (cached != null) {
-                setReport(cached)
-                return
-            }
-            const data = await getMonthlyReport(month, true)
-            setReport(data ?? null)
-        } catch (err) {
-            console.error("Failed to fetch monthly report:", err)
-            setError("レポートの取得に失敗しました。しばらく経ってから再度お試しください。")
-        } finally {
-            setIsLoading(false)
+  const cachedQuery = useQuery({
+    queryKey: reportKeys.cached(month),
+    queryFn: () => getMonthlyReport(month, false),
+    enabled: Boolean(month),
+    retry: false,
+  })
+
+  const generateMutation = useMutation({
+    mutationFn: (targetMonth: string) => getMonthlyReport(targetMonth, true),
+    onSuccess: (data, targetMonth) => {
+      queryClient.setQueryData(reportKeys.cached(targetMonth), data)
+      setReportError(null)
+    },
+    onError: (error) => {
+      setReportError(
+        "レポートの取得に失敗しました。しばらく経ってから再度お試しください。"
+      )
+      showApiErrorMessage(error, "レポートの取得に失敗しました")
+    },
+  })
+
+  const regenerateMutation = useMutation({
+    mutationFn: (targetMonth: string) => getMonthlyReport(targetMonth, true),
+    onSuccess: (data, targetMonth) => {
+      queryClient.setQueryData(reportKeys.cached(targetMonth), data)
+      setReportError(null)
+    },
+    onError: (error) => {
+      setReportError(
+        "レポートの再生成に失敗しました。しばらく経ってから再度お試しください。"
+      )
+      showApiErrorMessage(error, "レポートの再生成に失敗しました")
+    },
+  })
+
+  const fetchReport = useCallback(
+    async (targetMonth: string) => {
+      setReportError(null)
+      try {
+        const cached = await queryClient.fetchQuery({
+          queryKey: reportKeys.cached(targetMonth),
+          queryFn: () => getMonthlyReport(targetMonth, false),
+        })
+        if (cached != null) {
+          queryClient.setQueryData(reportKeys.cached(targetMonth), cached)
+          return
         }
-    }, [])
-
-    const regenerateReport = useCallback(async (month: string) => {
-        setIsLoading(true)
-        setError(null)
-        try {
-            const data = await getMonthlyReport(month, true)
-            setReport(data ?? null)
-        } catch (err) {
-            console.error("Failed to regenerate monthly report:", err)
-            setError("レポートの再生成に失敗しました。しばらく経ってから再度お試しください。")
-        } finally {
-            setIsLoading(false)
+        await generateMutation.mutateAsync(targetMonth)
+      } catch (error) {
+        if (!generateMutation.isError) {
+          setReportError(
+            "レポートの取得に失敗しました。しばらく経ってから再度お試しください。"
+          )
+          showApiErrorMessage(error, "レポートの取得に失敗しました")
         }
-    }, [])
+      }
+    },
+    [queryClient, generateMutation]
+  )
 
-    /**
-     * キャッシュが存在する場合のみレポートを表示する。
-     * キャッシュがなければ report を null にリセットする（OpenAI非呼び出し）。
-     * 月切り替え時の自動ロードに使用する。
-     */
-    const loadCachedReport = useCallback(async (month: string) => {
-        setError(null)
-        try {
-            const data = await getMonthlyReport(month, false)
-            setReport(data ?? null)
-        } catch (err) {
-            console.error("Failed to load cached report:", err)
-            setReport(null)
-        }
-    }, [])
+  const regenerateReport = useCallback(
+    async (targetMonth: string) => {
+      setReportError(null)
+      await regenerateMutation.mutateAsync(targetMonth)
+    },
+    [regenerateMutation]
+  )
 
-    const clearReport = useCallback(() => {
-        setReport(null)
-        setError(null)
-    }, [])
+  const report: MonthlyReportResponse | null = cachedQuery.data ?? null
+  const isReportLoading =
+    generateMutation.isPending || regenerateMutation.isPending
 
-    return { report, isLoading, error, fetchReport, regenerateReport, loadCachedReport, clearReport }
+  return {
+    report,
+    isLoading: isReportLoading,
+    isReportLoading,
+    error: reportError,
+    reportError,
+    fetchReport,
+    regenerateReport,
+  }
 }

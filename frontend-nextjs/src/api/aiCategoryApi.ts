@@ -3,7 +3,6 @@
  */
 
 import { getAiApiClient } from './apiClient';
-import { withAuthHeader } from './authUtils';
 import type { CategoryPredictionRequest, ErrorResponse } from './generated/api';
 import axios from 'axios';
 
@@ -16,7 +15,6 @@ import axios from 'axios';
  */
 export async function predictCategory(description: string): Promise<string> {
     const api = getAiApiClient();
-    const options = await withAuthHeader();
 
     // 入力バリデーション: 説明文が空でないことを確認
     if (!description || description.trim().length === 0) {
@@ -28,7 +26,7 @@ export async function predictCategory(description: string): Promise<string> {
     };
 
     try {
-        const response = await api.apiAiCategoryPost(request, options);
+        const response = await api.apiAiCategoryPost(request);
         return response.data.category;
     } catch (error) {
         // AxiosErrorの場合、HTTPステータスコードとエラーレスポンスボディを確認

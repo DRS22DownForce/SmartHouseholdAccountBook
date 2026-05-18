@@ -8,7 +8,7 @@
  * 
  * 【初心者向け解説】
  * - Props: 親コンポーネントから受け取るデータ（summaryData）と
- *   データ再読み込みのトリガー（refreshTrigger）
+ *   親から渡されるサマリーデータ（TanStack Query で自動更新）
  * - カード配列: 3つのサマリーカード（今月の支出、取引件数、日平均）の
  *   設定を配列で定義し、map関数で順番にレンダリング
  * - グラデーション背景: 各カードに異なる色のグラデーションを適用して
@@ -38,7 +38,7 @@ import { cn } from "@/lib/utils"
  * 
  * - interface: TypeScriptでオブジェクトの構造を定義する方法
  * - summaryData: 表示するサマリーデータ（必須）
- * - refreshTrigger: データ再読み込みのトリガー（オプショナル）
+ * - summaryData: 今月のサマリー（前月比含む）
  */
 interface ExpenseSummarySectionProps {
   summaryData: {
@@ -92,7 +92,7 @@ export function ExpenseSummarySection({
       value: summaryData.monthlyTotal,
       icon: ArrowDownCircle,
       // 前月比がある場合のみトレンド情報を表示
-      trend: summaryData.monthlyChange !== 0 ? {
+      trend: summaryData.monthlyChange != null && summaryData.monthlyChange !== 0 ? {
         value: Math.abs(summaryData.monthlyChange ?? 0),
         // 支出は減少がポジティブ（良いこと）なので、負の値がポジティブ
         isPositive: (summaryData.monthlyChange ?? 0) < 0,

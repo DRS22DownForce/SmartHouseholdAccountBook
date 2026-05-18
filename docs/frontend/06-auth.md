@@ -187,7 +187,7 @@ const username = useMemo(() => getUserDisplayName(user), [user])
 
 1. **秘密鍵・API キーをフロントに置かない** — `NEXT_PUBLIC_` はビルドに埋め込まれ誰でも見られる
 2. **XSS** — React はデフォルトで文字列をエスケープするが、`dangerouslySetInnerHTML` は使わない
-3. **トークンの保存** — Amplify が Secure な保存を行う。自前で `localStorage` に JWT を書かない
+3. **トークンの保存** — Amplify がブラウザストレージでトークンを管理する（自前で `localStorage` に JWT を書かない）。XSS 対策（入力のエスケープ、`dangerouslySetInnerHTML` を使わない等）が重要
 4. **HTTPS** — 本番は必ず TLS（Cookie / トークン盗聴防止）
 5. **認可** — 「ログイン済み」だけでは不十分。他人の `expenseId` へのアクセスはバックエンドで拒否する
 
