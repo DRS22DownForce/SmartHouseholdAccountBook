@@ -39,7 +39,7 @@ export default function ExpensesPage() {
         <div className="space-y-6 md:space-y-8">
           <PageHeader
             icon={List}
-            title="支出一覧"
+            title="支出管理"
             description="全ての支出履歴の確認・編集・分析"
           />
 
