@@ -11,7 +11,7 @@ import { useExpenseQuery } from "@/hooks/use-expense-query"
 export function useMonthlySummary(month: string) {
   const { data, isLoaded } = useExpenseQuery({
     queryKey: expenseKeys.monthlySummary(month),
-    queryFn: () => fetchMonthlySummary(month),
+    queryFn: () => fetchMonthlySummary(month), //awaitしていないので、結果を待たず今ある状態をreturnする。API完了後の再レンダリング時に結果が反映される。
     errorMessage: "月別サマリーの取得に失敗しました",
     enabled: Boolean(month),
   })

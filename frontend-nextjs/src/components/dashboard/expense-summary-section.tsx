@@ -32,21 +32,11 @@ import {
 } from "lucide-react"
 import { formatCurrency } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
+import type { ExpenseSummaryData } from "@/hooks/use-expense-summary"
 
-/**
- * コンポーネントのProps型定義
- * 
- * - interface: TypeScriptでオブジェクトの構造を定義する方法
- * - summaryData: 表示するサマリーデータ（必須）
- * - summaryData: 今月のサマリー（前月比含む）
- */
 interface ExpenseSummarySectionProps {
-  summaryData: {
-    monthlyTotal: number        // 今月の支出合計
-    transactionCount: number    // 取引件数
-    dailyAverage: number        // 日平均支出
-    monthlyChange?: number      // 前月比（オプショナル、将来の実装用）
-  }
+  summaryData: ExpenseSummaryData
+  isLoaded: boolean
 }
 
 /**
@@ -82,9 +72,14 @@ interface SummaryCard {
  * @param props - コンポーネントのProps
  * @returns 支出サマリーカードのJSX要素
  */
-export function ExpenseSummarySection({ 
-  summaryData
+export function ExpenseSummarySection({
+  summaryData,
+  isLoaded,
 }: ExpenseSummarySectionProps) {
+  if (!isLoaded) {
+    return <ExpenseSummarySkeleton />
+  }
+
   // サマリーカードの設定配列
   const summaryCards: SummaryCard[] = [
     {
@@ -256,6 +251,26 @@ export function ExpenseSummarySection({
           </Card>
         )
       })}
+    </div>
+  )
+}
+
+/** 3枚カード分のレイアウトを保った読み込み中表示 */
+function ExpenseSummarySkeleton() {
+  return (
+    <div className="grid gap-4 md:grid-cols-3">
+      {Array.from({ length: 3 }, (_, index) => (
+        <Card
+          key={index}
+          className="relative overflow-hidden border-border/40 shadow-rich"
+        >
+          <CardContent className="p-5 md:p-6 space-y-4 animate-pulse">
+            <div className="h-12 w-12 rounded-2xl bg-muted" />
+            <div className="h-3 w-24 rounded bg-muted" />
+            <div className="h-9 w-32 rounded bg-muted" />
+          </CardContent>
+        </Card>
+      ))}
     </div>
   )
 }

@@ -25,7 +25,7 @@ export default function ExpensesPage() {
     invalidateExpenseCaches,
   } = useExpenses()
 
-  const summaryData = useExpenseSummary()
+  const { isLoaded: isSummaryLoaded, ...summaryData } = useExpenseSummary()
 
   return (
     <AppLayout
@@ -43,7 +43,10 @@ export default function ExpensesPage() {
             description="全ての支出履歴の確認・編集・分析"
           />
 
-          <ExpenseSummarySection summaryData={summaryData} />
+          <ExpenseSummarySection
+            summaryData={summaryData}
+            isLoaded={isSummaryLoaded}
+          />
           <ExpenseTrendChart />
           <MonthlySummarySection />
           <ExpenseList

@@ -12,18 +12,26 @@ export interface ExpenseSummaryData {
   monthlyChange?: number
 }
 
+export interface ExpenseSummaryResult extends ExpenseSummaryData {
+  /** 今月のサマリー取得が完了したか（表示用） */
+  isLoaded: boolean
+}
+
 /**
  * 今月の支出サマリーと前月比を算出するフック。
  * 今月・前月は同一キャッシュキーで dedupe される。
  */
-export function useExpenseSummary(): ExpenseSummaryData {
+export function useExpenseSummary(): ExpenseSummaryResult {
   const currentMonth = getCurrentMonthString()
   const previousMonth = getPreviousMonthString()
 
-  const { monthlySummary: currentSummary } = useMonthlySummary(currentMonth) //monthlySummaryをcurrentMonthにリネームして受け取る
+  const {
+    monthlySummary: currentSummary,
+    isLoaded: isCurrentSummaryLoaded,
+  } = useMonthlySummary(currentMonth)
   const { monthlySummary: previousSummary } = useMonthlySummary(previousMonth)
 
-  return useMemo(() => {
+  const summaryData = useMemo(() => {
     const monthlyTotal = currentSummary?.total ?? 0
     const transactionCount = currentSummary?.count ?? 0
 
@@ -51,4 +59,9 @@ export function useExpenseSummary(): ExpenseSummaryData {
       monthlyChange,
     }
   }, [currentSummary, previousSummary])
+
+  return {
+    ...summaryData,
+    isLoaded: isCurrentSummaryLoaded,
+  }
 }
