@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
-import { useQuery, type QueryKey } from "@tanstack/react-query"
+import { useQuery, keepPreviousData, type QueryKey } from "@tanstack/react-query"
 import { showApiErrorMessage } from "@/lib/api-error-handler"
 
 interface UseExpenseQueryOptions<TData> {
@@ -25,6 +25,8 @@ export function useExpenseQuery<TData>({
     queryKey,
     queryFn,
     enabled,
+    // ページ切替・月切替時も前のデータを表示し続け、画面全体の再描画を防ぐ
+    placeholderData: keepPreviousData,
   })
 
   useEffect(() => {
@@ -35,6 +37,8 @@ export function useExpenseQuery<TData>({
 
   return {
     data: query.data,
-    isLoaded: !query.isLoading,
+    // isPending: 初回取得前のみ true（ページ切替では false のまま）
+    isLoaded: !query.isPending,
+    isFetching: query.isFetching,
   }
 }
