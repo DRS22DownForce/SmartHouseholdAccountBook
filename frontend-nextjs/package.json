@@ -59,6 +59,7 @@
     "typescript": "^5"
   },
   "overrides": {
-    "postcss": "^8.5.14"
+    "postcss": "^8.5.14",
+    "js-cookie": "^3.0.7"
   }
 }
