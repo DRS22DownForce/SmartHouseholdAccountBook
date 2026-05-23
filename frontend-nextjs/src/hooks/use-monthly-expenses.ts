@@ -11,6 +11,7 @@ export interface MonthlyExpensesResult {
   totalPages: number
   currentPage: number
   isLoaded: boolean
+  isFetching: boolean
 }
 
 /**
@@ -21,7 +22,7 @@ export function useMonthlyExpenses(
   page: number,
   size: number
 ): MonthlyExpensesResult {
-  const { data, isLoaded } = useExpenseQuery({
+  const { data, isLoaded, isFetching } = useExpenseQuery({
     queryKey: expenseKeys.monthlyExpenses(month, page, size),
     queryFn: () => fetchMonthlyExpenses(month, page, size),
     errorMessage: "支出データの取得に失敗しました",
@@ -34,5 +35,6 @@ export function useMonthlyExpenses(
     totalPages: data?.totalPages ?? 0,
     currentPage: page,
     isLoaded,
+    isFetching,
   }
 }

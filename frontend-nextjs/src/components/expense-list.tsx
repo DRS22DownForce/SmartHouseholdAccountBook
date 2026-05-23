@@ -127,6 +127,7 @@ export function ExpenseList({ onUpdate, onDelete }: ExpenseListProps) {
     totalElements,
     totalPages,
     isLoaded,
+    isFetching,
   } = useMonthlyExpenses(selectedMonth, currentPage - 1, pageSize)
 
   const { monthlySummary, isLoaded: isSummaryLoaded } =
@@ -343,6 +344,7 @@ export function ExpenseList({ onUpdate, onDelete }: ExpenseListProps) {
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
+                scrollRestoreReady={!isFetching}
               />
             </div>
           )}
