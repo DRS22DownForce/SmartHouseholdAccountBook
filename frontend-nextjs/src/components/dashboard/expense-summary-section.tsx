@@ -150,14 +150,6 @@ export function ExpenseSummarySection({
               card.gradient
             )} />
 
-            {/* 装飾的な円形要素 */}
-            {/* 
-              【初心者向け解説】
-              カードの右上に半透明の円を配置して、視覚的なアクセントにしています
-              group-hover: 親要素（group）にホバーした時に透明度が変わる
-            */}
-            <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-current opacity-[0.03] group-hover:opacity-[0.06] transition-opacity" />
-
             {/* シマー効果（ホバー時） */}
             {/* 
               【初心者向け解説】
