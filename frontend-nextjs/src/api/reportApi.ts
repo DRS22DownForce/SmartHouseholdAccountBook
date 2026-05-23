@@ -3,7 +3,6 @@
  */
 
 import { getExpenseApiClient } from './apiClient';
-import { withAuthHeader } from './authUtils';
 import type { MonthlyReportResponse } from './generated/api';
 
 /**
@@ -18,8 +17,7 @@ export async function getMonthlyReport(
     generate = false
 ): Promise<MonthlyReportResponse | null> {
     const api = getExpenseApiClient();
-    const options = await withAuthHeader();
-    const response = await api.apiExpensesReportGet(month, generate, options);
+    const response = await api.apiExpensesReportGet(month, generate);
     if (response.status === 204 || response.data == null) {
         return null;
     }

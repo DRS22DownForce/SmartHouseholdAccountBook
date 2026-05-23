@@ -2,6 +2,8 @@
  * フォーマット関連のユーティリティ関数
  */
 
+import { formatYearMonth } from "@/lib/date-utils"
+
 /**
  * 金額を日本語の通貨形式でフォーマット
  */
@@ -13,7 +15,8 @@ export function formatCurrency(amount: number): string {
 }
 
 /**
- * 年月を日本語形式でフォーマット（例: "2024年1月"）
+ * YYYY-MM 文字列を日本語形式でフォーマット（例: "2024年01月"）
+ * 月別サマリーの Select など、API の月キー向け。
  */
 export function formatMonth(month: string): string {
   const [year, monthNum] = month.split("-")
@@ -29,28 +32,20 @@ export function formatMonthForChart(month: string): string {
 }
 
 /**
- * グラフ用の金額フォーマット（簡易版）
- */
-export function formatCurrencyForChart(value: number): string {
-  if (value === 0) return "0"
-  if (value >= 10000) {
-    const v = value / 10000
-    return `${Number.isInteger(v) ? v : v.toFixed(1)}万`
-  }
-  return value.toLocaleString()
-}
-
-/**
- * 現在の日付をYYYY-MM-DD形式で取得
+ * 現在の日付を YYYY-MM-DD 形式で取得（ローカルタイムゾーン）
  */
 export function getCurrentDateString(): string {
-  return new Date().toISOString().split("T")[0]
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = String(now.getMonth() + 1).padStart(2, "0")
+  const d = String(now.getDate()).padStart(2, "0")
+  return `${y}-${m}-${d}`
 }
 
 /**
- * 現在の年月をYYYY-MM形式で取得
+ * 現在の年月を YYYY-MM 形式で取得（ローカルタイムゾーン）
  */
 export function getCurrentMonthString(): string {
-  return new Date().toISOString().substring(0, 7)
+  return formatYearMonth(new Date())
 }
 

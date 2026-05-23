@@ -96,3 +96,5 @@ backend/src/main/java/com/example/backend/
 | [Spring Data JPA Reference](https://docs.spring.io/spring-data/jpa/reference/) | リポジトリ仕様 |
 | [Spring Security Reference](https://docs.spring.io/spring-security/reference/) | 認証・認可 |
 | [Baeldung](https://www.baeldung.com/) | Spring の実用的なチュートリアルが豊富 |
+
+フロントエンド（Next.js / React）の学習は [docs/frontend/README.md](../frontend/README.md) を参照してください。

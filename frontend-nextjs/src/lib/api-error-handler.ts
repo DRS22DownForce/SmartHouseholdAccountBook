@@ -1,25 +1,25 @@
+import axios from "axios"
 import { toast } from "sonner"
+
 /**
- * APIエラーハンドリング用ユーティリティ
- * 
- * @param error エラーオブジェクト（unknown型で受け取ることで、あらゆる型のエラーに対応）
- * @param defaultMessage デフォルトのエラーメッセージ（特定のステータスコードに該当しない場合に表示）
- * 
+ * API エラーをユーザー向けトーストに変換する。
+ * 401 は authenticatedAxios 側でセッション回復・サインアウトを試みるため、
+ * ここでは汎用メッセージのみ表示する。
  */
 export function showApiErrorMessage(error: unknown, defaultMessage: string): void {
-  if (error && typeof error === "object" && "response" in error) {
-    const apiError = error as { response?: { status?: number } }
-    
-    if (apiError.response?.status === 401) {
+  if (axios.isAxiosError(error)) {
+    const status = error.response?.status
+
+    if (status === 401) {
       toast.error("認証エラー: 再ログインしてください")
-      return 
+      return
     }
-    
-    if (apiError.response?.status === 404) {
+
+    if (status === 404) {
       toast.error("データが見つかりませんでした")
-      return 
+      return
     }
   }
+
   toast.error(defaultMessage)
 }
-

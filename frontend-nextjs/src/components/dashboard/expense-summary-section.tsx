@@ -8,7 +8,7 @@
  * 
  * 【初心者向け解説】
  * - Props: 親コンポーネントから受け取るデータ（summaryData）と
- *   データ再読み込みのトリガー（refreshTrigger）
+ *   親から渡されるサマリーデータ（TanStack Query で自動更新）
  * - カード配列: 3つのサマリーカード（今月の支出、取引件数、日平均）の
  *   設定を配列で定義し、map関数で順番にレンダリング
  * - グラデーション背景: 各カードに異なる色のグラデーションを適用して
@@ -32,21 +32,11 @@ import {
 } from "lucide-react"
 import { formatCurrency } from "@/lib/formatters"
 import { cn } from "@/lib/utils"
+import type { ExpenseSummaryData } from "@/hooks/use-expense-summary"
 
-/**
- * コンポーネントのProps型定義
- * 
- * - interface: TypeScriptでオブジェクトの構造を定義する方法
- * - summaryData: 表示するサマリーデータ（必須）
- * - refreshTrigger: データ再読み込みのトリガー（オプショナル）
- */
 interface ExpenseSummarySectionProps {
-  summaryData: {
-    monthlyTotal: number        // 今月の支出合計
-    transactionCount: number    // 取引件数
-    dailyAverage: number        // 日平均支出
-    monthlyChange?: number      // 前月比（オプショナル、将来の実装用）
-  }
+  summaryData: ExpenseSummaryData
+  isLoaded: boolean
 }
 
 /**
@@ -82,9 +72,14 @@ interface SummaryCard {
  * @param props - コンポーネントのProps
  * @returns 支出サマリーカードのJSX要素
  */
-export function ExpenseSummarySection({ 
-  summaryData
+export function ExpenseSummarySection({
+  summaryData,
+  isLoaded,
 }: ExpenseSummarySectionProps) {
+  if (!isLoaded) {
+    return <ExpenseSummarySkeleton />
+  }
+
   // サマリーカードの設定配列
   const summaryCards: SummaryCard[] = [
     {
@@ -92,7 +87,7 @@ export function ExpenseSummarySection({
       value: summaryData.monthlyTotal,
       icon: ArrowDownCircle,
       // 前月比がある場合のみトレンド情報を表示
-      trend: summaryData.monthlyChange !== 0 ? {
+      trend: summaryData.monthlyChange != null && summaryData.monthlyChange !== 0 ? {
         value: Math.abs(summaryData.monthlyChange ?? 0),
         // 支出は減少がポジティブ（良いこと）なので、負の値がポジティブ
         isPositive: (summaryData.monthlyChange ?? 0) < 0,
@@ -154,14 +149,6 @@ export function ExpenseSummarySection({
               "absolute inset-0 bg-gradient-to-br",
               card.gradient
             )} />
-
-            {/* 装飾的な円形要素 */}
-            {/* 
-              【初心者向け解説】
-              カードの右上に半透明の円を配置して、視覚的なアクセントにしています
-              group-hover: 親要素（group）にホバーした時に透明度が変わる
-            */}
-            <div className="absolute -top-10 -right-10 w-32 h-32 rounded-full bg-current opacity-[0.03] group-hover:opacity-[0.06] transition-opacity" />
 
             {/* シマー効果（ホバー時） */}
             {/* 
@@ -256,6 +243,26 @@ export function ExpenseSummarySection({
           </Card>
         )
       })}
+    </div>
+  )
+}
+
+/** 3枚カード分のレイアウトを保った読み込み中表示 */
+function ExpenseSummarySkeleton() {
+  return (
+    <div className="grid gap-4 md:grid-cols-3">
+      {Array.from({ length: 3 }, (_, index) => (
+        <Card
+          key={index}
+          className="relative overflow-hidden border-border/40 shadow-rich"
+        >
+          <CardContent className="p-5 md:p-6 space-y-4 animate-pulse">
+            <div className="h-12 w-12 rounded-2xl bg-muted" />
+            <div className="h-3 w-24 rounded bg-muted" />
+            <div className="h-9 w-32 rounded bg-muted" />
+          </CardContent>
+        </Card>
+      ))}
     </div>
   )
 }
