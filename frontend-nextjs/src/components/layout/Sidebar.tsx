@@ -55,7 +55,7 @@ interface SidebarProps {
 const mainNavigationItems = [
   { 
     href: "/expenses", 
-    label: "支出", 
+    label: "支出管理", 
     icon: List, 
     gradient: "from-orange-400 to-rose-500",
     shadowColor: "shadow-orange-500/25"
