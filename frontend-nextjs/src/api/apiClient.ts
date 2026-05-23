@@ -15,7 +15,7 @@ export function getExpenseApiClient(): ExpensesApi {
   return new ExpensesApi(
     new Configuration({ basePath: getBasePath() }),
     undefined,
-    authenticatedAxios
+    authenticatedAxios //認証付き Axios インスタンス
   )
 }
 

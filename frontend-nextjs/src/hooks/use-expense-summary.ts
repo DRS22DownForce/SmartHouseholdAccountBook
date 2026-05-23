@@ -20,7 +20,7 @@ export function useExpenseSummary(): ExpenseSummaryData {
   const currentMonth = getCurrentMonthString()
   const previousMonth = getPreviousMonthString()
 
-  const { monthlySummary: currentSummary } = useMonthlySummary(currentMonth)
+  const { monthlySummary: currentSummary } = useMonthlySummary(currentMonth) //monthlySummaryをcurrentMonthにリネームして受け取る
   const { monthlySummary: previousSummary } = useMonthlySummary(previousMonth)
 
   return useMemo(() => {

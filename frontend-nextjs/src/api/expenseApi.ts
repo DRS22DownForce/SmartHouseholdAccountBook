@@ -56,17 +56,6 @@ export async function createExpense(data: ExpenseFormData): Promise<Expense> {
 }
 
 /**
- * 複数の支出を一括作成
- */
-export async function createExpenses(dataArray: ExpenseFormData[]): Promise<Expense[]> {
-    const api = getExpenseApiClient();
-    const responses = await Promise.all(
-        dataArray.map((data) => api.apiExpensesPost(toExpenseRequestDto(data)))
-    );
-    return responses.map((response) => toExpense(response.data));
-}
-
-/**
  * 支出を更新
  */
 export async function updateExpense(id: string, data: ExpenseFormData): Promise<Expense> {
@@ -133,12 +122,12 @@ export interface CsvUploadResponse {
  * プライバシー保護のため、csvFormatはリクエストボディ（FormData）で送信されます。
  * 
  * @param file CSVファイル
- * @param csvFormat CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード 2025/12以前、MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 2026/1以降）
+ * @param csvFormat CSV形式　ApiExpensesUploadCsvPostCsvFormatEnum型は"MITSUISUMITOMO_OLD_FORMAT" | "MITSUISUMITOMO_NEW_FORMAT"と同等
+ *                         （MITSUISUMITOMO_OLD_FORMAT: 三井住友カード 2025/12以前、MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 2026/1以降）
  */
-export async function uploadCsvFile(file: File, csvFormat: "MITSUISUMITOMO_OLD_FORMAT" | "MITSUISUMITOMO_NEW_FORMAT"): Promise<CsvUploadResponse> {
+export async function uploadCsvFile(file: File, csvFormat: ApiExpensesUploadCsvPostCsvFormatEnum): Promise<CsvUploadResponse> {
     const api = getExpenseApiClient();
-    const csvFormatEnum = csvFormat as ApiExpensesUploadCsvPostCsvFormatEnum;
-    const response = await api.apiExpensesUploadCsvPost(file, csvFormatEnum);
+    const response = await api.apiExpensesUploadCsvPost(file, csvFormat);
     const d = response.data;
     return {
         successCount: d.successCount,
