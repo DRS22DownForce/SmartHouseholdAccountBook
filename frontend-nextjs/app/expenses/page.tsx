@@ -20,7 +20,6 @@ export default function ExpensesPage() {
 
   const {
     addExpenseItem,
-    addExpenseItems,
     updateExpenseItem,
     deleteExpenseItem,
     invalidateExpenseCaches,
@@ -33,7 +32,7 @@ export default function ExpensesPage() {
       username={username}
       onLogout={signOut}
       onAddExpense={addExpenseItem}
-      onAddExpenses={addExpenseItems}
+      showCsvImport //JSXでは属性名だけ書くと、trueとして扱われる
       onCsvUploadComplete={invalidateExpenseCaches}
     >
       <SelectedMonthProvider>

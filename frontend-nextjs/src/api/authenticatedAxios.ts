@@ -1,5 +1,6 @@
 /**
  * 認証付き Axios インスタンス。
+ * Axiosとは、HTTPクライアントライブラリ。
  * リクエスト時に JWT を自動付与し、401 時はトークン更新を試みる。
  */
 
@@ -7,7 +8,10 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from "axios"
 import { fetchAuthSession, signOut } from "aws-amplify/auth"
 import { toast } from "sonner"
 
-/** 401 再試行済みフラグ（無限ループ防止） */
+/** 
+ * InternalAxiosRequestConfigというAxiosの失敗リクエストの設定を拡張したインターフェース
+ * _retryというフラグを追加して、401再試行済みかどうかを管理する。
+ */
 interface RetryableConfig extends InternalAxiosRequestConfig {
   _retry?: boolean
 }
@@ -21,7 +25,7 @@ async function resolveJwtToken(forceRefresh = false): Promise<string> {
   return token
 }
 
-export const authenticatedAxios = axios.create()
+export const authenticatedAxios = axios.create() //Axiosの専用コピーインスタンスを作成して公開
 
 // 全リクエストに Bearer トークンを付与
 authenticatedAxios.interceptors.request.use(async (config) => {
@@ -34,7 +38,7 @@ authenticatedAxios.interceptors.request.use(async (config) => {
 authenticatedAxios.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const config = error.config as RetryableConfig | undefined
+    const config = error.config as RetryableConfig | undefined //error.configをRetryableConfig型にキャスト
     const status = error.response?.status
 
     if (status === 401 && config && !config._retry) {

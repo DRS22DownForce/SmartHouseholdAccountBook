@@ -245,7 +245,7 @@ useRefreshTrigger(refreshTrigger, fetchMonthlySummary, fetchAvailableMonths)
 |------------|------|------|
 | `fetchMonthlyExpenses` | GET `/api/expenses` | 月別一覧 |
 | `createExpense` | POST `/api/expenses` | 1 件追加 |
-| `createExpenses` | POST（一括） | CSV 後など |
+| `uploadCsvFile` | POST `/api/expenses/upload-csv` | CSV インポート |
 | `updateExpense` | PUT | 更新 |
 | `deleteExpense` | DELETE | 削除 |
 | `predictCategory` | POST `/api/ai/category` | AI カテゴリ |
