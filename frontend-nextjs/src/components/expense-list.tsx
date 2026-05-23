@@ -129,7 +129,8 @@ export function ExpenseList({ onUpdate, onDelete }: ExpenseListProps) {
     isLoaded,
   } = useMonthlyExpenses(selectedMonth, currentPage - 1, pageSize)
 
-  const { monthlySummary } = useMonthlySummary(selectedMonth)
+  const { monthlySummary, isLoaded: isSummaryLoaded } =
+    useMonthlySummary(selectedMonth)
 
   useEffect(() => {
     setCurrentPage(1)
@@ -196,7 +197,10 @@ export function ExpenseList({ onUpdate, onDelete }: ExpenseListProps) {
                 {formatMonthYear(selectedDate)}
               </h3>
               <p className="text-xs md:text-sm text-muted-foreground mt-0.5 font-mono">
-                Total: <span className="text-foreground font-bold">{formatCurrency(monthTotal)}</span>
+                Total:{" "}
+                <span className="text-foreground font-bold">
+                  {isSummaryLoaded ? formatCurrency(monthTotal) : "¥---"}
+                </span>
               </p>
             </div>
 
