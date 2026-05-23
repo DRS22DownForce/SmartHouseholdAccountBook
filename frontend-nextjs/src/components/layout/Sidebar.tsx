@@ -46,7 +46,7 @@ interface SidebarProps {
   username: string
   onLogout: () => void
   onAddExpense?: (data: ExpenseFormData) => void
-  onAddExpenses?: (expenses: ExpenseFormData[]) => void
+  showCsvImport?: boolean
   onCsvUploadComplete?: () => void
   onCollapsedChange?: (collapsed: boolean) => void
 }
@@ -55,14 +55,14 @@ interface SidebarProps {
 const mainNavigationItems = [
   { 
     href: "/expenses", 
-    label: "支出", 
+    label: "支出管理", 
     icon: List, 
     gradient: "from-orange-400 to-rose-500",
     shadowColor: "shadow-orange-500/25"
   },
 ] as const
 
-export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCsvUploadComplete, onCollapsedChange }: SidebarProps) {
+export function Sidebar({ username, onLogout, onAddExpense, showCsvImport, onCsvUploadComplete, onCollapsedChange }: SidebarProps) {
   const pathname = usePathname()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
@@ -230,7 +230,7 @@ export function Sidebar({ username, onLogout, onAddExpense, onAddExpenses, onCsv
                 />
               </div>
             )}
-            {onAddExpenses && (
+            {showCsvImport && (
               <div className="w-full">
                 <CsvUploadDialog onUpload={onCsvUploadComplete} />
               </div>

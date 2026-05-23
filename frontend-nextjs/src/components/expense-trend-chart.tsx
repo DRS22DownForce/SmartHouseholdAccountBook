@@ -19,20 +19,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { formatCurrency } from "@/lib/formatters"
 import { MONTH_RANGES } from "@/lib/constants"
 import { useMonthlySummaryRange } from "@/hooks/use-monthly-summary-range"
-import { useRefreshTrigger } from "@/hooks/use-refresh-trigger"
 import { calculateMonthRange, generateMonthKeys } from "@/lib/date-utils"
 import { transformMonthlySummariesToChartData } from "@/lib/chart-data-transformers"
 import { cn } from "@/lib/utils"
-import { TrendingUp, ChevronLeft, ChevronRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { TrendingUp } from "lucide-react"
+import { QueryLoadingState } from "@/components/ui/loading-spinner"
 
 /**
  * コンポーネントのプロパティ定義
  */
-interface ExpenseTrendChartProps {
-  refreshTrigger?: number // 支出追加後に再取得するためのトリガー
-}
-
 /**
  * 月別支出データの型定義
  */
@@ -42,7 +37,7 @@ interface MonthlyExpenseData {
   [key: string]: string | number // カテゴリ別の金額
 }
 
-export function ExpenseTrendChart({ refreshTrigger }: ExpenseTrendChartProps) {
+export function ExpenseTrendChart() {
   // 表示する月数の状態管理（デフォルト: 6ヶ月）
   const [monthRange, setMonthRange] = useState("6")
 
@@ -56,10 +51,7 @@ export function ExpenseTrendChart({ refreshTrigger }: ExpenseTrendChartProps) {
   )
 
   // バックエンドAPIから月別サマリーを取得
-  const { monthlySummaries, isLoaded, refetch } = useMonthlySummaryRange(startMonth, endMonth)
-
-  // refreshTriggerが変化したときにデータを再取得
-  useRefreshTrigger(refreshTrigger, refetch)
+  const { monthlySummaries, isLoaded } = useMonthlySummaryRange(startMonth, endMonth)
 
   // 表示する月のキーリストを生成（YYYY-MM形式）
   const allMonths = useMemo(() => generateMonthKeys(monthsToShow), [monthsToShow])
@@ -250,18 +242,11 @@ export function ExpenseTrendChart({ refreshTrigger }: ExpenseTrendChartProps) {
           {/* チャート本体 */}
           {/* ==================== */}
           {!isLoaded ? (
-            // ローディング表示
-            <div className="flex h-[200px] items-center justify-center">
-              <div className="flex flex-col items-center gap-4">
-                <div className="relative w-12 h-12">
-                  <div className="absolute inset-0 rounded-full border-2 border-primary/20" />
-                  <div className="absolute inset-0 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                </div>
-                <p className="text-sm text-muted-foreground font-medium animate-pulse">
-                  データを読み込み中...
-                </p>
-              </div>
-            </div>
+            <QueryLoadingState
+              variant="inline"
+              message="データを読み込み中..."
+              className="h-[200px]"
+            />
           ) : chartData.length > 0 ? (
             // バーチャート（縦軸目盛り付き）
             <div className="flex gap-3">

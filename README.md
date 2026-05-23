@@ -228,6 +228,7 @@ npm run generate:api
 ## 学習ドキュメント
 
 - バックエンド学習ガイド: `docs/backend/README.md`
+- フロントエンド学習ガイド: `docs/frontend/README.md`
 - インフラ学習ガイド: `docs/infrastructure/README.md`
 
 このプロジェクトは「実装しながら理解する」前提のため、README は入口、`docs/` は詳細教材という役割で分けています。

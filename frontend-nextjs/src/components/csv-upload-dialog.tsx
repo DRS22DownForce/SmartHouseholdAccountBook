@@ -163,8 +163,8 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
             onDrop={handleDrop}
             className={cn(
               "border-2 border-dashed rounded-lg p-8 text-center transition-all duration-300",
-              isDragging 
-                ? "border-blue-500 bg-blue-500/10 shadow-lg" 
+              isDragging
+                ? "border-blue-500 bg-blue-500/10 shadow-lg"
                 : "border-border/60 hover:border-blue-500/50 hover:bg-blue-500/5"
             )}
           >

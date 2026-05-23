@@ -1,32 +1,21 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/auth-provider";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { QueryProvider } from "@/providers/query-provider";
 
 export const metadata: Metadata = {
   title: "スマート家計簿アプリ",
-  description: "AWS Cognitoで保護された家計簿管理アプリケーション",
+  description: "AIを活用した家計簿管理アプリケーション",
 };
 
-interface RootLayoutProps {
-  children: React.ReactNode
-}
-
-export default function RootLayout({ children }: Readonly<RootLayoutProps>) {
+//Next.js が「今表示するページ」を children として渡す
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ja">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AuthProvider>{children}</AuthProvider>
+      <body className="antialiased">
+        <AuthProvider>
+          <QueryProvider>{children}</QueryProvider>
+        </AuthProvider>
       </body>
     </html>
   )

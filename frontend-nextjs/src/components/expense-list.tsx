@@ -32,13 +32,13 @@ import { formatCurrency } from "@/lib/formatters"
 import { formatDate, formatMonthYear } from "@/lib/date-formatters"
 import { useMonthlyExpenses } from "@/hooks/use-monthly-expenses"
 import { useMonthlySummary } from "@/hooks/use-monthly-summary"
-import { useDateNavigation } from "@/hooks/use-date-navigation"
+import { useSelectedMonth } from "@/contexts/selected-month-context"
+import { QueryLoadingState } from "@/components/ui/loading-spinner"
 import { cn } from "@/lib/utils"
 
 interface ExpenseListProps {
   onUpdate: (id: string, data: ExpenseFormData) => void
   onDelete: (id: string) => void
-  refreshTrigger?: number // 支出更新・削除後に再取得するためのトリガー
 }
 
 // 日付ごとのグループ化用ヘルパー
@@ -109,7 +109,7 @@ function renderCategoryBadge(category: string) {
   )
 }
 
-export function ExpenseList({ onUpdate, onDelete, refreshTrigger }: ExpenseListProps) {
+export function ExpenseList({ onUpdate, onDelete }: ExpenseListProps) {
   const [currentPage, setCurrentPage] = useState(1)
   const pageSize = 10
 
@@ -120,24 +120,18 @@ export function ExpenseList({ onUpdate, onDelete, refreshTrigger }: ExpenseListP
     goToPreviousMonth,
     goToNextMonth,
     goToCurrentMonth,
-  } = useDateNavigation()
+  } = useSelectedMonth()
 
   const {
     expenses,
     totalElements,
     totalPages,
     isLoaded,
-    fetchMonthlyExpenses,
+    isFetching,
   } = useMonthlyExpenses(selectedMonth, currentPage - 1, pageSize)
 
-  const { monthlySummary } = useMonthlySummary(selectedMonth)
-
-  useEffect(() => {
-    if (refreshTrigger !== undefined && refreshTrigger > 0) {
-      fetchMonthlyExpenses()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshTrigger])
+  const { monthlySummary, isLoaded: isSummaryLoaded } =
+    useMonthlySummary(selectedMonth)
 
   useEffect(() => {
     setCurrentPage(1)
@@ -175,12 +169,10 @@ export function ExpenseList({ onUpdate, onDelete, refreshTrigger }: ExpenseListP
   if (!isLoaded) {
     return (
       <div className="space-y-6">
-        <Card className="border-border/40 shadow-sm bg-gradient-to-r from-card to-muted/10">
-          <div className="flex items-center justify-center p-8 flex-col gap-3">
-            <div className="w-6 h-6 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-            <p className="text-muted-foreground text-sm">支出リストを読み込み中...</p>
-          </div>
-        </Card>
+        <QueryLoadingState
+          variant="card"
+          message="支出リストを読み込み中..."
+        />
       </div>
     )
   }
@@ -206,7 +198,10 @@ export function ExpenseList({ onUpdate, onDelete, refreshTrigger }: ExpenseListP
                 {formatMonthYear(selectedDate)}
               </h3>
               <p className="text-xs md:text-sm text-muted-foreground mt-0.5 font-mono">
-                Total: <span className="text-foreground font-bold">{formatCurrency(monthTotal)}</span>
+                Total:{" "}
+                <span className="text-foreground font-bold">
+                  {isSummaryLoaded ? formatCurrency(monthTotal) : "¥---"}
+                </span>
               </p>
             </div>
 
@@ -349,6 +344,7 @@ export function ExpenseList({ onUpdate, onDelete, refreshTrigger }: ExpenseListP
                 currentPage={currentPage}
                 totalPages={totalPages}
                 onPageChange={setCurrentPage}
+                scrollRestoreReady={!isFetching}
               />
             </div>
           )}

@@ -13,4 +13,4 @@
 | [03](./03-mysql.md) | MySQL | データベースの役割とこのプロジェクトでの使い方 |
 | [04](./04-ci-and-pr-review.md) | CI と PR レビュー | GitHub Actions と Cursor Bugbot |
 
-バックエンドの Spring 自体の解説は [docs/backend/README.md](../backend/README.md) を参照してください。
+バックエンドの Spring 自体の解説は [docs/backend/README.md](../backend/README.md)、フロントエンドは [docs/frontend/README.md](../frontend/README.md) を参照してください。

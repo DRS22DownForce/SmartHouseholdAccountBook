@@ -2,12 +2,12 @@
 
 /**
  * Paginationコンポーネント
- * 
- * ページネーションを表示するコンポーネントです。
- * データの一覧表示で使用します。
+ *
+ * データ一覧のページ切替 UI。
+ * scrollRestoreReady を渡すと、ページ切替後もボタン位置が画面内で動かないよう補正する。
  */
 
-import * as React from "react"
+import { useCallback, useLayoutEffect, useRef, type ReactNode } from "react"
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -20,6 +20,35 @@ interface PaginationProps {
   onPageSizeChange?: (size: number) => void
   pageSizeOptions?: number[]
   className?: string
+  /** 指定時、ページ切替後にこの UI の画面内位置を維持する（false の間はデータ取得完了を待つ） */
+  scrollRestoreReady?: boolean
+}
+
+/** クリック時のフォーカス移動によるスクロールジャンプを防ぐページボタン */
+function PageButton({
+  onClick,
+  disabled,
+  variant = "outline",
+  children,
+}: {
+  onClick: () => void
+  disabled?: boolean
+  variant?: "default" | "outline"
+  children: ReactNode
+}) {
+  return (
+    <Button
+      type="button"
+      variant={variant}
+      size="sm"
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      disabled={disabled}
+      className="h-9 w-9 p-0"
+    >
+      {children}
+    </Button>
+  )
 }
 
 export function Pagination({
@@ -30,19 +59,44 @@ export function Pagination({
   onPageSizeChange,
   pageSizeOptions = [10, 25, 50, 100],
   className,
+  scrollRestoreReady,
 }: PaginationProps) {
-  // 表示するページ番号を計算
+  const rootRef = useRef<HTMLDivElement>(null)
+  const anchorTopRef = useRef<number | null>(null)
+  const shouldPreserveScroll = scrollRestoreReady !== undefined
+
+  const changePage = useCallback(
+    (page: number) => {
+      if (shouldPreserveScroll && rootRef.current) {
+        anchorTopRef.current = rootRef.current.getBoundingClientRect().top
+      }
+      onPageChange(page)
+    },
+    [onPageChange, shouldPreserveScroll]
+  )
+
+  useLayoutEffect(() => {
+    if (!shouldPreserveScroll || scrollRestoreReady === false) return
+    if (anchorTopRef.current === null || !rootRef.current) return
+
+    const anchorTop = anchorTopRef.current
+    anchorTopRef.current = null
+
+    const delta = rootRef.current.getBoundingClientRect().top - anchorTop
+    if (Math.abs(delta) > 0.5) {
+      window.scrollBy({ top: delta, left: 0 })
+    }
+  }, [currentPage, scrollRestoreReady, shouldPreserveScroll])
+
   const getPageNumbers = () => {
     const pages: (number | string)[] = []
     const maxVisible = 5
 
     if (totalPages <= maxVisible) {
-      // 全ページを表示
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i)
       }
     } else {
-      // 現在のページを中心に表示
       let start = Math.max(1, currentPage - Math.floor(maxVisible / 2))
       let end = Math.min(totalPages, start + maxVisible - 1)
 
@@ -75,8 +129,10 @@ export function Pagination({
   const pageNumbers = getPageNumbers()
 
   return (
-    <div className={cn("flex items-center justify-between gap-4", className)}>
-      {/* ページサイズ選択 */}
+    <div
+      ref={shouldPreserveScroll ? rootRef : undefined}
+      className={cn("flex items-center justify-between gap-4", className)}
+    >
       {pageSize && onPageSizeChange && (
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">表示件数:</span>
@@ -94,28 +150,18 @@ export function Pagination({
         </div>
       )}
 
-      {/* ページネーション */}
       <div className="flex items-center gap-1">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(1)}
-          disabled={currentPage === 1}
-          className="h-9 w-9 p-0"
-        >
+        <PageButton onClick={() => changePage(1)} disabled={currentPage === 1}>
           <ChevronsLeft className="h-4 w-4" />
           <span className="sr-only">最初のページへ</span>
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(currentPage - 1)}
+        </PageButton>
+        <PageButton
+          onClick={() => changePage(currentPage - 1)}
           disabled={currentPage === 1}
-          className="h-9 w-9 p-0"
         >
           <ChevronLeft className="h-4 w-4" />
           <span className="sr-only">前のページへ</span>
-        </Button>
+        </PageButton>
 
         {pageNumbers.map((page, index) => {
           if (page === "...") {
@@ -128,40 +174,31 @@ export function Pagination({
 
           const pageNum = page as number
           return (
-            <Button
+            <PageButton
               key={pageNum}
               variant={currentPage === pageNum ? "default" : "outline"}
-              size="sm"
-              onClick={() => onPageChange(pageNum)}
-              className="h-9 w-9 p-0"
+              onClick={() => changePage(pageNum)}
             >
               {pageNum}
-            </Button>
+            </PageButton>
           )
         })}
 
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(currentPage + 1)}
+        <PageButton
+          onClick={() => changePage(currentPage + 1)}
           disabled={currentPage === totalPages}
-          className="h-9 w-9 p-0"
         >
           <ChevronRight className="h-4 w-4" />
           <span className="sr-only">次のページへ</span>
-        </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => onPageChange(totalPages)}
+        </PageButton>
+        <PageButton
+          onClick={() => changePage(totalPages)}
           disabled={currentPage === totalPages}
-          className="h-9 w-9 p-0"
         >
           <ChevronsRight className="h-4 w-4" />
           <span className="sr-only">最後のページへ</span>
-        </Button>
+        </PageButton>
       </div>
     </div>
   )
 }
-
