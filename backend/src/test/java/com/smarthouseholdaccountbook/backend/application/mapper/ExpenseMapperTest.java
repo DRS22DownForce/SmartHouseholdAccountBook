@@ -1,9 +1,14 @@
 package com.smarthouseholdaccountbook.backend.application.mapper;
 
+import com.smarthouseholdaccountbook.backend.application.service.CsvExpenseService;
+import com.smarthouseholdaccountbook.backend.application.service.csv.model.CsvParseError;
 import com.smarthouseholdaccountbook.backend.entity.Expense;
 import com.smarthouseholdaccountbook.backend.entity.User;
+import com.smarthouseholdaccountbook.backend.generated.model.CsvUploadResponseDto;
 import com.smarthouseholdaccountbook.backend.generated.model.ExpenseDto;
 import com.smarthouseholdaccountbook.backend.generated.model.ExpenseRequestDto;
+
+import java.util.List;
 import com.smarthouseholdaccountbook.backend.valueobject.CategoryType;
 import com.smarthouseholdaccountbook.backend.valueobject.ExpenseAmount;
 import com.smarthouseholdaccountbook.backend.valueobject.ExpenseDate;
@@ -99,6 +104,20 @@ class ExpenseMapperTest {
         assertEquals(999, entity.getAmount().getAmount());
         assertEquals(LocalDate.of(2024, 4, 1), entity.getDate().getDate());
         assertEquals("日用品", entity.getCategory().getDisplayName());
+    }
+
+    @Test
+    void toDto_CsvUploadResult_skippedCountを含めて変換する() {
+        CsvExpenseService.CsvUploadResult result = new CsvExpenseService.CsvUploadResult(
+                3, 1, 20, List.of(new CsvParseError(5, "line", "msg")));
+
+        CsvUploadResponseDto dto = mapper.toDto(result);
+
+        assertNotNull(dto);
+        assertEquals(3, dto.getSuccessCount());
+        assertEquals(20, dto.getSkippedCount());
+        assertEquals(1, dto.getErrorCount());
+        assertEquals(1, dto.getErrors().size());
     }
 
     @Test

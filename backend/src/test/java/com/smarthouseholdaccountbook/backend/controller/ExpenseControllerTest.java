@@ -245,7 +245,7 @@ class ExpenseControllerTest {
         @DisplayName("OLD形式のCSVをアップロードすると、200でアップロード結果を返す")
         void returnsOkWhenValidCsvUploaded() throws IOException {
             givenValidCsvFile();
-            CsvExpenseService.CsvUploadResult result = new CsvExpenseService.CsvUploadResult(2, 0, new ArrayList<>());
+            CsvExpenseService.CsvUploadResult result = new CsvExpenseService.CsvUploadResult(2, 0, 0, new ArrayList<>());
             when(csvExpenseService.uploadCsvAndAddExpenses(any(MultipartFile.class), eq(CsvFormat.MITSUISUMITOMO_OLD_FORMAT)))
                     .thenReturn(result);
             CsvUploadResponseDto expectedDto = new CsvUploadResponseDto();
@@ -265,7 +265,7 @@ class ExpenseControllerTest {
         @DisplayName("NEW形式のCSVをアップロードすると、200でアップロード結果を返す")
         void returnsOkWhenNewFormatCsvUploaded() throws IOException {
             givenValidCsvFile();
-            CsvExpenseService.CsvUploadResult result = new CsvExpenseService.CsvUploadResult(3, 0, new ArrayList<>());
+            CsvExpenseService.CsvUploadResult result = new CsvExpenseService.CsvUploadResult(3, 0, 0, new ArrayList<>());
             when(csvExpenseService.uploadCsvAndAddExpenses(any(MultipartFile.class), eq(CsvFormat.MITSUISUMITOMO_NEW_FORMAT)))
                     .thenReturn(result);
             CsvUploadResponseDto expectedDto = new CsvUploadResponseDto();
@@ -287,7 +287,7 @@ class ExpenseControllerTest {
             givenValidCsvFile();
             List<CsvParseError> errors = new ArrayList<>();
             errors.add(new CsvParseError(2, "2024/1/1,テスト店,1000", "日付の形式が不正です"));
-            CsvExpenseService.CsvUploadResult result = new CsvExpenseService.CsvUploadResult(1, 1, errors);
+            CsvExpenseService.CsvUploadResult result = new CsvExpenseService.CsvUploadResult(1, 1, 0, errors);
             when(csvExpenseService.uploadCsvAndAddExpenses(any(MultipartFile.class), eq(CsvFormat.MITSUISUMITOMO_OLD_FORMAT)))
                     .thenReturn(result);
             CsvUploadResponseDto expectedDto = new CsvUploadResponseDto();
