@@ -108,6 +108,7 @@ export async function fetchMonthlySummaryRange(
  */
 export interface CsvUploadResponse {
     successCount: number;
+    skippedCount: number;
     errorCount: number;
     errors: Array<{
         lineNumber: number;
@@ -131,6 +132,7 @@ export async function uploadCsvFile(file: File, csvFormat: ApiExpensesUploadCsvP
     const d = response.data;
     return {
         successCount: d.successCount,
+        skippedCount: d.skippedCount,
         errorCount: d.errorCount,
         errors: (d.errors ?? []).map((e) => ({
             lineNumber: e.lineNumber,

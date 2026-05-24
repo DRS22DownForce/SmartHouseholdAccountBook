@@ -55,13 +55,24 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
       const result = await uploadCsvFile(file, csvFormat)
 
       // 成功メッセージを作成
-      let message = `${result.successCount}件の支出データをインポートしました`
+      let message: string
+      if (result.successCount > 0) {
+        message = `${result.successCount}件の支出データをインポートしました`
+      } else if (result.skippedCount > 0) {
+        message = "新規の支出データはありませんでした（すべて既存データと重複）"
+      } else {
+        message = "インポートできる支出データはありませんでした"
+      }
+      if (result.skippedCount > 0) {
+        message += `（${result.skippedCount}件は既存のためスキップ）`
+      }
       if (result.errorCount > 0) {
         message += `（${result.errorCount}件のエラーがあります）`
       }
 
+      const isSuccess = result.errorCount === 0
       setStatus({
-        type: result.errorCount > 0 ? "error" : "success",
+        type: isSuccess ? "success" : "error",
         message,
         details: result,
       })
@@ -75,8 +86,8 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
         fileInputRef.current.value = ""
       }
 
-      // エラーがない場合は自動的に閉じる
-      if (result.errorCount === 0) {
+      // 解析エラーがない場合は自動的に閉じる
+      if (isSuccess) {
         setTimeout(() => {
           setOpen(false)
           setStatus(null)
