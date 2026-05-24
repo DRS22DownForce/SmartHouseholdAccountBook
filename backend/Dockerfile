@@ -21,9 +21,16 @@ RUN ./mvnw -B clean package -T 1C -DskipTests -Pdocker
 
 # --- Runtime stage ---
 FROM eclipse-temurin:25-jre
+
+# 非 root 実行用のシステムユーザーを作成
+RUN groupadd --system app && useradd --system --gid app --home-dir /nonexistent --no-create-home app
+
 WORKDIR /app
 
-COPY --from=builder /app/target/app.jar app.jar
+# コピー時にJAR の所有者を app に設定
+COPY --from=builder --chown=app:app /app/target/app.jar app.jar
+
+USER app
 #このコンテナ内のアプリケーションが8080ポートをリッスンすることを明示
 EXPOSE 8080
 
