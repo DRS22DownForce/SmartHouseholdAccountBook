@@ -261,7 +261,7 @@
                 enum:
                   - MITSUISUMITOMO_OLD_FORMAT
                   - MITSUISUMITOMO_NEW_FORMAT
-                description: "CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード 2025/12以前、MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 2026/1以降）"
+                description: "CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード 確定月、MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 未確定月）"
                 example: MITSUISUMITOMO_OLD_FORMAT
     responses:
       '200':

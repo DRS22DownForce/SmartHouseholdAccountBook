@@ -209,8 +209,8 @@ public class ExpenseController implements ExpensesApi {
      * 
      * @param file      {@code multipart/form-data} のパート名 {@code file} に対応するアップロード内容。
      *                  Spring が {@link MultipartFile} にバインドする。
-     * @param csvFormat CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード
-     *                  2025/12以前、MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 2026/1以降）
+     * @param csvFormat CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード 確定月、
+     *                  MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 未確定月）
      * @return CSVアップロード結果（成功件数、エラー件数、エラー詳細）
      */
     @Override
@@ -251,7 +251,7 @@ public class ExpenseController implements ExpensesApi {
         }
         if (!csvFormat.matches(CSV_FORMAT_PATTERN)) {
             throw new IllegalArgumentException(
-                    "無効なCSV形式です。MITSUISUMITOMO_OLD_FORMAT（三井住友カード 2025/12以前）またはMITSUISUMITOMO_NEW_FORMAT（三井住友カード 2026/1以降）を指定してください");
+                    "無効なCSV形式です。MITSUISUMITOMO_OLD_FORMAT（三井住友カード 確定月）またはMITSUISUMITOMO_NEW_FORMAT（三井住友カード 未確定月）を指定してください");
         }
     }
 

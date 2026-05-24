@@ -30,7 +30,7 @@ class CsvParserTest {
         private final MitsuiSumitomoOldCsvParser parser = new MitsuiSumitomoOldCsvParser();
 
         @Test
-        @DisplayName("旧形式のCSVを正常に解析できる")
+        @DisplayName("確定月形式のCSVを正常に解析できる")
         void parse_正常に解析できる() throws IOException {
             String csvContent = """
                 2025/11/01,やよい軒大阪店,1220,１,１,1220,
@@ -212,7 +212,7 @@ class CsvParserTest {
         private final MitsuiSumitomoNewCsvParser parser = new MitsuiSumitomoNewCsvParser();
 
         @Test
-        @DisplayName("新形式のCSVを正常に解析できる")
+        @DisplayName("未確定月形式のCSVを正常に解析できる")
         void parse_正常に解析できる() throws IOException {
             String csvContent = """
                 2026/1/31,ＪＲ東日本モバイルＳｕｉｃａ,ご本人,1回払い,,'26/02,5000,5000,,,,,

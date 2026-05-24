@@ -162,10 +162,13 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
                 <SelectValue placeholder="CSV形式を選択してください" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="MITSUISUMITOMO_OLD_FORMAT">三井住友カード（2025/12以前）</SelectItem>
-                <SelectItem value="MITSUISUMITOMO_NEW_FORMAT">三井住友カード（2026/1以降）</SelectItem>
+                <SelectItem value="MITSUISUMITOMO_OLD_FORMAT">三井住友カード（確定月）</SelectItem>
+                <SelectItem value="MITSUISUMITOMO_NEW_FORMAT">三井住友カード（未確定月）</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              確定月の明細は列が少ない形式、未確定月の明細は「ご本人」「1回払い」などの列が追加された形式です。Vpassのダウンロード画面でどちらの明細か確認してください。
+            </p>
           </div>
 
           <div
