@@ -124,7 +124,7 @@ export interface CsvUploadResponse {
  * 
  * @param file CSVファイル
  * @param csvFormat CSV形式　ApiExpensesUploadCsvPostCsvFormatEnum型は"MITSUISUMITOMO_OLD_FORMAT" | "MITSUISUMITOMO_NEW_FORMAT"と同等
- *                         （MITSUISUMITOMO_OLD_FORMAT: 三井住友カード 2025/12以前、MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 2026/1以降）
+ *                         （MITSUISUMITOMO_OLD_FORMAT: 三井住友カード 確定月、MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 未確定月）
  */
 export async function uploadCsvFile(file: File, csvFormat: ApiExpensesUploadCsvPostCsvFormatEnum): Promise<CsvUploadResponse> {
     const api = getExpenseApiClient();

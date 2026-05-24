@@ -77,8 +77,8 @@ public class CsvExpenseService {
      * 6. 結果（成功件数、スキップ件数、エラー件数、エラー詳細）を返す
      * 
      * @param file      CSVファイル
-     * @param csvFormat CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード
-     *                  2025/12以前、MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 2026/1以降）
+     * @param csvFormat CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード 確定月、
+     *                  MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 未確定月）
      * @return CSVアップロード結果（成功件数、スキップ件数、エラー件数、エラー詳細）
      * @throws CsvUploadException ファイルの読み込みに失敗した場合、または処理中にエラーが発生した場合
      */

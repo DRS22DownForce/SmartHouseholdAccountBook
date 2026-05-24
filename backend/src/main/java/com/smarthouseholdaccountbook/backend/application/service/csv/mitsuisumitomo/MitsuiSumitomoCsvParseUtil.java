@@ -191,7 +191,7 @@ public final class MitsuiSumitomoCsvParseUtil {
     }
 
     /**
-     * 合計行かどうかを判定する（旧形式のみ）
+     * 合計行かどうかを判定する（確定月形式のみ）
      */
     public static boolean isTotalLine(String line, Config config) {
         String[] columns = line.split(",", -1);
