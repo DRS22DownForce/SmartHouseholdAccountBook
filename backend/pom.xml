@@ -34,6 +34,8 @@
 	<properties>
 		<!-- Javaバージョン-->
 		<java.version>25</java.version>
+		<!-- OSV: tomcat-embed-core 11.0.21 の既知 CVE 対策。4.0.7 以降の parent に上げたら削除可 -->
+		<tomcat.version>11.0.22</tomcat.version>
 		<!-- OpenAPI仕様ファイルのパス -->
 		<openapi.file>../openapi/openapi.yaml</openapi.file>
 	</properties>
