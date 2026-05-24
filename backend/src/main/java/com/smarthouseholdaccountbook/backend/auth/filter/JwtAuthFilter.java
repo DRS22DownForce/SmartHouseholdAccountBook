@@ -43,6 +43,7 @@ import com.smarthouseholdaccountbook.backend.config.security.JwtProperties;
 @Component
 public class JwtAuthFilter extends OncePerRequestFilter {
     private static final String BEARER_PREFIX = "Bearer ";
+    private static final String COGNITO_ID_TOKEN_USE = "id";
     
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
     private final ConfigurableJWTProcessor<SecurityContext> jwtProcessor;
@@ -60,11 +61,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             this.jwtProcessor.setJWSKeySelector(
                     new JWSVerificationKeySelector<>(JWSAlgorithm.RS256, jwkSource));
             
-            // issとaudを検証し、subとexpが存在することを確認するバリデーターを設定
+            // iss / aud / token_use を検証し、sub と exp の存在を確認する
+            JWTClaimsSet exactMatchClaims = new JWTClaimsSet.Builder()
+                    .issuer(jwtProperties.getIssuerUrl())
+                    .claim("token_use", COGNITO_ID_TOKEN_USE)
+                    .build();
             DefaultJWTClaimsVerifier<SecurityContext> claimsVerifier = new DefaultJWTClaimsVerifier<>(
-                jwtProperties.getClientId(),                                                // 期待する aud
-                new JWTClaimsSet.Builder().issuer(jwtProperties.getIssuerUrl()).build(),     // 必須の一致クレーム（iss）
-                Set.of("sub", "exp")                                                        // 必須クレーム名
+                jwtProperties.getClientId(),
+                exactMatchClaims,
+                Set.of("sub", "exp", "token_use")
             );       
             this.jwtProcessor.setJWTClaimsSetVerifier(claimsVerifier);
 
