@@ -1,0 +1,18 @@
+{
+  "projectName": "smart-household",
+  "awsRegion": "ap-northeast-1",
+  "instanceType": "t4g.small",
+  "rootVolumeGiB": 30,
+  "gitRepositoryUrl": "https://github.com/YOUR_USER/SmartHouseholdAccountBook.git",
+  "gitRepositoryBranch": "master",
+  "enableSshAccess": false,
+  "allowedSshCidr": "0.0.0.0/0",
+
+  "domainName": "smart-household-account-book.com",
+  "hostedZoneName": "smart-household-account-book.com",
+  "hostedZoneId": "ZXXXXXXXXXXXXX",
+  "certbotEmail": "you@example.com",
+
+  "cognitoUserPoolId": "ap-northeast-1_XXXXXXXXX",
+  "cognitoClientId": "your-cognito-app-client-id"
+}

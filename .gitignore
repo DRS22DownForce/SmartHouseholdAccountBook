@@ -41,8 +41,11 @@ logs/
 secrets/
 credentials/
 
-# AWS・クラウド関連
-.aws/
+# AWS CDK
+infra/cdk.out/
+infra/target/
+infra/node_modules/
+infra/package-lock.json
 
 # ========================================
 # ビルド成果物・生成ファイル

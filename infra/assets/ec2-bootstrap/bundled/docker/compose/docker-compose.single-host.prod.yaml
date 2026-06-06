@@ -1,0 +1,12 @@
+# ========================================
+# 本番用上書き（EC2 等・single-host.local は付けない）
+# - JDBC は base 経由で .env の SPRING_DATASOURCE_URL_PROD（local と同一）
+# - 差分: Spring プロファイル prod（SQL/スタック/PII ログ抑制）、MySQL ポート非公開（base のまま）
+# - バックエンドは 127.0.0.1:8080 → ホスト Nginx が TLS 終端（443/80 のみ公開）
+# ========================================
+
+services:
+  backend:
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate

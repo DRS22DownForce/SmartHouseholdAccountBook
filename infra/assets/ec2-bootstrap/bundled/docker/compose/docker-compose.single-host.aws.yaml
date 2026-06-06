@@ -1,0 +1,11 @@
+# ========================================
+# AWS EC2 用: ECR のイメージを使う（EC2 上で docker build しない）
+# base + prod と併用する
+# ========================================
+
+services:
+  backend:
+    image: ${ECR_BACKEND_IMAGE:?Set ECR_BACKEND_IMAGE in .env}
+    pull_policy: always
+    # base の build 定義を上書きし、ECR から pull のみ行う
+    build: !reset null

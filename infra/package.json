@@ -1,0 +1,10 @@
+{
+  "name": "smart-household-infra",
+  "private": true,
+  "devDependencies": {
+    "aws-cdk": "2.1126.0"
+  },
+  "scripts": {
+    "cdk": "cdk"
+  }
+}
