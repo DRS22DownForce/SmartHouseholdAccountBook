@@ -27,6 +27,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
+      # ボリューム削除後の初回初期化では mysqld 起動に時間がかかるため、失敗を retries に数えない猶予を設ける
+      start_period: 60s
     networks:
       - app-network
 
