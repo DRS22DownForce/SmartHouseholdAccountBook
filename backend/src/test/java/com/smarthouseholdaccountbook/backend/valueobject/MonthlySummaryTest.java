@@ -65,6 +65,21 @@ class MonthlySummaryTest {
         }
 
         @Test
+        @DisplayName("返品を含む場合、合計金額から差し引かれる")
+        void createWithRefund() {
+            List<Expense> expenses = List.of(
+                    expense("購入", 8000, CategoryType.TRANSPORT),
+                    expense("返品", -8000, CategoryType.TRANSPORT));
+
+            MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses, TEST_MONTH);
+
+            assertThat(summary.total()).isZero();
+            assertThat(summary.count()).isEqualTo(2);
+            assertThat(summary.categorySummaries()).hasSize(1);
+            assertThat(summary.categorySummaries().get(0).getAmount()).isZero();
+        }
+
+        @Test
         @DisplayName("カテゴリ別集計は金額の降順でソートされる")
         void categorySummariesIsSortedByAmountDesc() {
             // given

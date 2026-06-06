@@ -13,7 +13,7 @@ import java.util.Objects;
  * 支出金額を表現する値オブジェクト
  * 
  * このクラスは支出の金額を表現し、以下の責務を持ちます:
- * - 金額のバリデーション（1以上であること）
+ * - 金額のバリデーション（0以外であること。返品・返金は負の値）
  * - 金額に関するビジネスロジック（加算など）
  */
 @Embeddable
@@ -29,8 +29,8 @@ public class ExpenseAmount{
     /**
      * コンストラクタ
      * 
-     * @param value 金額（1以上でなければならない）
-     * @throws IllegalArgumentException 金額がnullまたは0以下の場合
+     * @param value 金額（0以外でなければならない。返品・返金は負の値）
+     * @throws IllegalArgumentException 金額がnullまたは0の場合
      */
     public ExpenseAmount(Integer value) {
         validate(value);
@@ -41,13 +41,13 @@ public class ExpenseAmount{
      * バリデーション: 金額が有効かチェック
      * 
      * @param value 検証する金額
-     * @throws IllegalArgumentException 金額が0以下の場合
+     * @throws IllegalArgumentException 金額が0の場合
      * @throws NullPointerException 金額がnullの場合
      */
     private static void validate(Integer value) {
         Objects.requireNonNull(value, "金額はnullであってはなりません。");
-        if (value < 1) {
-            throw new IllegalArgumentException("金額は1以上でなければなりません。");
+        if (value == 0) {
+            throw new IllegalArgumentException("金額は0であってはなりません。");
         }
     }
 
