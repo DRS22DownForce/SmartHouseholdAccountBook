@@ -1,0 +1,23 @@
+# master への push と週次 cron でリポジトリ全体の既知 CVE をスキャンする。
+name: OSV-Scanner Scheduled Scan
+
+on:
+  schedule:
+    # 毎週月曜 12:30 UTC（日本時間 21:30 頃・夏時間は 20:30 頃）
+    - cron: "30 12 * * 1"
+  push:
+    branches: [master]
+
+permissions:
+  actions: read
+  security-events: write
+  contents: read
+
+jobs:
+  scan-scheduled:
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.3.8
+    with:
+      scan-args: |-
+        --recursive
+        backend/
+        frontend-nextjs/

@@ -30,7 +30,7 @@ class CsvParserTest {
         private final MitsuiSumitomoOldCsvParser parser = new MitsuiSumitomoOldCsvParser();
 
         @Test
-        @DisplayName("旧形式のCSVを正常に解析できる")
+        @DisplayName("確定月形式のCSVを正常に解析できる")
         void parse_正常に解析できる() throws IOException {
             String csvContent = """
                 2025/11/01,やよい軒大阪店,1220,１,１,1220,
@@ -166,6 +166,41 @@ class CsvParserTest {
         }
 
         @Test
+        @DisplayName("返品行（マイナス金額）を符号付きで解析できる")
+        void parse_返品のマイナス金額を保持する() throws IOException {
+            String csvContent = """
+                2025/12/15,テストショップＡ,-5000,１,１,-5000,返品
+                """;
+            InputStream inputStream = new ByteArrayInputStream(csvContent.getBytes(SHIFT_JIS));
+
+            CsvParseResult result = parser.parse(inputStream);
+
+            assertThat(result.validExpenses()).hasSize(1);
+            assertThat(result.errors()).isEmpty();
+            CsvParsedExpense expense = result.validExpenses().get(0);
+            assertThat(expense.description()).isEqualTo("テストショップＡ");
+            assertThat(expense.date()).isEqualTo(LocalDate.of(2025, 12, 15));
+            assertThat(expense.amount()).isEqualTo(-5000);
+        }
+
+        @Test
+        @DisplayName("利用と返品が混在する場合、それぞれ符号付きで解析できる")
+        void parse_利用と返品が混在する場合() throws IOException {
+            String csvContent = """
+                2025/12/10,テストショップＢ,8000,１,１,8000,
+                2025/12/15,テストショップＢ,-8000,１,１,-8000,返品
+                """;
+            InputStream inputStream = new ByteArrayInputStream(csvContent.getBytes(SHIFT_JIS));
+
+            CsvParseResult result = parser.parse(inputStream);
+
+            assertThat(result.validExpenses()).hasSize(2);
+            assertThat(result.errors()).isEmpty();
+            assertThat(result.validExpenses().get(0).amount()).isEqualTo(8000);
+            assertThat(result.validExpenses().get(1).amount()).isEqualTo(-8000);
+        }
+
+        @Test
         @DisplayName("合計行はスキップされる")
         void parse_合計行はスキップされる() throws IOException {
             String csvContent = """
@@ -212,7 +247,7 @@ class CsvParserTest {
         private final MitsuiSumitomoNewCsvParser parser = new MitsuiSumitomoNewCsvParser();
 
         @Test
-        @DisplayName("新形式のCSVを正常に解析できる")
+        @DisplayName("未確定月形式のCSVを正常に解析できる")
         void parse_正常に解析できる() throws IOException {
             String csvContent = """
                 2026/1/31,ＪＲ東日本モバイルＳｕｉｃａ,ご本人,1回払い,,'26/02,5000,5000,,,,,
@@ -232,6 +267,22 @@ class CsvParserTest {
             CsvParsedExpense expense2 = result.validExpenses().get(1);
             assertThat(expense2.description()).isEqualTo("セブンーイレブン");
             assertThat(expense2.amount()).isEqualTo(754);
+        }
+
+        @Test
+        @DisplayName("未確定月形式で返品行（マイナス金額）を符号付きで解析できる")
+        void parse_返品のマイナス金額を保持する() throws IOException {
+            String csvContent = """
+                2026/2/20,テストショップＣ,ご本人,1回払い,,'26/03,-3200,-3200,,,,,返品
+                """;
+            InputStream inputStream = new ByteArrayInputStream(csvContent.getBytes(SHIFT_JIS));
+
+            CsvParseResult result = parser.parse(inputStream);
+
+            assertThat(result.validExpenses()).hasSize(1);
+            assertThat(result.errors()).isEmpty();
+            assertThat(result.validExpenses().get(0).description()).isEqualTo("テストショップＣ");
+            assertThat(result.validExpenses().get(0).amount()).isEqualTo(-3200);
         }
 
         @Test

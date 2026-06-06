@@ -280,14 +280,21 @@ RUN ./mvnw -B clean package -T 1C -DskipTests -Pdocker
 Runtime stage では、JRE だけが入った軽いイメージに JAR をコピーします。
 
 ```dockerfile
-FROM eclipse-temurin:21-jre
+FROM eclipse-temurin:25-jre
+
+RUN groupadd --system app && useradd --system --gid app --home-dir /nonexistent --no-create-home app
+
 WORKDIR /app
 
-COPY --from=builder /app/target/app.jar app.jar
+COPY --from=builder --chown=app:app /app/target/app.jar app.jar
+
+USER app
 EXPOSE 8080
 
 CMD ["java", "-jar", "app.jar"]
 ```
+
+ランタイムでは `app` ユーザーで Java を起動します（root 実行を避けるため）。`COPY --chown=app:app` で JAR の読み取り権限を合わせています。
 
 `backend/pom.xml` の `<finalName>app</finalName>` により、ビルドステージの成果物は常に `/app/target/app.jar` です。ワイルドカードではなくこのパスを明示することで、意図しない JAR を拾うリスクを避けています。
 

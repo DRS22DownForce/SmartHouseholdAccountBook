@@ -174,7 +174,7 @@ public class ExpenseMapper {
     /**
      * CSVアップロード結果からDTOへ変換
      * 
-     * @param result CSVアップロード結果（成功件数、エラー件数、エラー詳細を含む）
+     * @param result CSVアップロード結果（成功件数、スキップ件数、エラー件数、エラー詳細を含む）
      * @return CSVアップロード結果DTO（resultがnullの場合はnull）
      */
     public CsvUploadResponseDto toDto(CsvExpenseService.CsvUploadResult result) {
@@ -189,9 +189,10 @@ public class ExpenseMapper {
                 .collect(Collectors.toList());
 
         // CSVアップロード結果DTOを作成
-        // 成功件数、エラー件数、エラー詳細のリストを設定します
+        // 成功件数、スキップ件数、エラー件数、エラー詳細のリストを設定します
         return new CsvUploadResponseDto(
                 result.successCount(),
+                result.skippedCount(),
                 result.errorCount(),
                 errorDtos);
     }

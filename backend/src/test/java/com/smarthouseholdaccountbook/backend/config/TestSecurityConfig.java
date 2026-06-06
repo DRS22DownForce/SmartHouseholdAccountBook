@@ -3,10 +3,10 @@ package com.smarthouseholdaccountbook.backend.config;
 import com.smarthouseholdaccountbook.backend.auth.filter.UserRegistrationFilter;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.context.annotation.Import;
 
 @TestConfiguration
 @Import(TestJwtAuthenticationFilter.class)
@@ -22,8 +22,9 @@ public class TestSecurityConfig {
                         .requestMatchers("/").permitAll()
                         .requestMatchers("/api/**").authenticated()
                         .anyRequest().denyAll())
-                .addFilterBefore(userRegistrationFilter, UsernamePasswordAuthenticationFilter.class)
-                .addFilterBefore(testJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                // 後から登録したフィルターほど内側になるため、JWT → ユーザー登録の順で実行される。
+                .addFilterBefore(testJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(userRegistrationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 }
