@@ -32,7 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
+import java.util.stream.Collectors;
 /**
  * CSV支出処理サービス
  * 
@@ -160,7 +160,7 @@ public class CsvExpenseService {
                 .findByUserAndDateBetween(user, minDate, maxDate)
                 .stream()
                 .map(ExpenseDuplicateKey::from)
-                .collect(java.util.stream.Collectors.toCollection(HashSet::new));
+                .collect(Collectors.toCollection(HashSet::new));
 
         List<CsvParsedExpense> newExpenses = new ArrayList<>();
         int skippedCount = 0;

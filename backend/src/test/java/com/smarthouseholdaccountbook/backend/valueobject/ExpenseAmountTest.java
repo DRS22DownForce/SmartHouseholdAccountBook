@@ -39,6 +39,17 @@ class ExpenseAmountTest {
             assertThat(amount).isNotNull();
             assertThat(amount.getAmount()).isEqualTo(1);
         }
+
+        @Test
+        @DisplayName("金額が-1でも作成できる（返品・返金の最小値）")
+        void createWithMinimumNegativeValue() {
+            // given, when
+            ExpenseAmount amount = new ExpenseAmount(-1);
+
+            // then
+            assertThat(amount).isNotNull();
+            assertThat(amount.getAmount()).isEqualTo(-1);
+        }
     }
 
     @Nested
@@ -59,16 +70,22 @@ class ExpenseAmountTest {
             // given, when, then
             assertThatThrownBy(() -> new ExpenseAmount(0))
                     .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("金額は1以上でなければなりません。");
+                    .hasMessage("金額は0であってはなりません。");
         }
+    }
 
+    @Nested
+    @DisplayName("加算（返品を含む）")
+    class AddWithRefund {
         @Test
-        @DisplayName("金額が負の値の場合は例外が発生する")
-        void createWithNegative() {
-            // given, when, then
-            assertThatThrownBy(() -> new ExpenseAmount(-1))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("金額は1以上でなければなりません。");
+        @DisplayName("正の金額と負の金額を加算できる")
+        void addExpenseAndPartialRefund() {
+            ExpenseAmount expense = new ExpenseAmount(8000);
+            ExpenseAmount refund = new ExpenseAmount(-3000);
+
+            ExpenseAmount result = expense.add(refund);
+
+            assertThat(result.getAmount()).isEqualTo(5000);
         }
     }
 

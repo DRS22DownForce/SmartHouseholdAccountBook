@@ -20,7 +20,7 @@ public class CategorySummary {
     private final CategoryType category;
 
     /**
-     * 金額（カテゴリー別の合計金額、0以上でなければならない）
+     * 金額（カテゴリー別の合計金額。返品を含む場合はマイナスになり得る）
      */
     private final Integer amount;
 
@@ -33,7 +33,7 @@ public class CategorySummary {
      * コンストラクタ（件数は1として扱う。後方互換用）
      *
      * @param category カテゴリー（CategoryType Enum、nullであってはならない）
-     * @param amount  金額（1以上でなければならない）
+     * @param amount  金額（0以外。返品・返金は負の値）
      */
     public CategorySummary(CategoryType category, Integer amount) {
         validateTwoArg(category, amount);
@@ -46,7 +46,7 @@ public class CategorySummary {
      * コンストラクタ
      *
      * @param category カテゴリー（null不可）
-     * @param amount  金額（0以上）
+     * @param amount  金額（0以外。返品を含む集計ではマイナスになり得る）
      * @param count   件数（0以上）
      */
     public CategorySummary(CategoryType category, Integer amount, Integer count) {
@@ -59,8 +59,8 @@ public class CategorySummary {
     private static void validateTwoArg(CategoryType category, Integer amount) {
         Objects.requireNonNull(category, "カテゴリーはnullであってはなりません。");
         Objects.requireNonNull(amount, "金額はnullであってはなりません。");
-        if (amount < 1) {
-            throw new IllegalArgumentException("金額は1以上でなければなりません。");
+        if (amount == 0) {
+            throw new IllegalArgumentException("金額は0であってはなりません。");
         }
     }
 
@@ -68,14 +68,8 @@ public class CategorySummary {
         Objects.requireNonNull(category, "カテゴリーはnullであってはなりません。");
         Objects.requireNonNull(amount, "金額はnullであってはなりません。");
         Objects.requireNonNull(count, "件数はnullであってはなりません。");
-        if (amount < 0) {
-            throw new IllegalArgumentException("金額は0以上でなければなりません。");
-        }
         if (count < 0) {
             throw new IllegalArgumentException("件数は0以上でなければなりません。");
-        }
-        if (amount > 0 && count < 1) {
-            throw new IllegalArgumentException("金額が1以上のとき件数は1以上でなければなりません。");
         }
     }
 

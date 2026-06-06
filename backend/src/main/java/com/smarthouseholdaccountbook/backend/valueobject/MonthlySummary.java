@@ -19,7 +19,7 @@ public record MonthlySummary(
         String month,
         // 支出リスト
         List<Expense> expenses,
-        // 合計金額（0以上）
+        // 合計金額（返品を含む場合はマイナスになり得る）
         int total,
         // 件数（0以上）
         int count,
@@ -31,9 +31,6 @@ public record MonthlySummary(
      * recordのコンストラクタ。バリデーションと防御的コピーを行う。
      */
     public MonthlySummary {
-        if (total < 0) {
-            throw new IllegalArgumentException("合計金額は0以上でなければなりません。");
-        }
         if (count < 0) {
             throw new IllegalArgumentException("件数は0以上でなければなりません。");
         }
