@@ -152,12 +152,17 @@ CsvUploadResponseDto:
     required:
       - successCount
       - errorCount
+      - skippedCount
       - errors
     properties:
       successCount:
         type: integer
         description: 正常にインポートされたデータ件数
         example: 25
+      skippedCount:
+        type: integer
+        description: 既存データと重複したためスキップした行数
+        example: 20
       errorCount:
         type: integer
         description: エラーが発生した行数

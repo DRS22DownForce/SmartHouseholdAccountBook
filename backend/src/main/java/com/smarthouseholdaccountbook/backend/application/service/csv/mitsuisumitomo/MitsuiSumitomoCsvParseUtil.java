@@ -167,8 +167,9 @@ public final class MitsuiSumitomoCsvParseUtil {
             return Optional.empty();
         }
         try {
-            int amount = Math.abs(Integer.parseInt(cleaned));
-            return amount > 0 ? Optional.of(amount) : Optional.empty();
+            // 返品・返金行はマイナス金額で出力されるため、符号を保持する
+            int amount = Integer.parseInt(cleaned);
+            return amount != 0 ? Optional.of(amount) : Optional.empty();
         } catch (NumberFormatException e) {
             return Optional.empty();
         }
@@ -191,7 +192,7 @@ public final class MitsuiSumitomoCsvParseUtil {
     }
 
     /**
-     * 合計行かどうかを判定する（旧形式のみ）
+     * 合計行かどうかを判定する（確定月形式のみ）
      */
     public static boolean isTotalLine(String line, Config config) {
         String[] columns = line.split(",", -1);

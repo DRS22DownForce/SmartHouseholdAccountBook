@@ -55,13 +55,24 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
       const result = await uploadCsvFile(file, csvFormat)
 
       // 成功メッセージを作成
-      let message = `${result.successCount}件の支出データをインポートしました`
+      let message: string
+      if (result.successCount > 0) {
+        message = `${result.successCount}件の支出データをインポートしました`
+      } else if (result.skippedCount > 0) {
+        message = "新規の支出データはありませんでした（すべて既存データと重複）"
+      } else {
+        message = "インポートできる支出データはありませんでした"
+      }
+      if (result.skippedCount > 0) {
+        message += `（${result.skippedCount}件は既存のためスキップ）`
+      }
       if (result.errorCount > 0) {
         message += `（${result.errorCount}件のエラーがあります）`
       }
 
+      const isSuccess = result.errorCount === 0
       setStatus({
-        type: result.errorCount > 0 ? "error" : "success",
+        type: isSuccess ? "success" : "error",
         message,
         details: result,
       })
@@ -75,8 +86,8 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
         fileInputRef.current.value = ""
       }
 
-      // エラーがない場合は自動的に閉じる
-      if (result.errorCount === 0) {
+      // 解析エラーがない場合は自動的に閉じる
+      if (isSuccess) {
         setTimeout(() => {
           setOpen(false)
           setStatus(null)
@@ -151,10 +162,13 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
                 <SelectValue placeholder="CSV形式を選択してください" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="MITSUISUMITOMO_OLD_FORMAT">三井住友カード（2025/12以前）</SelectItem>
-                <SelectItem value="MITSUISUMITOMO_NEW_FORMAT">三井住友カード（2026/1以降）</SelectItem>
+                <SelectItem value="MITSUISUMITOMO_OLD_FORMAT">三井住友カード（確定月）</SelectItem>
+                <SelectItem value="MITSUISUMITOMO_NEW_FORMAT">三井住友カード（未確定月）</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              確定月の明細は列が少ない形式、未確定月の明細は「ご本人」「1回払い」などの列が追加された形式です。Vpassのダウンロード画面でどちらの明細か確認してください。
+            </p>
           </div>
 
           <div
