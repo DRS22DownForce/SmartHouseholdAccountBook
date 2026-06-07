@@ -37,14 +37,6 @@
     "gitRepositoryUrl": "https://github.com/DRS22DownForce/SmartHouseholdAccountBook.git",
     "gitRepositoryBranch": "master",
     "allowedSshCidr": "0.0.0.0/0",
-    "enableSshAccess": false,
-
-    "domainName": "smart-household-account-book.com",
-    "hostedZoneName": "smart-household-account-book.com",
-    "hostedZoneId": "ZXXXXXXXXXXXXX",
-    "certbotEmail": "you@example.com",
-
-    "cognitoUserPoolId": "ap-northeast-1_XXXXXXXXX",
-    "cognitoClientId": "your-cognito-app-client-id"
+    "enableSshAccess": false
   }
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Route 53 ホストゾーン ID を一覧表示（cdk.json の hostedZoneId 設定用）
+# Route 53 ホストゾーン ID を一覧表示（cdk.local.json の hostedZoneId 設定用）
 set -euo pipefail
 
 AWS_REGION="${AWS_REGION:-ap-northeast-1}"

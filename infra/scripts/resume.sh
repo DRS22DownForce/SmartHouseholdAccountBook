@@ -18,9 +18,16 @@ echo "[resume] Starting instance: ${INSTANCE_ID}"
 aws ec2 start-instances --instance-ids "${INSTANCE_ID}" --region "${AWS_REGION}" >/dev/null
 aws ec2 wait instance-running --instance-ids "${INSTANCE_ID}" --region "${AWS_REGION}"
 
-PUBLIC_IP="$(aws cloudformation describe-stacks \
+APP_URL="$(aws cloudformation describe-stacks \
   --stack-name SmartHouseholdStack \
-  --query "Stacks[0].Outputs[?OutputKey=='PublicIp'].OutputValue" \
-  --output text --region "${AWS_REGION}")"
+  --query "Stacks[0].Outputs[?OutputKey=='AppUrl'].OutputValue" \
+  --output text --region "${AWS_REGION}" 2>/dev/null || true)"
 
-echo "[resume] 起動しました: http://${PUBLIC_IP}"
+if [[ -z "${APP_URL}" || "${APP_URL}" == "None" ]]; then
+  APP_URL="https://$(aws cloudformation describe-stacks \
+    --stack-name SmartHouseholdStack \
+    --query "Stacks[0].Outputs[?OutputKey=='ElasticIp'].OutputValue" \
+    --output text --region "${AWS_REGION}")"
+fi
+
+echo "[resume] 起動しました: ${APP_URL}"

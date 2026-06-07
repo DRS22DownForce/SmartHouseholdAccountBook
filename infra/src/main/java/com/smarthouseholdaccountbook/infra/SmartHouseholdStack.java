@@ -57,7 +57,7 @@ public class SmartHouseholdStack extends Stack {
         final String allowedSshCidr = InfraApp.contextString(this, "allowedSshCidr", "0.0.0.0/0");
         final int rootVolumeGiB = InfraApp.contextInt(this, "rootVolumeGiB", 30);
 
-        // --- ドメイン / 既存 Cognito（cdk.json context で指定） ---
+        // --- ドメイン / 既存 Cognito（cdk.local.json で指定） ---
         final String domainName = InfraApp.contextString(this, "domainName", "");
         final String hostedZoneName = InfraApp.contextString(this, "hostedZoneName", "");
         final String hostedZoneId = InfraApp.contextString(this, "hostedZoneId", "");
@@ -323,27 +323,27 @@ public class SmartHouseholdStack extends Stack {
             final String cognitoClientId) {
         if (domainName.isBlank()) {
             throw new IllegalArgumentException(
-                    "cdk.json context 'domainName' is required (例: app.example.com)");
+                    "cdk.local.json 'domainName' is required (例: app.example.com)");
         }
         if (hostedZoneName.isBlank()) {
             throw new IllegalArgumentException(
-                    "cdk.json context 'hostedZoneName' is required (例: example.com)");
+                    "cdk.local.json 'hostedZoneName' is required (例: example.com)");
         }
         if (hostedZoneId.isBlank()) {
             throw new IllegalArgumentException(
-                    "cdk.json context 'hostedZoneId' is required (Route 53 コンソールで確認)");
+                    "cdk.local.json 'hostedZoneId' is required (Route 53 コンソールで確認)");
         }
         if (certbotEmail.isBlank()) {
             throw new IllegalArgumentException(
-                    "cdk.json context 'certbotEmail' is required (Let's Encrypt 通知用)");
+                    "cdk.local.json 'certbotEmail' is required (Let's Encrypt 通知用)");
         }
         if (cognitoUserPoolId.isBlank()) {
             throw new IllegalArgumentException(
-                    "cdk.json context 'cognitoUserPoolId' is required (既存 User Pool ID)");
+                    "cdk.local.json 'cognitoUserPoolId' is required (既存 User Pool ID)");
         }
         if (cognitoClientId.isBlank()) {
             throw new IllegalArgumentException(
-                    "cdk.json context 'cognitoClientId' is required (既存 App Client ID)");
+                    "cdk.local.json 'cognitoClientId' is required (既存 App Client ID)");
         }
         if (!domainName.endsWith(hostedZoneName) && !domainName.endsWith("." + hostedZoneName)) {
             throw new IllegalArgumentException(

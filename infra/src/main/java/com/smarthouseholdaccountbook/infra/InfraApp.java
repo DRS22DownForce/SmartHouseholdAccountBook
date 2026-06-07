@@ -19,6 +19,9 @@ public final class InfraApp {
     public static void main(final String[] args) {
         App app = new App();
 
+        // cdk.local.json（Git 管理外）を cdk.json の context より優先してマージ
+        CdkLocalContextLoader.apply(app);
+
         // cdk.json の context からリージョンを読み取る（未指定なら CLI のデフォルト）
         String region = (String) app.getNode().tryGetContext("awsRegion");
         if (region == null || region.isBlank()) {

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cognito User Pool の App Client ID を一覧表示（cdk.json の cognitoClientId 設定用）
+# Cognito User Pool の App Client ID を一覧表示（cdk.local.json の cognitoClientId 設定用）
 set -euo pipefail
 
 POOL_ID="${1:-ap-northeast-1_XXXXXXXXX}"

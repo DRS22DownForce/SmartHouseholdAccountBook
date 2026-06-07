@@ -42,6 +42,7 @@ secrets/
 credentials/
 
 # AWS CDK
+infra/cdk.local.json
 infra/cdk.out/
 infra/target/
 infra/node_modules/

@@ -8,10 +8,10 @@ PROJECT_NAME="${PROJECT_NAME:-smart-household}"
 AWS_REGION="${AWS_REGION:-ap-northeast-1}"
 SECRET_NAME="${PROJECT_NAME}/app"
 
-# cdk.json からドメインを読み取り CORS デフォルトに使う
+# cdk.json + cdk.local.json からドメインを読み取り CORS デフォルトに使う
 DOMAIN_NAME=""
 if [[ -f "${INFRA_DIR}/cdk.json" ]]; then
-  DOMAIN_NAME="$(python3 -c "import json; print(json.load(open('${INFRA_DIR}/cdk.json'))['context'].get('domainName','') or '')")"
+  DOMAIN_NAME="$(python3 "${INFRA_DIR}/scripts/lib/read-context.py" "${INFRA_DIR}" domainName)"
 fi
 DEFAULT_CORS="https://${DOMAIN_NAME}"
 if [[ -n "${DOMAIN_NAME}" ]]; then
