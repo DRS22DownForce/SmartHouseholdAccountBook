@@ -17,4 +17,4 @@ fi
 echo "[pause] Stopping instance: ${INSTANCE_ID}"
 aws ec2 stop-instances --instance-ids "${INSTANCE_ID}" --region "${AWS_REGION}" >/dev/null
 aws ec2 wait instance-stopped --instance-ids "${INSTANCE_ID}" --region "${AWS_REGION}"
-echo "[pause] 停止しました。再開: aws ec2 start-instances --instance-ids ${INSTANCE_ID} --region ${AWS_REGION}"
+echo "[pause] 停止しました。再開: ./infra/scripts/resume.sh"

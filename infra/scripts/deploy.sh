@@ -27,6 +27,13 @@ export CDK_DEFAULT_REGION="${AWS_REGION}"
 echo "[deploy] Bootstrapping CDK (初回のみ)..."
 npx cdk bootstrap "aws://${ACCOUNT_ID}/${AWS_REGION}" #CDKがデプロイするための共通の土台をAWSに作成する
 
+# docker/compose・mysql 設定を bootstrap 同梱用に同期（CDK asset 更新）
+BUNDLE="${ROOT}/infra/assets/ec2-bootstrap/bundled/docker"
+rm -rf "${BUNDLE}/compose" "${BUNDLE}/mysql"
+mkdir -p "${BUNDLE}"
+cp -a "${ROOT}/docker/compose" "${BUNDLE}/"
+cp -a "${ROOT}/docker/mysql" "${BUNDLE}/"
+
 echo "[deploy] Deploying SmartHouseholdStack..."
 npx cdk deploy SmartHouseholdStack --require-approval never #CDKでSmartHouseholdStackに定義したスタックをAWSにデプロイする
 

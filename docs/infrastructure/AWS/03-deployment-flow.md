@@ -95,6 +95,7 @@ flowchart LR
 | `validate-config.sh` | `cdk.json` の必須項目を検証 |
 | `npm install` | CDK CLI をローカルに入れる（初回） |
 | `cdk bootstrap` | CDK 用の S3 バケットなどをアカウントに用意（初回のみ） |
+| docker 設定の同期 | `docker/compose`・`docker/mysql` を bootstrap 同梱用にコピー（`deploy.sh` 内で自動実行） |
 | `cdk deploy` | CloudFormation スタックを作成・更新 |
 
 デプロイが完了すると EC2 が起動し、User Data から `bootstrap.sh` が走り始めます。この時点では Secrets が空の可能性があるため、bootstrap は DB パスワードが入るまで待機します。
@@ -220,26 +221,35 @@ deploy-app.sh
 | 変更内容 | 必要な操作 |
 |----------|------------|
 | Java / Spring のコード | `deploy-app.sh` のみ |
-| `docker/compose/*.yaml` | `sync-bootstrap-bundle.sh` → `deploy.sh`（User Data 変更時）または `deploy-app.sh` |
+| `docker/compose/*.yaml` | `deploy.sh`（bootstrap 同梱用に自動同期）→ 必要に応じて `deploy-app.sh` |
 | `cdk.json` の `instanceType` など | `deploy.sh`（EC2 が置き換わる場合あり） |
 | Secrets の値（API キー等） | `init-secrets.sh` → `deploy-app.sh`（`.env` 再生成） |
 | `domainName` / Route 53 | `cdk.json` 更新 → `deploy.sh`、Cognito URL も更新 → `deploy-app.sh`（CORS は SSM 経由で `.env` に反映） |
 
-`infra/scripts/sync-bootstrap-bundle.sh` は、リポジトリの `docker/` 配下を `infra/assets/ec2-bootstrap/bundled/docker/` にコピーします。Compose や MySQL 設定を変えたら、CDK デプロイ前に実行してください。
+`deploy.sh` は CDK デプロイ前に、リポジトリの `docker/` 配下を `infra/assets/ec2-bootstrap/bundled/docker/` に自動コピーします（**Git 管理外の生成物**。正本は `docker/compose`・`docker/mysql`）。Compose や MySQL 設定を変えたら `deploy.sh` を再実行してください。`npx cdk deploy` を直接実行しないでください。
 
 ---
 
 ## よく使うコマンド一覧
 
+### デプロイ
+
 | コマンド | 目的 |
 |----------|------|
 | `./infra/scripts/validate-config.sh` | `cdk.json` の検証 |
-| `./infra/scripts/deploy.sh` | インフラの作成・更新 |
+| `./infra/scripts/deploy.sh` | インフラの作成・更新（docker 設定の bootstrap 同梱同期を含む） |
 | `./infra/scripts/init-secrets.sh` | Secrets の投入・更新 |
 | `./infra/scripts/deploy-app.sh` | Backend デプロイ + EC2 更新 |
-| `./infra/scripts/sync-bootstrap-bundle.sh` | bootstrap 同梱用 docker 設定の同期 |
-| `./infra/scripts/list-hosted-zones.sh` | Route 53 ゾーン一覧の確認 |
-| `./infra/scripts/list-cognito-clients.sh` | Cognito Client ID の確認 |
+
+### 課金・運用
+
+| コマンド | 目的 |
+|----------|------|
+| `./infra/scripts/pause.sh` | EC2 を一時停止（コンピュート課金を抑える） |
+| `./infra/scripts/resume.sh` | 停止した EC2 を再開 |
+| `./infra/scripts/destroy.sh` | CDK スタックを完全削除 |
+
+`hostedZoneId` や `cognitoClientId` などの初回設定値は、AWS コンソール（Route 53 / Cognito）から確認して `cdk.local.json` に記入します。
 
 ---
 

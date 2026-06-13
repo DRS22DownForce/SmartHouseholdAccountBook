@@ -49,7 +49,7 @@ User Data は短いラッパーに留め、本体は `/opt/smart-household/boots
 │   ├── bootstrap.sh
 │   ├── remote-app-deploy.sh
 │   ├── nginx/smart-household.conf
-│   └── bundled/docker/           # compose / mysql の同梱コピー
+│   └── bundled/docker/           # compose / mysql の同梱コピー（deploy.sh が生成・Git 管理外）
 ├── app/                          # Git clone 先（または docker のみ）
 │   ├── docker/compose/...
 │   └── frontend-nextjs/...

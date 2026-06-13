@@ -50,8 +50,18 @@ infra/
 │   ├── InfraApp.java                 # main、リージョン決定
 │   └── SmartHouseholdStack.java      # 実際のリソース定義
 ├── assets/ec2-bootstrap/             # EC2 初回起動用スクリプト群
-└── scripts/                          # deploy.sh などのラッパー
+└── scripts/                          # デプロイ・運用ラッパー（下表）
 ```
+
+| スクリプト | 用途 |
+|-----------|------|
+| `validate-config.sh` | `cdk.json` / `cdk.local.json` の検証 |
+| `deploy.sh` | インフラ作成・更新（docker 設定の bootstrap 同梱同期を含む） |
+| `init-secrets.sh` | Secrets Manager への秘密情報投入 |
+| `deploy-app.sh` | ECR push + SSM 経由で EC2 更新 |
+| `pause.sh` / `resume.sh` | EC2 の一時停止・再開 |
+| `destroy.sh` | スタック完全削除 |
+| `lib/` | 設定読み取りヘルパー |
 
 `cdk.json` の `app` キーは次のようになっています。
 

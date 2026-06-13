@@ -46,6 +46,8 @@ cp infra/cdk.context.example.json infra/cdk.local.json
 ./infra/scripts/deploy-app.sh      # 3. ECR push + EC2 更新（Backend + Frontend・SSM のみ）
 ```
 
+`deploy.sh` は CDK デプロイ前に `docker/compose`・`docker/mysql` を bootstrap 同梱用ディレクトリへ自動同期します（生成物のため Git 管理外。正本は `docker/`）。
+
 `deploy-app.sh` は EC2 が未セットアップでも SSM 経由で bootstrap を実行します。  
 **t4g.small (2GB RAM)** を前提に Next.js も EC2 上でビルドします（micro では OOM になります）。  
 **t4g (ARM64)** 向けに Backend イメージを `--platform linux/arm64` でビルドします（ローカル PC が Intel でも可）。
@@ -66,6 +68,7 @@ cp infra/cdk.context.example.json infra/cdk.local.json
 | 目的 | コマンド |
 |------|----------|
 | 一時停止 | `./infra/scripts/pause.sh` |
+| 再開 | `./infra/scripts/resume.sh` |
 | 完全削除 | `./infra/scripts/destroy.sh` |
 
 ## HTTPS について
