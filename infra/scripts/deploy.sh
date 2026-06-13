@@ -15,7 +15,7 @@ fi
 
 "${INFRA_DIR}/scripts/validate-config.sh"
 
-if [[ ! -d node_modules ]]; then
+if [[ ! -d node_modules ]]; then # node_modules はnpmがインストールしたパッケージを管理するディレクトリ
   echo "[deploy] Installing CDK CLI (local npm)..."
   npm install
 fi
@@ -25,10 +25,10 @@ export CDK_DEFAULT_ACCOUNT="${ACCOUNT_ID}"
 export CDK_DEFAULT_REGION="${AWS_REGION}"
 
 echo "[deploy] Bootstrapping CDK (初回のみ)..."
-npx cdk bootstrap "aws://${ACCOUNT_ID}/${AWS_REGION}"
+npx cdk bootstrap "aws://${ACCOUNT_ID}/${AWS_REGION}" #CDKがデプロイするための共通の土台をAWSに作成する
 
 echo "[deploy] Deploying SmartHouseholdStack..."
-npx cdk deploy SmartHouseholdStack --require-approval never
+npx cdk deploy SmartHouseholdStack --require-approval never #CDKでSmartHouseholdStackに定義したスタックをAWSにデプロイする
 
 echo ""
 echo "[deploy] 完了。次のステップ:"

@@ -182,9 +182,9 @@ certbot certificates
 
 ### アプリは動くが API が CORS エラー
 
-**原因**: `CORS_ALLOWED_ORIGINS` にフロントの Origin が無い。
+**原因**: SSM の `cors-allowed-origins` にフロントの Origin が無い、または EC2 の `.env` が古い。
 
-**対処**: `init-secrets.sh` を再実行し、`deploy-app.sh` で `.env` を再生成。
+**対処**: `domainName` を確認して `deploy.sh` を実行し、`deploy-app.sh` で `.env` を再生成。
 
 ### SSM コマンドが TimedOut
 

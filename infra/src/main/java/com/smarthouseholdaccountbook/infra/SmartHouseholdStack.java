@@ -72,6 +72,8 @@ public class SmartHouseholdStack extends Stack {
         final String issuerUrl = "https://cognito-idp." + region + ".amazonaws.com/" + cognitoUserPoolId;
         final String jwkSetUrl = issuerUrl + "/.well-known/jwks.json";
         final String appBaseUrl = "https://" + domainName;
+        // apex ドメインのときは www も許可（certbot が www も HTTPS 化するため）
+        final String corsAllowedOrigins = buildCorsAllowedOrigins(domainName, hostedZoneName, appBaseUrl);
 
         // コスト削減: NAT Gateway なしの最小 VPC
         IVpc vpc = Vpc.Builder.create(this, "AppVpc")
@@ -109,6 +111,12 @@ public class SmartHouseholdStack extends Stack {
         StringParameter.Builder.create(this, "DomainAppUrlParam")
                 .parameterName("/" + projectName + "/domain/app-url")
                 .stringValue(appBaseUrl)
+                .build();
+
+        StringParameter.Builder.create(this, "CorsAllowedOriginsParam")
+                .parameterName("/" + projectName + "/domain/cors-allowed-origins")
+                .stringValue(corsAllowedOrigins)
+                .description("Spring Boot CORS allowed origins (comma-separated)")
                 .build();
 
         StringParameter.Builder.create(this, "CertbotEmailParam")
@@ -349,6 +357,20 @@ public class SmartHouseholdStack extends Stack {
             throw new IllegalArgumentException(
                     "domainName '" + domainName + "' must be under hostedZoneName '" + hostedZoneName + "'");
         }
+    }
+
+    /**
+     * Spring Boot の CORS 許可 Origin を組み立てる。
+     * apex ドメインのときは www も含める。サブドメインのときは app URL のみ。
+     */
+    static String buildCorsAllowedOrigins(
+            final String domainName,
+            final String hostedZoneName,
+            final String appBaseUrl) {
+        if (domainName.equals(hostedZoneName)) {
+            return appBaseUrl + ",https://www." + domainName;
+        }
+        return appBaseUrl;
     }
 
     /** smart-household-account-book.com + 同ゾーン名 → apex（空文字 = recordName 省略） */

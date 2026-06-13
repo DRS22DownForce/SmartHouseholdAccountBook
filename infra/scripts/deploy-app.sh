@@ -13,6 +13,8 @@ if [[ ! -d node_modules ]]; then
   npm install
 fi
 
+#CDK(AWS Cloud Development Kit)のスタック出力を取得する関数
+#OutputはSmartHouseholdStatck.javaで定義されている
 stack_output() {
   local key="$1"
   aws cloudformation describe-stacks \
@@ -24,7 +26,7 @@ stack_output() {
 
 echo "[deploy-app] Resolving stack outputs..."
 ECR_URI="$(stack_output BackendRepositoryUri)"
-INSTANCE_ID="$(stack_output InstanceId)"
+INSTANCE_ID="$(stack_output InstanceId)" #EC2のインスタンスIDを取得する
 APP_SECRET_ARN="$(stack_output AppSecretArn)"
 BOOTSTRAP_ASSET_URL="$(stack_output BootstrapAssetS3Url)"
 
@@ -73,6 +75,7 @@ fi
 echo "[deploy-app] Updating EC2 via SSM (${INSTANCE_ID})..."
 echo "[deploy-app] 未セットアップの EC2 は bootstrap 修復後に Backend/Frontend を起動します（最大 90 分）。"
 
+#Pythonを利用してJSON形式でSSMのパラメータを作成する
 SSM_PARAMS="$(PROJECT_NAME="${PROJECT_NAME}" AWS_REGION="${AWS_REGION}" ECR_URI="${ECR_URI}" \
   APP_SECRET_ARN="${APP_SECRET_ARN}" BOOTSTRAP_ASSET_URL="${BOOTSTRAP_ASSET_URL}" \
   python3 <<'PY'
@@ -102,7 +105,7 @@ commands = [
 print(json.dumps({"commands": commands}))
 PY
 )"
-
+#ssm send-commandを使用してSSHを利用せず、EC2にコマンドを送信する
 COMMAND_ID="$(aws ssm send-command \
   --instance-ids "${INSTANCE_ID}" \
   --document-name "AWS-RunShellScript" \
@@ -116,7 +119,10 @@ echo "[deploy-app] SSM CommandId: ${COMMAND_ID} (waiting up to 90 min)..."
 
 poll_ssm() {
   local status=""
+  local start_ts
+  start_ts=$(date +%s)
   for _ in $(seq 1 180); do
+  #ssm get-command-invocationを使用してSSMコマンドの実行状況を取得する
     status="$(aws ssm get-command-invocation \
       --command-id "${COMMAND_ID}" \
       --instance-id "${INSTANCE_ID}" \
@@ -135,7 +141,10 @@ poll_ssm() {
           --region "${AWS_REGION}"
         return 1
         ;;
-      *) sleep 30 ;;
+      *)
+        echo "[deploy-app] Still running (${status}, $(( $(date +%s) - start_ts ))s elapsed)"
+        sleep 30
+        ;;
     esac
   done
   echo "[deploy-app] SSM command timed out waiting for completion."

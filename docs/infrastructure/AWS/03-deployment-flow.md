@@ -52,7 +52,7 @@ aws sts get-caller-identity   # Account と User/Role が表示されれば OK
 
 ### cdk.json の context
 
-[02. CDK スタック](./02-cdk-stack.md#cdkjson設定の置き場所) の必須キーを埋めます。
+[CDK スタック（02章）](./02-cdk-stack.md#cdkjson設定の置き場所) の必須キーを埋めます。
 
 ```bash
 ./infra/scripts/validate-config.sh
@@ -119,10 +119,11 @@ flowchart LR
 
 ### 何をするか
 
-1. `cdk.json` から `domainName` を読み、CORS のデフォルトを `https://{domain}` に設定
-2. OpenAI API Key と CORS を対話的に入力（Enter でデフォルト可）
-3. MySQL の 3 種類のパスワードを **ランダム生成**
-4. Secrets Manager の `smart-household/app` に JSON を書き込む
+1. OpenAI API Key を対話的に入力（Enter でプレースホルダ可）
+2. MySQL の 3 種類のパスワードを **ランダム生成**
+3. Secrets Manager の `smart-household/app` に JSON を書き込む
+
+CORS の許可 Origin は **Secrets ではなく SSM** に保存します。`deploy.sh`（CDK）が `domainName` から `/smart-household/domain/cors-allowed-origins` を自動設定します。
 
 生成される JSON のキーは次の通りです。
 
@@ -134,7 +135,6 @@ flowchart LR
 | `MYSQL_DATABASE` | `household_book` |
 | `OPENAI_API_KEY` | OpenAI API キー |
 | `OPENAI_API_URL` | Chat Completions の URL |
-| `CORS_ALLOWED_ORIGINS` | フロントの Origin 許可リスト |
 
 **パスワードは端末に表示されません。** Secrets Manager にだけ保存されます。紛失した場合はスクリプトを再実行して上書きするか、AWS コンソールで手動更新します。
 
@@ -179,7 +179,7 @@ SSH ポートを開かずに EC2 を更新できるのが SSM の利点です。
 
 ### remote-app-deploy.sh の分岐
 
-EC2 上では状況に応じて処理が変わります（詳細は [04. EC2 ブートストラップ](./04-ec2-bootstrap.md)）。
+EC2 上では状況に応じて処理が変わります（詳細は [EC2 ブートストラップ（04章）](./04-ec2-bootstrap.md)）。
 
 | 状態 | 動作 |
 |------|------|
@@ -223,7 +223,7 @@ deploy-app.sh
 | `docker/compose/*.yaml` | `sync-bootstrap-bundle.sh` → `deploy.sh`（User Data 変更時）または `deploy-app.sh` |
 | `cdk.json` の `instanceType` など | `deploy.sh`（EC2 が置き換わる場合あり） |
 | Secrets の値（API キー等） | `init-secrets.sh` → `deploy-app.sh`（`.env` 再生成） |
-| `domainName` / Route 53 | `cdk.json` 更新 → `deploy.sh`、Cognito URL も更新 |
+| `domainName` / Route 53 | `cdk.json` 更新 → `deploy.sh`、Cognito URL も更新 → `deploy-app.sh`（CORS は SSM 経由で `.env` に反映） |
 
 `infra/scripts/sync-bootstrap-bundle.sh` は、リポジトリの `docker/` 配下を `infra/assets/ec2-bootstrap/bundled/docker/` にコピーします。Compose や MySQL 設定を変えたら、CDK デプロイ前に実行してください。
 

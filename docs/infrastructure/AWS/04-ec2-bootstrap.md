@@ -124,13 +124,13 @@ flowchart LR
 - `MYSQL_ROOT_PASSWORD` / `MYSQL_FLYWAY_PASSWORD` / `MYSQL_APP_PASSWORD`
 - `MYSQL_DATABASE`
 - `OPENAI_API_KEY` / `OPENAI_API_URL`
-- `CORS_ALLOWED_ORIGINS`
 
-### SSM から入る値（Cognito まわり）
+### SSM から入る値
 
 - `COGNITO_JWK_SET_URL`（issuer + `/.well-known/jwks.json`）
 - `COGNITO_ISSUER_URL`
 - `COGNITO_CLIENT_ID`
+- `CORS_ALLOWED_ORIGINS`（`/domain/cors-allowed-origins`。無い場合は `/domain/app-url` にフォールバック）
 
 ### 固定・派生される値
 

@@ -8,27 +8,10 @@ PROJECT_NAME="${PROJECT_NAME:-smart-household}"
 AWS_REGION="${AWS_REGION:-ap-northeast-1}"
 SECRET_NAME="${PROJECT_NAME}/app"
 
-# cdk.json + cdk.local.json からドメインを読み取り CORS デフォルトに使う
-DOMAIN_NAME=""
-if [[ -f "${INFRA_DIR}/cdk.json" ]]; then
-  DOMAIN_NAME="$(python3 "${INFRA_DIR}/scripts/lib/read-context.py" "${INFRA_DIR}" domainName)"
-fi
-DEFAULT_CORS="https://${DOMAIN_NAME}"
-if [[ -n "${DOMAIN_NAME}" ]]; then
-  # apex と www の両方を許可（certbot が www も HTTPS 化するため）
-  DEFAULT_CORS="https://${DOMAIN_NAME},https://www.${DOMAIN_NAME}"
-fi
-if [[ -z "${DOMAIN_NAME}" ]]; then
-  DEFAULT_CORS="http://localhost:3000"
-fi
-
 OPENAI_API_URL="${OPENAI_API_URL:-https://api.openai.com/v1/chat/completions}"
 
 read -r -p "OpenAI API Key (空 Enter でプレースホルダ): " OPENAI_API_KEY
 OPENAI_API_KEY="${OPENAI_API_KEY:-REPLACE_ME}"
-
-read -r -p "CORS 許可 Origin [${DEFAULT_CORS}]: " CORS_ALLOWED_ORIGINS
-CORS_ALLOWED_ORIGINS="${CORS_ALLOWED_ORIGINS:-${DEFAULT_CORS}}"
 
 MYSQL_ROOT_PASSWORD="$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)"
 MYSQL_FLYWAY_PASSWORD="$(openssl rand -base64 24 | tr -d '/+=' | head -c 32)"
@@ -43,7 +26,6 @@ print(json.dumps({
     "MYSQL_DATABASE": "household_book",
     "OPENAI_API_KEY": "${OPENAI_API_KEY}",
     "OPENAI_API_URL": "${OPENAI_API_URL}",
-    "CORS_ALLOWED_ORIGINS": "${CORS_ALLOWED_ORIGINS}",
 }))
 PY
 )"
@@ -61,3 +43,4 @@ aws secretsmanager put-secret-value \
 
 echo "[init-secrets] Done. Secret name: ${SECRET_NAME}"
 echo "[init-secrets] DB passwords were generated randomly and stored in Secrets Manager."
+echo "[init-secrets] CORS は SSM /${PROJECT_NAME}/domain/cors-allowed-origins（CDK deploy で設定）を参照します。"

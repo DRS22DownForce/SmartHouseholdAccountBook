@@ -162,7 +162,6 @@ write_env_file() {
   if [[ "${openai_url}" == "https://api.openai.com/v1" ]]; then
     openai_url="https://api.openai.com/v1/chat/completions"
   fi
-  cors_origins="$(echo "${secret_json}" | jq -r '.CORS_ALLOWED_ORIGINS // empty')"
 
   if [[ -z "${mysql_root}" || -z "${mysql_flyway}" || -z "${mysql_app}" ]]; then
     log "ERROR: Secrets Manager に DB パスワードがありません。"
@@ -176,7 +175,9 @@ write_env_file() {
   issuer="$(aws ssm get-parameter --name "/${PROJECT_NAME}/cognito/issuer-url" --query Parameter.Value --output text --region "${AWS_REGION}")"
   jwk="${issuer}/.well-known/jwks.json"
 
-  if [[ -z "${cors_origins}" || "${cors_origins}" == "null" ]]; then
+  # CORS は SSM（CDK が domainName から生成）を正とする
+  cors_origins="$(aws ssm get-parameter --name "/${PROJECT_NAME}/domain/cors-allowed-origins" --query Parameter.Value --output text --region "${AWS_REGION}" 2>/dev/null || true)"
+  if [[ -z "${cors_origins}" || "${cors_origins}" == "None" ]]; then
     cors_origins="$(aws ssm get-parameter --name "/${PROJECT_NAME}/domain/app-url" --query Parameter.Value --output text --region "${AWS_REGION}" 2>/dev/null || true)"
     if [[ -z "${cors_origins}" || "${cors_origins}" == "None" ]]; then
       cors_origins="http://$(ec2_public_ipv4)"
