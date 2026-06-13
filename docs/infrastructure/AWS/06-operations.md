@@ -151,13 +151,17 @@ certbot certificates
 
 ### certbot / HTTPS が失敗する
 
+**症状**: bootstrap が `setup_https` で停止する（ドメイン未設定・DNS 未伝播・certbot 失敗時）
+
 **原因の例**:
 
-- Route 53 の A レコードがまだ Elastic IP を向いていない
+- `cdk.local.json` の `domainName` / `certbotEmail` が未設定
+- Route 53 の A レコードがまだ Elastic IP を向いていない（bootstrap は最大約 5 分待機後にエラー終了）
+- ルートドメインで `www` を証明書に含める場合、`www` 用レコードが無い
 - ポート 80 が SG で塞がれている
 - 別サーバーが同じドメインを向いている
 
-**対処**: DNS を `dig +short your-domain.com` で確認。伝播後に SSM で `certbot --nginx` を手動再実行。
+**対処**: DNS を `dig +short your-domain.com` で確認。伝播後に EC2 上で `certbot --nginx` を手動再実行するか、`deploy-app.sh` で bootstrap を再実行。
 
 ### ECR にイメージが無い
 
@@ -190,7 +194,7 @@ certbot certificates
 
 **原因**: 初回 Frontend ビルドに 90 分以上かかった、ネットワーク問題。
 
-**対処**: `get-command-invocation` で途中ログを確認。EC2 上で bootstrap がまだ動いていれば完了を待つか、手動で `remote-app-deploy.sh` を実行。
+**対処**: `get-command-invocation` で途中ログを確認。EC2 上で bootstrap がまだ動いていれば完了を待つか、`./infra/scripts/deploy-app.sh` を再実行する（手動実行する場合は先に bootstrap zip を S3 から展開すること）。
 
 ---
 
