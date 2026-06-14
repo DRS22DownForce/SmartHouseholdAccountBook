@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Plus, Sparkles, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { ExpenseFormData } from "@/lib/types"
@@ -72,6 +72,18 @@ export function ExpenseForm({ expense, onSubmit, reactNode }: ExpenseFormProps) 
    */
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (!formData.amount || formData.amount === 0) {
+      toast.error("金額を入力してください（0円は登録できません）")
+      return
+    }
+    if (!formData.category || formData.category.trim().length === 0) {
+      toast.error("カテゴリーを選択してください")
+      return
+    }
+    if (!formData.description || formData.description.trim().length === 0) {
+      toast.error("説明を入力してください")
+      return
+    }
     onSubmit(formData)
     setOpen(false)
   }
@@ -133,6 +145,9 @@ export function ExpenseForm({ expense, onSubmit, reactNode }: ExpenseFormProps) 
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-balance">{expense ? "支出を編集" : "新しい支出を追加"}</DialogTitle>
+          <DialogDescription>
+            {expense ? "支出内容を修正して保存します。" : "日付・金額・カテゴリー・説明を入力して支出を登録します。"}
+          </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* 金額入力フィールド */}

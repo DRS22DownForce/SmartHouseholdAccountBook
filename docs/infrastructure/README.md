@@ -13,4 +13,17 @@
 | [03](./03-mysql.md) | MySQL | データベースの役割とこのプロジェクトでの使い方 |
 | [04](./04-ci-and-pr-review.md) | CI と PR レビュー | GitHub Actions と Cursor Bugbot |
 
+### AWS（本番デプロイ）
+
+ローカル Docker の延長として AWS に載せる流れは [AWS/](./AWS/README.md) を参照してください。
+
+| 章 | タイトル | ひとことで |
+|----|----------|-----------|
+| [AWS/01](./AWS/01-overview.md) | 全体像とアーキテクチャ | EC2 1 台構成の地図 |
+| [AWS/02](./AWS/02-cdk-stack.md) | CDK スタック | Java でインフラを定義 |
+| [AWS/03](./AWS/03-deployment-flow.md) | デプロイの流れ | deploy → secrets → deploy-app |
+| [AWS/04](./AWS/04-ec2-bootstrap.md) | EC2 ブートストラップ | 初回起動と更新 |
+| [AWS/05](./AWS/05-networking-security.md) | ネットワークとセキュリティ | VPC、HTTPS、IAM |
+| [AWS/06](./AWS/06-operations.md) | 運用と課金 | 停止・削除・トラブルシュート |
+
 バックエンドの Spring 自体の解説は [docs/backend/README.md](../backend/README.md)、フロントエンドは [docs/frontend/README.md](../frontend/README.md) を参照してください。

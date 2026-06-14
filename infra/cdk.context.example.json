@@ -1,0 +1,8 @@
+{
+  "domainName": "app.example.com",
+  "hostedZoneName": "example.com",
+  "hostedZoneId": "ZXXXXXXXXXXXXX",
+  "certbotEmail": "you@example.com",
+  "cognitoUserPoolId": "ap-northeast-1_XXXXXXXXX",
+  "cognitoClientId": "your-cognito-app-client-id"
+}
