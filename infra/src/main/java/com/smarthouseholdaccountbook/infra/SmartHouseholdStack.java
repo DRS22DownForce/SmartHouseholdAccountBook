@@ -188,27 +188,16 @@ public class SmartHouseholdStack extends Stack {
             instanceSecurityGroup.addIngressRule(Peer.ipv4(allowedSshCidr), Port.tcp(22), "SSH (optional)");
         }
 
+        // User Data は OS 準備のみ。bootstrap は deploy-app.sh（SSM → remote-app-deploy.sh）に一本化する。
         UserData userData = UserData.forLinux();
         userData.addCommands(
                 "#!/bin/bash",
                 "set -euxo pipefail",
-                "exec > >(tee /var/log/smart-household-bootstrap.log) 2>&1",
-                "",
-                "PROJECT_NAME=" + shellQuote(projectName),
-                "AWS_REGION=" + shellQuote(region),
-                "ECR_REPO_URI=" + shellQuote(backendRepository.getRepositoryUri()),
-                "APP_SECRET_ARN=" + shellQuote(appSecret.getSecretArn()),
-                "BOOTSTRAP_ASSET_URL=" + shellQuote(bootstrapAsset.getS3ObjectUrl()),
+                "exec > >(tee /var/log/smart-household-user-data.log) 2>&1",
                 "",
                 "dnf install -y aws-cli unzip",
                 "mkdir -p /opt/smart-household/bootstrap",
-                "aws s3 cp \"$BOOTSTRAP_ASSET_URL\" /tmp/bootstrap.zip --region \"$AWS_REGION\"",
-                "unzip -o /tmp/bootstrap.zip -d /opt/smart-household/bootstrap",
-                "chmod +x /opt/smart-household/bootstrap/bootstrap.sh",
-                "chmod +x /opt/smart-household/bootstrap/remote-app-deploy.sh",
-                "",
-                "export PROJECT_NAME AWS_REGION ECR_REPO_URI APP_SECRET_ARN",
-                "/opt/smart-household/bootstrap/bootstrap.sh");
+                "echo '[user-data] Ready. Run init-secrets.sh then deploy-app.sh to bootstrap the app.'");
 
         InstanceType instanceType = parseInstanceType(
                 InfraApp.contextString(this, "instanceType", "t4g.small"));

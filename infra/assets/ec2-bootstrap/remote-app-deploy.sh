@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# deploy-app.sh から SSM 経由で実行。bootstrap zip は deploy-app.sh が展開済み。
+# deploy-app.sh から SSM 経由で実行する唯一のエントリポイント。
+# bootstrap zip は deploy-app.sh が展開済み。初回・更新ともここから bootstrap.sh を呼ぶ。
 set -euxo pipefail
+
+exec >> /var/log/smart-household-bootstrap.log 2>&1
 
 APP_ROOT="/opt/smart-household"
 BOOTSTRAP="${APP_ROOT}/bootstrap/bootstrap.sh"

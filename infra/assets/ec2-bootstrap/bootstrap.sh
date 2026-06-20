@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# EC2 初回起動時に User Data から呼ばれるセットアップスクリプト。
+# deploy-app.sh → remote-app-deploy.sh から呼ばれるセットアップスクリプト。
 # Docker Compose（MySQL + Backend）と Nginx + Next.js を 1 台に載せます。
 set -euxo pipefail
 
@@ -29,7 +29,7 @@ ssm_param() {
 }
 
 # docker compose の -f 相対パスは CWD 基準で解決される（--project-directory ではない）。
-# User Data / SSM 実行時は CWD が / になり得るため、必ず APP_DIR に移動してから実行する。
+# SSM 経由実行時は CWD が / になり得るため、必ず APP_DIR に移動してから実行する。
 compose() {
   (
     cd "${APP_DIR}"

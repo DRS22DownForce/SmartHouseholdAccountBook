@@ -61,7 +61,7 @@ cp infra/cdk.context.example.json infra/cdk.local.json
 
 サイズ変更後は `./infra/scripts/deploy.sh` → `./infra/scripts/deploy-app.sh` の順で実行してください。
 
-初回 EC2 起動時に **certbot** が Let's Encrypt 証明書を取得し、HTTP → HTTPS リダイレクトを設定します。
+初回の `deploy-app.sh` 実行時に **certbot** が Let's Encrypt 証明書を取得し、HTTP → HTTPS リダイレクトを設定します。
 
 ## 課金を止める
 
