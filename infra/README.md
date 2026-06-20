@@ -5,25 +5,25 @@
 ## 事前準備（必須）
 
 1. **`infra/cdk.json`** … 共有してよい設定（リージョン、インスタンスタイプ、Git URL など）
-2. **`infra/cdk.local.json`** … 環境固有・個人情報（**Git にコミットしない**）
+2. **`infra/cdk.context.json`** … 環境固有・個人情報（**Git にコミットしない**）
 
 初回は雛形をコピーして編集します:
 
 ```bash
-cp infra/cdk.context.example.json infra/cdk.local.json
-# cdk.local.json を編集
+cp infra/cdk.context.example.json infra/cdk.context.json
+# cdk.context.json を編集
 ```
 
-`cdk.local.json` は **Java 側（InfraApp）が自動読み込み** します。CDK CLI のバージョンに依存しません。
+`cdk.context.json` は **CDK 標準の context ファイル**として自動読み込みされます。独自ローダーは使いません。
 
 | ファイル | キー | 説明 | 取得方法 |
 |----------|------|------|----------|
-| `cdk.local.json` | `domainName` | アプリ URL | 例: `app.example.com` |
-| `cdk.local.json` | `hostedZoneName` | Route 53 ゾーン名 | 例: `example.com` |
-| `cdk.local.json` | `hostedZoneId` | ホストゾーン ID | Route 53 コンソール (`Z...`) |
-| `cdk.local.json` | `certbotEmail` | Let's Encrypt 通知先 | あなたのメール |
-| `cdk.local.json` | `cognitoUserPoolId` | 既存 User Pool ID | Cognito コンソール |
-| `cdk.local.json` | `cognitoClientId` | 既存 App Client ID | Cognito コンソール |
+| `cdk.context.json` | `domainName` | アプリ URL | 例: `app.example.com` |
+| `cdk.context.json` | `hostedZoneName` | Route 53 ゾーン名 | 例: `example.com` |
+| `cdk.context.json` | `hostedZoneId` | ホストゾーン ID | Route 53 コンソール (`Z...`) |
+| `cdk.context.json` | `certbotEmail` | Let's Encrypt 通知先 | あなたのメール |
+| `cdk.context.json` | `cognitoUserPoolId` | 既存 User Pool ID | Cognito コンソール |
+| `cdk.context.json` | `cognitoClientId` | 既存 App Client ID | Cognito コンソール |
 | `cdk.json` | `gitRepositoryUrl` | EC2 が clone する URL | （推奨）公開 Git |
 
 **Cognito コンソール**で App Client に以下を追加:
@@ -32,11 +32,7 @@ cp infra/cdk.context.example.json infra/cdk.local.json
 - 許可サインアウト URL: `https://smart-household-account-book.com/`
 - （`www.` からもアクセスする場合は `https://www.smart-household-account-book.com/` も追加）
 
-設定確認:
-
-```bash
-./infra/scripts/validate-config.sh
-```
+必須 context が未設定の場合、`cdk deploy`（`deploy.sh`）実行時に Java 側（`InfraApp` / `SmartHouseholdStack`）でエラーになります。
 
 ## デプロイ手順
 

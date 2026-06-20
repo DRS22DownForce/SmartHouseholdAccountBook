@@ -220,12 +220,12 @@ setup_https() {
   certbot_email="$(ssm_param "domain/certbot-email")"
 
   if [[ -z "${domain_name}" || "${domain_name}" == "None" ]]; then
-    log "ERROR: domain/name が未設定です。cdk.local.json の domainName を設定して deploy.sh を再実行してください。"
+    log "ERROR: domain/name が未設定です。cdk.context.json の domainName を設定して deploy.sh を再実行してください。"
     exit 1
   fi
 
   if [[ -z "${certbot_email}" || "${certbot_email}" == "None" ]]; then
-    log "ERROR: domain/certbot-email が未設定です。cdk.local.json の certbotEmail を設定して deploy.sh を再実行してください。"
+    log "ERROR: domain/certbot-email が未設定です。cdk.context.json の certbotEmail を設定して deploy.sh を再実行してください。"
     exit 1
   fi
 

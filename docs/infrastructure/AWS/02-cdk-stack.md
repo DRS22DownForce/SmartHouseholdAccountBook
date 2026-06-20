@@ -44,6 +44,7 @@ flowchart LR
 infra/
 ├── cdk.json                          # CDK の起動設定と context
 ├── cdk.context.example.json          # context の記入例
+├── cdk.context.json                  # 環境固有 context（Git 管理外）
 ├── pom.xml                           # Java 依存関係（aws-cdk-lib）
 ├── package.json                      # CDK CLI（npx cdk）
 ├── src/main/java/.../
@@ -55,13 +56,11 @@ infra/
 
 | スクリプト | 用途 |
 |-----------|------|
-| `validate-config.sh` | `cdk.json` / `cdk.local.json` の検証 |
 | `deploy.sh` | インフラ作成・更新（docker 設定の bootstrap 同梱同期を含む） |
 | `init-secrets.sh` | Secrets Manager への秘密情報投入 |
 | `deploy-app.sh` | ECR push + SSM 経由で EC2 更新 |
 | `pause.sh` / `resume.sh` | EC2 の一時停止・再開 |
 | `destroy.sh` | スタック完全削除 |
-| `lib/` | 設定読み取りヘルパー |
 
 `cdk.json` の `app` キーは次のようになっています。
 
@@ -89,32 +88,30 @@ app.synth();
 
 ### リージョンの決め方
 
-次の優先順位で AWS リージョンを決めます。
+AWS リージョンは CDK context の `awsRegion` から必須で読みます。通常は `cdk.json` に設定済みです。
 
 | 優先順位 | 設定元 | 例 |
 |----------|--------|-----|
 | 1 | `cdk.json` の `context.awsRegion` | `ap-northeast-1` |
-| 2 | 環境変数 `CDK_DEFAULT_REGION` | CLI のデフォルト |
-| 3 | コード内のフォールバック | `ap-northeast-1` |
 
-アカウント ID は `CDK_DEFAULT_ACCOUNT` 環境変数から読み取ります。`deploy.sh` が `aws sts get-caller-identity` の結果をセットします。
+アカウント ID は `CDK_DEFAULT_ACCOUNT` 環境変数から必須で読み取ります。`deploy.sh` が `aws sts get-caller-identity` の結果をセットします。
 
 ### context ヘルパー
 
-`InfraApp.contextString()` / `contextBoolean()` / `contextInt()` は、`cdk.json` の `context` から設定値を読む共通関数です。スタック側では次のように使います。
+`InfraApp.requiredContextString()` / `optionalContextString()` / `optionalContextBoolean()` / `optionalContextInt()` は、CDK context から設定値を読む共通関数です。必須値は未設定や空文字なら即時にエラーにします。
 
 ```java
-final String projectName = InfraApp.contextString(this, "projectName", "smart-household");
-final boolean enableSshAccess = InfraApp.contextBoolean(this, "enableSshAccess", false);
+final String domainName = InfraApp.requiredContextString(this, "domainName");
+final boolean enableSshAccess = InfraApp.optionalContextBoolean(this, "enableSshAccess", false);
 ```
 
-第 3 引数は、キーが未設定のときのデフォルト値です。
+任意 helper の第 3 引数は、キーが未設定のときのデフォルト値です。
 
 ---
 
-## cdk.json：設定の置き場所
+## cdk.json / cdk.context.json：設定の置き場所
 
-`cdk.json` の `context` には、デプロイ前に埋めるべき値が並びます。
+共有してよい値は `cdk.json` の `context` に置きます。ドメイン、Route 53、Cognito、メールアドレスなどの環境固有値は `cdk.context.json` に置き、Git へコミットしません。
 
 | キー | 意味 | 例 |
 |------|------|-----|
@@ -133,9 +130,9 @@ final boolean enableSshAccess = InfraApp.contextBoolean(this, "enableSshAccess",
 | `cognitoUserPoolId` | 既存 Cognito User Pool ID | `ap-northeast-1_XXXXX` |
 | `cognitoClientId` | 既存 App Client ID | `xxxxxxxx` |
 
-`domainName` は `hostedZoneName` の配下である必要があります。`validate-config.sh` と `SmartHouseholdStack` の両方で検証します。
+`domainName` は `hostedZoneName` の配下である必要があります。`SmartHouseholdStack` が `cdk deploy` 時に検証します。
 
-**注意**: `cdk.json` にはメールアドレスや Cognito ID などが入ります。リポジトリを公開する場合は、実値をコミットしない運用を検討してください。例は `cdk.context.example.json` を参照します。
+**注意**: `cdk.context.json` にはメールアドレスや Cognito ID などが入ります。実値はコミットせず、例は `cdk.context.example.json` を参照します。
 
 ---
 

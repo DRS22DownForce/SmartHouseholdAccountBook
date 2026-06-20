@@ -52,11 +52,7 @@ aws sts get-caller-identity   # Account と User/Role が表示されれば OK
 
 ### cdk.json の context
 
-[CDK スタック（02章）](./02-cdk-stack.md#cdkjson設定の置き場所) の必須キーを埋めます。
-
-```bash
-./infra/scripts/validate-config.sh
-```
+[CDK スタック（02章）](./02-cdk-stack.md#cdkjson設定の置き場所) の必須キーを `cdk.context.json` に埋めます。未設定の場合は `deploy.sh` 実行時に Java 側でエラーになります。
 
 ### Cognito App Client の URL 登録
 
@@ -82,17 +78,15 @@ Cognito コンソールで、App Client に次を追加します。
 
 ```mermaid
 flowchart LR
-    V["validate-config.sh"]
     B["cdk bootstrap"]
     D["cdk deploy<br/>SmartHouseholdStack"]
     EC2["EC2 起動<br/>User Data（OS 準備）"]
 
-    V --> B --> D --> EC2
+    B --> D --> EC2
 ```
 
 | 処理 | 説明 |
 |------|------|
-| `validate-config.sh` | `cdk.json` の必須項目を検証 |
 | `npm install` | CDK CLI をローカルに入れる（初回） |
 | `cdk bootstrap` | CDK 用の S3 バケットなどをアカウントに用意（初回のみ） |
 | docker 設定の同期 | `docker/compose`・`docker/mysql` を bootstrap 同梱用にコピー（`deploy.sh` 内で自動実行） |
@@ -236,7 +230,6 @@ deploy-app.sh
 
 | コマンド | 目的 |
 |----------|------|
-| `./infra/scripts/validate-config.sh` | `cdk.json` の検証 |
 | `./infra/scripts/deploy.sh` | インフラの作成・更新（docker 設定の bootstrap 同梱同期を含む） |
 | `./infra/scripts/init-secrets.sh` | Secrets の投入・更新 |
 | `./infra/scripts/deploy-app.sh` | Backend デプロイ + EC2 更新 |
@@ -249,7 +242,7 @@ deploy-app.sh
 | `./infra/scripts/resume.sh` | 停止した EC2 を再開 |
 | `./infra/scripts/destroy.sh` | CDK スタックを完全削除 |
 
-`hostedZoneId` や `cognitoClientId` などの初回設定値は、AWS コンソール（Route 53 / Cognito）から確認して `cdk.local.json` に記入します。
+`hostedZoneId` や `cognitoClientId` などの初回設定値は、AWS コンソール（Route 53 / Cognito）から確認して `cdk.context.json` に記入します。
 
 ---
 

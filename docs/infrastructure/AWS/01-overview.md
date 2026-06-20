@@ -15,26 +15,24 @@
 
 ## このプロジェクトの AWS 方針
 
-このプロジェクトでは **案 A** を採用しています。
-
 ```text
 EC2 1 台 + Docker Compose + 既存 Cognito + Route 53 + HTTPS (Let's Encrypt)
 ```
 
 ざっくり言うと、次のような設計です。
 
-| 方針 | 内容 |
-|------|------|
-| コンピュート | EC2 1 台（既定: `t4g.small`、ARM64） |
-| アプリ実行 | Docker Compose（MySQL + Spring Boot Backend） |
-| フロントエンド | EC2 上で Next.js をビルドし、systemd で起動 |
-| 認証 | **既存の** Amazon Cognito User Pool を利用（CDK では作らない） |
-| ドメイン | Route 53 の既存ホストゾーンに A レコードを追加 |
-| HTTPS | EC2 上の Nginx + certbot（Let's Encrypt） |
-| 秘密情報 | AWS Secrets Manager |
-| イメージ配布 | Amazon ECR（Backend の Docker イメージ） |
 
-学習・個人運用向けに、**コストを抑えつつ理解しやすい構成**を優先しています。ECS や RDS を使わない代わりに、1 台の EC2 にまとめて載せています。
+| 方針      | 内容                                               |
+| ------- | ------------------------------------------------ |
+| コンピュート  | EC2 1 台（既定: `t4g.small`、ARM64）                   |
+| アプリ実行   | Docker Compose（MySQL + Spring Boot Backend）      |
+| フロントエンド | EC2 上で Next.js をビルドし、systemd で起動                 |
+| 認証      | **既存の** Amazon Cognito User Pool を利用（CDK では作らない） |
+| ドメイン    | Route 53 の既存ホストゾーンに A レコードを追加                    |
+| HTTPS   | EC2 上の Nginx + certbot（Let's Encrypt）            |
+| 秘密情報    | AWS Secrets Manager                              |
+| イメージ配布  | Amazon ECR（Backend の Docker イメージ）                |
+
 
 ---
 
@@ -63,6 +61,8 @@ flowchart TB
     Backend --> MySQL
 ```
 
+
+
 ### インフラ管理の流れ
 
 ```mermaid
@@ -85,27 +85,31 @@ flowchart LR
     EC2 -->|"読み取り"| SM
 ```
 
+
+
 CDK は「インフラの設計図」を CloudFormation テンプレートに変換する道具です。`cdk deploy` を実行すると、VPC、EC2、ECR などが AWS 上に作られます。
 
 ---
 
 ## AWS サービス一覧
 
-| サービス | このプロジェクトでの役割 |
-|----------|--------------------------|
-| **AWS CDK** | Java コードでインフラを定義し、デプロイする |
-| **CloudFormation** | CDK が生成したテンプレートを実際に適用する基盤 |
-| **EC2** | アプリ本体（Nginx、Docker、Next.js）を動かすサーバー |
-| **VPC** | EC2 を置く仮想ネットワーク（NAT Gateway なしの最小構成） |
-| **Elastic IP** | EC2 のパブリック IP を固定する |
-| **Security Group** | 80/443（と任意で 22）だけ外部から開ける |
-| **Route 53** | ドメイン名を Elastic IP に向ける |
-| **ECR** | Backend の Docker イメージを保存・配布する |
-| **Secrets Manager** | DB パスワード、OpenAI API キーなどを保管する |
-| **SSM Parameter Store** | Cognito ID、ドメイン名など非機密の設定を EC2 に渡す |
-| **SSM Run Command** | SSH なしで EC2 上のデプロイスクリプトを実行する |
-| **IAM Role** | EC2 が ECR / Secrets / SSM を読める権限 |
-| **Cognito** | ユーザー認証（既存リソースを参照するだけ） |
+
+| サービス                    | このプロジェクトでの役割                         |
+| ----------------------- | ------------------------------------ |
+| **AWS CDK**             | Java コードでインフラを定義し、デプロイする             |
+| **CloudFormation**      | CDK が生成したテンプレートを実際に適用する基盤            |
+| **EC2**                 | アプリ本体（Nginx、Docker、Next.js）を動かすサーバー  |
+| **VPC**                 | EC2 を置く仮想ネットワーク（NAT Gateway なしの最小構成） |
+| **Elastic IP**          | EC2 のパブリック IP を固定する                  |
+| **Security Group**      | 80/443（と任意で 22）だけ外部から開ける             |
+| **Route 53**            | ドメイン名を Elastic IP に向ける               |
+| **ECR**                 | Backend の Docker イメージを保存・配布する        |
+| **Secrets Manager**     | DB パスワード、OpenAI API キーなどを保管する        |
+| **SSM Parameter Store** | Cognito ID、ドメイン名など非機密の設定を EC2 に渡す    |
+| **SSM Run Command**     | SSH なしで EC2 上のデプロイスクリプトを実行する         |
+| **IAM Role**            | EC2 が ECR / Secrets / SSM を読める権限     |
+| **Cognito**             | ユーザー認証（既存リソースを参照するだけ）                |
+
 
 ---
 
@@ -119,14 +123,14 @@ CDK は「インフラの設計図」を CloudFormation テンプレートに変
 
 ### トレードオフ
 
-| 項目 | 1 台 EC2 構成 | マネージド構成（例: ECS + RDS） |
-|------|---------------|--------------------------------|
-| 可用性 | EC2 停止で全体停止 | 複数 AZ やオートスケールで耐障害性を上げやすい |
-| 運用 | OS パッチ、ディスク、メモリを自分で見る | AWS が基盤を管理 |
-| スケール | 垂直スケール（インスタンスサイズ変更）が中心 | 水平スケールしやすい |
-| セキュリティ境界 | 1 台に DB も載る | DB をネットワーク分離しやすい |
 
-このプロジェクトは学習用途を重視しているため、まずは **理解しやすさとコスト** を優先しています。
+| 項目       | 1 台 EC2 構成             | マネージド構成（例: ECS + RDS）     |
+| -------- | ---------------------- | ------------------------- |
+| 可用性      | EC2 停止で全体停止            | 複数 AZ やオートスケールで耐障害性を上げやすい |
+| 運用       | OS パッチ、ディスク、メモリを自分で見る  | AWS が基盤を管理                |
+| スケール     | 垂直スケール（インスタンスサイズ変更）が中心 | 水平スケールしやすい                |
+| セキュリティ境界 | 1 台に DB も載る            | DB をネットワーク分離しやすい          |
+
 
 ---
 
@@ -134,11 +138,13 @@ CDK は「インフラの設計図」を CloudFormation テンプレートに変
 
 ローカルと AWS では、**同じ Docker Compose ファイル**をベースに、上書きファイルだけ変えています。
 
-| 環境 | Compose の組み合わせ | Backend の取得方法 |
-|------|---------------------|-------------------|
-| ローカル（single-host-local） | `single-host.yaml` + `single-host.local.yaml` | `docker build`（Dockerfile） |
-| ローカル（single-host-prod 寄せ） | `single-host.yaml` + `single-host.prod.yaml` | `docker build` |
-| **AWS EC2** | `single-host.yaml` + `single-host.prod.yaml` + **`single-host.aws.yaml`** | **ECR から `docker pull`** |
+
+| 環境                        | Compose の組み合わせ                                                            | Backend の取得方法              |
+| ------------------------- | ------------------------------------------------------------------------- | -------------------------- |
+| ローカル（single-host-local）   | `single-host.yaml` + `single-host.local.yaml`                             | `docker build`（Dockerfile） |
+| ローカル（single-host-prod 寄せ） | `single-host.yaml` + `single-host.prod.yaml`                              | `docker build`             |
+| **AWS EC2**               | `single-host.yaml` + `single-host.prod.yaml` + `**single-host.aws.yaml`** | **ECR から `docker pull`**   |
+
 
 AWS 用の `docker-compose.single-host.aws.yaml` は、Backend の `build` 定義を消し、ECR のイメージ URL を使うための差分です。EC2 上で Maven ビルドや `docker build` を毎回行わないようにしています。
 
@@ -153,3 +159,4 @@ MySQL のデータ永続化、ユーザー作成、Flyway の役割分担は [03
 - Backend イメージは **ECR**、DB パスワードなどは **Secrets Manager** に置きます。
 - インフラ定義は **AWS CDK（Java）** の `SmartHouseholdStack` にまとまっています。
 - ローカルの `single-host` 構成をベースに、AWS では **ECR pull 用の compose 上書き**を足しています。
+

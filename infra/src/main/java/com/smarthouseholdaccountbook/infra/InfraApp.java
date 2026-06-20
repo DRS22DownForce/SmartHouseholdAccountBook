@@ -19,22 +19,15 @@ public final class InfraApp {
     public static void main(final String[] args) {
         App app = new App();
 
-        // cdk.local.json（Git 管理外）を cdk.json の context より優先してマージ
-        CdkLocalContextLoader.apply(app);
-
-        // cdk.json の context からリージョンを読み取る（未指定なら CLI のデフォルト）
-        String region = (String) app.getNode().tryGetContext("awsRegion");
-        if (region == null || region.isBlank()) {
-            region = System.getenv("CDK_DEFAULT_REGION");
-        }
-        if (region == null || region.isBlank()) {
-            region = "ap-northeast-1";
-        }
+        // CDK 標準の context（cdk.json / cdk.context.json）だけを読みます。
+        String region = requiredContextString(app, "awsRegion");
 
         String account = System.getenv("CDK_DEFAULT_ACCOUNT");
-        Environment env = account != null && !account.isBlank()
-                ? Environment.builder().account(account).region(region).build()
-                : null;
+        if (account == null || account.isBlank()) {
+            throw new IllegalStateException(
+                    "CDK_DEFAULT_ACCOUNT is required. Run this app through the CDK CLI with AWS credentials.");
+        }
+        Environment env = Environment.builder().account(account.trim()).region(region).build();
 
         new SmartHouseholdStack(app, "SmartHouseholdStack", StackProps.builder()
                 .env(env)
@@ -44,7 +37,21 @@ public final class InfraApp {
         app.synth();
     }
 
-    static String contextString(final Construct scope, final String key, final String defaultValue) {
+    static String requiredContextString(final Construct scope, final String key) {
+        Object value = scope.getNode().tryGetContext(key);
+        if (value == null) {
+            throw new IllegalArgumentException(
+                    "CDK context '" + key + "' is required. Set it in cdk.json or cdk.context.json.");
+        }
+        String text = value.toString().trim();
+        if (text.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "CDK context '" + key + "' must not be blank. Set it in cdk.json or cdk.context.json.");
+        }
+        return text;
+    }
+
+    static String optionalContextString(final Construct scope, final String key, final String defaultValue) {
         Object value = scope.getNode().tryGetContext(key);
         if (value == null) {
             return defaultValue;
@@ -53,7 +60,7 @@ public final class InfraApp {
         return text.isEmpty() ? defaultValue : text;
     }
 
-    static boolean contextBoolean(final Construct scope, final String key, final boolean defaultValue) {
+    static boolean optionalContextBoolean(final Construct scope, final String key, final boolean defaultValue) {
         Object value = scope.getNode().tryGetContext(key);
         if (value == null) {
             return defaultValue;
@@ -61,10 +68,18 @@ public final class InfraApp {
         if (value instanceof Boolean bool) {
             return bool;
         }
-        return Boolean.parseBoolean(value.toString());
+        String text = value.toString().trim();
+        if ("true".equalsIgnoreCase(text)) {
+            return true;
+        }
+        if ("false".equalsIgnoreCase(text)) {
+            return false;
+        }
+        throw new IllegalArgumentException(
+                "CDK context '" + key + "' must be true or false when specified.");
     }
 
-    static int contextInt(final Construct scope, final String key, final int defaultValue) {
+    static int optionalContextInt(final Construct scope, final String key, final int defaultValue) {
         Object value = scope.getNode().tryGetContext(key);
         if (value == null) {
             return defaultValue;
@@ -72,6 +87,11 @@ public final class InfraApp {
         if (value instanceof Number number) {
             return number.intValue();
         }
-        return Integer.parseInt(value.toString());
+        try {
+            return Integer.parseInt(value.toString().trim());
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(
+                    "CDK context '" + key + "' must be an integer when specified.", e);
+        }
     }
 }

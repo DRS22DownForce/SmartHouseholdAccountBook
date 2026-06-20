@@ -13,8 +13,6 @@ if ! command -v aws >/dev/null 2>&1; then
   exit 1
 fi
 
-"${INFRA_DIR}/scripts/validate-config.sh"
-
 if [[ ! -d node_modules ]]; then # node_modules はnpmがインストールしたパッケージを管理するディレクトリ
   echo "[deploy] Installing CDK CLI (local npm)..."
   npm install

@@ -50,23 +50,24 @@ public class SmartHouseholdStack extends Stack {
     public SmartHouseholdStack(final Construct scope, final String id, final StackProps props) {
         super(scope, id, props);
 
-        final String projectName = InfraApp.contextString(this, "projectName", "smart-household");
-        final String gitRepositoryUrl = InfraApp.contextString(this, "gitRepositoryUrl", "");
-        final String gitRepositoryBranch = InfraApp.contextString(this, "gitRepositoryBranch", "master");
-        final boolean enableSshAccess = InfraApp.contextBoolean(this, "enableSshAccess", false);
-        final String allowedSshCidr = InfraApp.contextString(this, "allowedSshCidr", "0.0.0.0/0");
-        final int rootVolumeGiB = InfraApp.contextInt(this, "rootVolumeGiB", 30);
+        final String projectName = InfraApp.optionalContextString(this, "projectName", "smart-household");
+        final String gitRepositoryUrl = InfraApp.optionalContextString(this, "gitRepositoryUrl", "");
+        final String gitRepositoryBranch = InfraApp.optionalContextString(this, "gitRepositoryBranch", "master");
+        final boolean enableSshAccess = InfraApp.optionalContextBoolean(this, "enableSshAccess", false);
+        final String allowedSshCidr = enableSshAccess
+                ? InfraApp.requiredContextString(this, "allowedSshCidr")
+                : "";
+        final int rootVolumeGiB = InfraApp.optionalContextInt(this, "rootVolumeGiB", 30);
 
-        // --- ドメイン / 既存 Cognito（cdk.local.json で指定） ---
-        final String domainName = InfraApp.contextString(this, "domainName", "");
-        final String hostedZoneName = InfraApp.contextString(this, "hostedZoneName", "");
-        final String hostedZoneId = InfraApp.contextString(this, "hostedZoneId", "");
-        final String certbotEmail = InfraApp.contextString(this, "certbotEmail", "");
-        final String cognitoUserPoolId = InfraApp.contextString(this, "cognitoUserPoolId", "");
-        final String cognitoClientId = InfraApp.contextString(this, "cognitoClientId", "");
+        // --- ドメイン / 既存 Cognito（Git 管理外の cdk.context.json で指定） ---
+        final String domainName = InfraApp.requiredContextString(this, "domainName");
+        final String hostedZoneName = InfraApp.requiredContextString(this, "hostedZoneName");
+        final String hostedZoneId = InfraApp.requiredContextString(this, "hostedZoneId");
+        final String certbotEmail = InfraApp.requiredContextString(this, "certbotEmail");
+        final String cognitoUserPoolId = InfraApp.requiredContextString(this, "cognitoUserPoolId");
+        final String cognitoClientId = InfraApp.requiredContextString(this, "cognitoClientId");
 
-        validateRequiredContext(domainName, hostedZoneName, hostedZoneId, certbotEmail,
-                cognitoUserPoolId, cognitoClientId);
+        validateContext(domainName, hostedZoneName);
 
         final String region = Stack.of(this).getRegion();
         final String issuerUrl = "https://cognito-idp." + region + ".amazonaws.com/" + cognitoUserPoolId;
@@ -200,7 +201,7 @@ public class SmartHouseholdStack extends Stack {
                 "echo '[user-data] Ready. Run init-secrets.sh then deploy-app.sh to bootstrap the app.'");
 
         InstanceType instanceType = parseInstanceType(
-                InfraApp.contextString(this, "instanceType", "t4g.small"));
+                InfraApp.optionalContextString(this, "instanceType", "t4g.small"));
 
         Instance instance = Instance.Builder.create(this, "AppInstance")
                 .vpc(vpc)
@@ -310,38 +311,8 @@ public class SmartHouseholdStack extends Stack {
                 .build();
     }
 
-    private static void validateRequiredContext(
-            final String domainName,
-            final String hostedZoneName,
-            final String hostedZoneId,
-            final String certbotEmail,
-            final String cognitoUserPoolId,
-            final String cognitoClientId) {
-        if (domainName.isBlank()) {
-            throw new IllegalArgumentException(
-                    "cdk.local.json 'domainName' is required (例: app.example.com)");
-        }
-        if (hostedZoneName.isBlank()) {
-            throw new IllegalArgumentException(
-                    "cdk.local.json 'hostedZoneName' is required (例: example.com)");
-        }
-        if (hostedZoneId.isBlank()) {
-            throw new IllegalArgumentException(
-                    "cdk.local.json 'hostedZoneId' is required (Route 53 コンソールで確認)");
-        }
-        if (certbotEmail.isBlank()) {
-            throw new IllegalArgumentException(
-                    "cdk.local.json 'certbotEmail' is required (Let's Encrypt 通知用)");
-        }
-        if (cognitoUserPoolId.isBlank()) {
-            throw new IllegalArgumentException(
-                    "cdk.local.json 'cognitoUserPoolId' is required (既存 User Pool ID)");
-        }
-        if (cognitoClientId.isBlank()) {
-            throw new IllegalArgumentException(
-                    "cdk.local.json 'cognitoClientId' is required (既存 App Client ID)");
-        }
-        if (!domainName.endsWith(hostedZoneName) && !domainName.endsWith("." + hostedZoneName)) {
+    private static void validateContext(final String domainName, final String hostedZoneName) {
+        if (!domainName.equals(hostedZoneName) && !domainName.endsWith("." + hostedZoneName)) {
             throw new IllegalArgumentException(
                     "domainName '" + domainName + "' must be under hostedZoneName '" + hostedZoneName + "'");
         }
@@ -359,17 +330,20 @@ public class SmartHouseholdStack extends Stack {
         return domainName;
     }
 
-    private static String shellQuote(final String value) {
-        return "'" + value.replace("'", "'\"'\"'") + "'";
-    }
-
     private static InstanceType parseInstanceType(final String value) {
-        String[] parts = value.split("\\.");
+        String normalized = value.trim();
+        String[] parts = normalized.split("\\.");
         if (parts.length != 2) {
-            return InstanceType.of(InstanceClass.T4G, InstanceSize.MICRO);
+            throw new IllegalArgumentException(
+                    "CDK context 'instanceType' must use '<class>.<size>' format (例: t4g.small): " + value);
         }
-        InstanceClass instanceClass = InstanceClass.valueOf(parts[0].toUpperCase());
-        InstanceSize instanceSize = InstanceSize.valueOf(parts[1].toUpperCase());
-        return InstanceType.of(instanceClass, instanceSize);
+        try {
+            InstanceClass instanceClass = InstanceClass.valueOf(parts[0].toUpperCase());
+            InstanceSize instanceSize = InstanceSize.valueOf(parts[1].toUpperCase());
+            return InstanceType.of(instanceClass, instanceSize);
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(
+                    "CDK context 'instanceType' is invalid: " + value, e);
+        }
     }
 }

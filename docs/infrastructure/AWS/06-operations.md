@@ -154,7 +154,7 @@ certbot certificates
 
 **原因の例**:
 
-- `cdk.local.json` の `domainName` / `certbotEmail` が未設定
+- `cdk.context.json` の `domainName` / `certbotEmail` が未設定
 - Route 53 の A レコードがまだ Elastic IP を向いていない（bootstrap は最大約 5 分待機後にエラー終了）
 - ルートドメインで `www` を証明書に含める場合、`www` 用レコードが無い
 - ポート 80 が SG で塞がれている
