@@ -42,13 +42,17 @@ secrets/
 credentials/
 
 # AWS CDK
-infra/cdk.local.json
+infra/cdk.context.json
 infra/cdk.out/
 infra/target/
 infra/node_modules/
 infra/package-lock.json
 # deploy.sh が docker/ から同期する生成物（正本は docker/compose, docker/mysql）
 infra/assets/ec2-bootstrap/bundled/
+
+# ローカル開発ツール（AWS Session Manager Plugin などのバイナリインストーラ）
+*.deb
+session-manager-plugin.deb
 
 # ========================================
 # ビルド成果物・生成ファイル

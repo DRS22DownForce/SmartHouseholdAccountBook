@@ -151,7 +151,7 @@ poll_ssm() {
   aws ssm get-command-invocation \
     --command-id "${COMMAND_ID}" \
     --instance-id "${INSTANCE_ID}" \
-    --region "${AWS_REGION}" || true
+    --region "${AWS_REGION}"
   return 1
 }
 

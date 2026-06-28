@@ -25,10 +25,11 @@ services:
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
       interval: 10s
-      timeout: 5s
-      retries: 10
-      # ボリューム削除後の初回初期化では mysqld 起動に時間がかかるため、失敗を retries に数えない猶予を設ける
-      start_period: 60s
+      timeout: 10s
+      retries: 20
+      # 初回起動時はデータディレクトリ初期化と init スクリプトで時間がかかる。
+      # t4g.small では 60s + 10 回では不足することがあるため、猶予を長めに取る（最大約 6 分）。
+      start_period: 180s
     networks:
       - app-network
 
