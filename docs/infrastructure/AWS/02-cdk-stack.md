@@ -285,7 +285,7 @@ flowchart LR
     Zone --> A --> EIP --> EC2
 ```
 
-EIP の IP を **Route 53 の A レコード**に登録し、`domainName`（例: `smart-household-account-book.com`）が EC2 を指すようにします。`www` は既存の CNAME → apex を想定（CDK では `www` 用レコードは作りません）。EIP は EC2 にアタッチ中は無料、未使用のまま確保すると課金されます。
+EIP の IP を **Route 53 の A レコード**に登録し、`domainName`（例: `smart-household-account-book.com`）が EC2 を指すようにします。CDK は **`domainName` 向けの A レコード 1 本のみ**作成します。EIP は EC2 にアタッチ中は無料、未使用のまま確保すると課金されます。
 
 ---
 

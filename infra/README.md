@@ -30,7 +30,6 @@ cp infra/cdk.context.example.json infra/cdk.context.json
 
 - 許可コールバック URL: `https://smart-household-account-book.com/`
 - 許可サインアウト URL: `https://smart-household-account-book.com/`
-- （`www.` からもアクセスする場合は `https://www.smart-household-account-book.com/` も追加）
 
 必須 context が未設定の場合、`cdk deploy`（`deploy.sh`）実行時に Java 側（`InfraApp` / `SmartHouseholdStack`）でエラーになります。
 
@@ -70,9 +69,8 @@ cp infra/cdk.context.example.json infra/cdk.context.json
 ## HTTPS について
 
 - EC2 上の Nginx + **Let's Encrypt (certbot)** を使用（ACM は ALB 等専用のため EC2 では未使用）
-- Route 53 **A レコード（apex）** → **Elastic IP** → EC2  
+- Route 53 **A レコード（`domainName`）** → **Elastic IP** → EC2  
   デプロイ時に既存 A（133.242.164.17）が **Elastic IP に置き換わります**
-- `www` は既存 CNAME → apex のまま EC2 向けになります
 - EBS 暗号化で DB 保存時暗号化
 
 ## AWS 認証

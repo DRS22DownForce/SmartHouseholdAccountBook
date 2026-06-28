@@ -60,7 +60,6 @@ Cognito コンソールで、App Client に次を追加します。
 
 - 許可コールバック URL: `https://{domainName}/`
 - 許可サインアウト URL: `https://{domainName}/`
-- `www` も使う場合は `https://www.{domainName}/` も追加
 
 ### Docker（deploy-app 用）
 
