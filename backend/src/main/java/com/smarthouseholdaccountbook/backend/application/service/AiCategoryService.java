@@ -10,6 +10,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
 import java.util.List;
@@ -114,6 +116,7 @@ public class AiCategoryService {
      * @return 説明文とカテゴリーのマッピング（説明文 → カテゴリー）
      *         分類に失敗した説明文は「その他」が設定されます
      */
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     public Map<String, CategoryType> predictCategoriesBatch(List<String> descriptions) {
         if (descriptions.isEmpty()) {
             logger.info("説明文のリストが空のため、空のマッピングを返します。");
