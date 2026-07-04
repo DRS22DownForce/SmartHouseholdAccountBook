@@ -1,15 +1,17 @@
 package com.smarthouseholdaccountbook.backend.exception;
 
+import org.springframework.http.HttpStatus;
+
 /**
  * AIサービスとの通信でエラーが発生した場合の例外
- * 500 Internal Server Errorのステータスコードを返す
+ * 502 Bad Gatewayのステータスコードを返す
  */
-public class AiServiceException extends RuntimeException {
+public class AiServiceException extends BusinessException {
     /**
      * デフォルトコンストラクタ
      */
     public AiServiceException() {
-        super("AIサービスとの通信でエラーが発生しました。");
+        super(HttpStatus.BAD_GATEWAY, "AIサービスとの通信でエラーが発生しました。");
     }
 
     /**
@@ -18,7 +20,7 @@ public class AiServiceException extends RuntimeException {
      * @param message エラーメッセージ
      */
     public AiServiceException(String message) {
-        super(message);
+        super(HttpStatus.BAD_GATEWAY, message);
     }
 
     /**
@@ -28,7 +30,7 @@ public class AiServiceException extends RuntimeException {
      * @param cause 原因となった例外
      */
     public AiServiceException(String message, Throwable cause) {
-        super(message, cause);
+        super(HttpStatus.BAD_GATEWAY, message, cause);
     }
 
     /**
@@ -37,6 +39,6 @@ public class AiServiceException extends RuntimeException {
      * @param cause 原因となった例外
      */
     public AiServiceException(Throwable cause) {
-        super("AIサービスとの通信でエラーが発生しました。", cause);
+        super(HttpStatus.BAD_GATEWAY, "AIサービスとの通信でエラーが発生しました。", cause);
     }
 }

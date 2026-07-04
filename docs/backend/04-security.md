@@ -542,11 +542,23 @@ sequenceDiagram
         Controller-->>API: 17. JSON レスポンスを返す
         API-->>SPA: 18. 200 OK + JSON
     else 検証失敗
-        Filter-->>SPA: 401 Unauthorized
+        Filter-->>SPA: 401 Unauthorized + ProblemDetail
     end
 ```
 
 この図で重要なのは、**Cognito は秘密鍵で署名する側**、**バックエンドは公開鍵で検証する側**という分担です。JWT の中身は誰でも読めますが、署名があるため、途中で書き換えられた JWT は検証で失敗します。
+
+検証失敗や未ログイン時は、Spring Security の `AuthenticationEntryPoint` が `application/problem+json` の 401 を返します。認証済みだが権限が足りない場合は `AccessDeniedHandler` が 403 を同じ形式で返します。
+
+```json
+{
+  "type": "about:blank",
+  "title": "Unauthorized",
+  "status": 401,
+  "detail": "認証が必要です。再ログインしてください。",
+  "instance": "/api/expenses"
+}
+```
 
 ### RS256 の仕組み（公開鍵暗号）
 
@@ -577,6 +589,7 @@ https://cognito-idp.{region}.amazonaws.com/{userPoolId}/.well-known/jwks.json
 2. **署名検証**: Nimbus JOSE + JWT の `DefaultJWTProcessor` が JWKS から公開鍵を取り、RS256 で検証
 3. **クレーム検証**: `exp`（有効期限）、`iat`、`nbf`、`iss`、`aud` 等をチェック
 4. **SecurityContext に設定**: 検証済みトークンから `Authentication` を組み立てて `SecurityContextHolder.getContext().setAuthentication(auth)`
+5. **検証失敗時の応答**: `AuthenticationEntryPoint` に委譲し、401 の ProblemDetail を返す
 
 #### SecurityContext と SecurityContextHolder
 

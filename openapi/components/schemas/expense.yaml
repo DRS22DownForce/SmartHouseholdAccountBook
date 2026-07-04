@@ -67,27 +67,66 @@ ExpenseRequestDto:
       description: 支出日
     category:
       type: string
+      minLength: 1
       description: 支出カテゴリ
     amount:
       type: integer
+      minimum: 1
       description: 支出金額
     description:
       type: string
+      minLength: 1
       description: 支出の詳細説明
+# TODO: 既存参照の整理後、スキーマ名を ErrorResponse から ProblemDetail に変更する。
 ErrorResponse:
   type: object
-  description: エラーレスポンス用の共通スキーマ
+  description: RFC 9457 Problem Details に準拠したエラーレスポンス
   required:
-    - message
-    - timestamp
+    - type
+    - title
+    - status
+    - detail
+    - instance
   properties:
-    message:
+    type:
       type: string
-      description: エラーメッジ
-    timestamp:
+      format: uri
+      description: エラー種別を表すURI。固有の種別がない場合はabout:blank。
+      example: about:blank
+    title:
       type: string
-      format: date-time
-      description: エラー発生時刻
+      description: HTTPステータスの概要
+      example: Bad Request
+    status:
+      type: integer
+      format: int32
+      description: HTTPステータスコード
+      example: 400
+    detail:
+      type: string
+      description: エラーの詳細メッセージ
+      example: 入力内容を確認してください。
+    instance:
+      type: string
+      description: エラーが発生したリクエストパス
+      example: /api/expenses
+    errors:
+      type: array
+      description: バリデーションエラー時のフィールド別詳細
+      items:
+        type: object
+        required:
+          - field
+          - message
+        properties:
+          field:
+            type: string
+            description: エラー対象のフィールド名
+            example: amount
+          message:
+            type: string
+            description: フィールド単位のエラーメッセージ
+            example: 1以上を指定してください
 MonthlySummaryDto:
     type: object
     description: 月別サマリー用DTO

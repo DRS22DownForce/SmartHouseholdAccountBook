@@ -41,11 +41,12 @@ public class ExpenseAmount{
      * バリデーション: 金額が有効かチェック
      * 
      * @param value 検証する金額
-     * @throws IllegalArgumentException 金額が0の場合
-     * @throws NullPointerException 金額がnullの場合
+     * @throws IllegalArgumentException 金額がnullまたは0の場合
      */
     private static void validate(Integer value) {
-        Objects.requireNonNull(value, "金額はnullであってはなりません。");
+        if (value == null) {
+            throw new IllegalArgumentException("金額はnullであってはなりません。");
+        }
         if (value == 0) {
             throw new IllegalArgumentException("金額は0であってはなりません。");
         }

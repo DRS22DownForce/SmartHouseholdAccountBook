@@ -32,14 +32,20 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final UserRegistrationFilter userRegistrationFilter;
     private final CorsProperties corsProperties;
+    private final ProblemDetailAuthenticationEntryPoint authenticationEntryPoint;
+    private final ProblemDetailAccessDeniedHandler accessDeniedHandler;
 
     public SecurityConfig(
             JwtAuthFilter jwtAuthFilter,
             UserRegistrationFilter userRegistrationFilter,
-            CorsProperties corsProperties) {
+            CorsProperties corsProperties,
+            ProblemDetailAuthenticationEntryPoint authenticationEntryPoint,
+            ProblemDetailAccessDeniedHandler accessDeniedHandler) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.userRegistrationFilter = userRegistrationFilter;
         this.corsProperties = corsProperties;
+        this.authenticationEntryPoint = authenticationEntryPoint;
+        this.accessDeniedHandler = accessDeniedHandler;
     }
 
     @Bean
@@ -56,6 +62,11 @@ public class SecurityConfig {
                 // セッション管理の設定
                 // STATELESS: JWT認証利用のためステートレスに設定
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+
+                // Security フィルター層の 401/403 も Problem Details 形式に統一
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
 
                 // 認可ルールの設定
                 .authorizeHttpRequests(authz -> authz

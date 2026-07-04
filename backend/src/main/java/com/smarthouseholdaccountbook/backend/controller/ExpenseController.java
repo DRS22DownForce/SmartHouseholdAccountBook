@@ -15,6 +15,7 @@ import com.smarthouseholdaccountbook.backend.generated.model.ExpensePageDto;
 import com.smarthouseholdaccountbook.backend.generated.model.ExpenseRequestDto;
 import com.smarthouseholdaccountbook.backend.generated.model.MonthlyReportResponse;
 import com.smarthouseholdaccountbook.backend.generated.model.MonthlySummaryDto;
+import com.smarthouseholdaccountbook.backend.exception.AiServiceException;
 import com.smarthouseholdaccountbook.backend.valueobject.MonthlySummary;
 
 import org.springframework.data.domain.Page;
@@ -198,7 +199,7 @@ public class ExpenseController implements ExpensesApi {
                     .orElse(ResponseEntity.noContent().build());
         }
         MonthlyReport report = monthlyReportService.generateReport(month, true)
-                .orElseThrow(() -> new IllegalStateException("月次レポートの生成に失敗しました"));
+                .orElseThrow(() -> new AiServiceException("月次レポートの生成に失敗しました"));
         return ResponseEntity.ok(expenseMapper.toMonthlyReportResponse(report));
     }
 

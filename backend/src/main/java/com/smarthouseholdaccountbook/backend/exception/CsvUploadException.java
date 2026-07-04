@@ -5,41 +5,25 @@ import org.springframework.http.HttpStatus;
 /**
  * CSVアップロード処理でエラーが発生した場合の例外
  * 
- * ファイルの読み込みエラーやCSV処理中のエラーを表現します。
- * HTTPステータスコードを保持して、適切なエラーレスポンスを返すために使用されます。
+ * ファイル読み込みなど、リクエストとして受け取ったCSVを処理できない場合に使用します。
  */
-public class CsvUploadException extends RuntimeException {
-    private final HttpStatus httpStatus;
-
+public class CsvUploadException extends BusinessException {
     /**
-     * メッセージとHTTPステータスコードを指定するコンストラクタ
+     * メッセージを指定するコンストラクタ
      * 
      * @param message エラーメッセージ
-     * @param httpStatus HTTPステータスコード（400 Bad Request または 500 Internal Server Error）
      */
-    public CsvUploadException(String message, HttpStatus httpStatus) {
-        super(message);
-        this.httpStatus = httpStatus;
+    public CsvUploadException(String message) {
+        super(HttpStatus.BAD_REQUEST, message);
     }
 
     /**
-     * 原因となった例外とHTTPステータスコードを指定するコンストラクタ
+     * 原因となった例外を指定するコンストラクタ
      * 
      * @param message エラーメッセージ
      * @param cause 原因となった例外
-     * @param httpStatus HTTPステータスコード
      */
-    public CsvUploadException(String message, Throwable cause, HttpStatus httpStatus) {
-        super(message, cause);
-        this.httpStatus = httpStatus;
-    }
-
-    /**
-     * HTTPステータスコードを取得
-     * 
-     * @return HTTPステータスコード
-     */
-    public HttpStatus getHttpStatus() {
-        return httpStatus;
+    public CsvUploadException(String message, Throwable cause) {
+        super(HttpStatus.BAD_REQUEST, message, cause);
     }
 }

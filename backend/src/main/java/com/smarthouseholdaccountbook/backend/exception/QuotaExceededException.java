@@ -1,15 +1,17 @@
 package com.smarthouseholdaccountbook.backend.exception;
 
+import org.springframework.http.HttpStatus;
+
 /**
  * OpenAI APIの利用枠（クォータ）を超過した場合の例外
  * 429 Too Many Requestsのステータスコードを返す
  */
-public class QuotaExceededException extends RuntimeException {
+public class QuotaExceededException extends BusinessException {
     /**
      * デフォルトコンストラクタ
      */
     public QuotaExceededException() {
-        super("OpenAI APIの利用枠（クォータ）を超過しました。しばらく時間をおいてから再度お試しください。");
+        super(HttpStatus.TOO_MANY_REQUESTS, "OpenAI APIの利用枠（クォータ）を超過しました。しばらく時間をおいてから再度お試しください。");
     }
 
     /**
@@ -18,6 +20,6 @@ public class QuotaExceededException extends RuntimeException {
      * @param cause 原因となった例外
      */
     public QuotaExceededException(Throwable cause) {
-        super("OpenAI APIの利用枠（クォータ）を超過しました。しばらく時間をおいてから再度お試しください。", cause);
+        super(HttpStatus.TOO_MANY_REQUESTS, "OpenAI APIの利用枠（クォータ）を超過しました。しばらく時間をおいてから再度お試しください。", cause);
     }
 }

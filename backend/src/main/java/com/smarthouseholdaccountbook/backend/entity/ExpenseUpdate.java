@@ -1,7 +1,5 @@
 package com.smarthouseholdaccountbook.backend.entity;
 
-import java.util.Objects;
-
 import com.smarthouseholdaccountbook.backend.valueobject.CategoryType;
 import com.smarthouseholdaccountbook.backend.valueobject.ExpenseAmount;
 import com.smarthouseholdaccountbook.backend.valueobject.ExpenseDate;
@@ -22,12 +20,18 @@ public record ExpenseUpdate(
         CategoryType category) {
 
     public ExpenseUpdate {
-        Objects.requireNonNull(description, "説明はnullであってはなりません。");
+        requireNonNullArgument(description, "説明はnullであってはなりません。");
         if (description.trim().isEmpty()) {
             throw new IllegalArgumentException("説明は空文字列であってはなりません。");
         }
-        Objects.requireNonNull(amount, "金額はnullであってはなりません。");
-        Objects.requireNonNull(date, "日付はnullであってはなりません。");
-        Objects.requireNonNull(category, "カテゴリーはnullであってはなりません。");
+        requireNonNullArgument(amount, "金額はnullであってはなりません。");
+        requireNonNullArgument(date, "日付はnullであってはなりません。");
+        requireNonNullArgument(category, "カテゴリーはnullであってはなりません。");
+    }
+
+    private static void requireNonNullArgument(Object value, String message) {
+        if (value == null) {
+            throw new IllegalArgumentException(message);
+        }
     }
 }

@@ -362,20 +362,38 @@ REST API では「作成は 201」「削除は 204」のように**ステータ�
 
 ### 失敗時の流れ
 
-`@RequestBody` の検証で失敗すると `MethodArgumentNotValidException` がスローされます。**このプロジェクトの `GlobalExceptionHandler` にはこの型のハンドラーはない**ため、**Spring MVC / Spring Boot の既定処理**が動き、概ね **400 Bad Request** とエラー詳細が返ります（ボディは `ErrorResponse` 形式とは限らない）。
+`@RequestBody` の検証で失敗すると `MethodArgumentNotValidException` がスローされます。このプロジェクトでは `GlobalExceptionHandler` が `ResponseEntityExceptionHandler` を継承し、バリデーション例外を **RFC 9457 Problem Details** 形式にそろえて返します。
 
 ```mermaid
 sequenceDiagram
     participant Client
     participant Ctrl as Controller
     participant Valid as Bean Validation
-    participant MVC as Spring MVC / Boot
+    participant Handler as GlobalExceptionHandler
 
     Client->>Ctrl: POST /api/expenses { "amount": -10 }
     Ctrl->>Valid: @Valid でチェック
     Valid-->>Ctrl: 違反あり
-    Ctrl->>MVC: MethodArgumentNotValidException
-    MVC-->>Client: 400 Bad Request + 既定のエラー JSON
+    Ctrl->>Handler: MethodArgumentNotValidException
+    Handler-->>Client: 400 Bad Request + application/problem+json
+```
+
+返却イメージ:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "入力内容を確認してください。",
+  "instance": "/api/expenses",
+  "errors": [
+    {
+      "field": "amount",
+      "message": "1以上を指定してください"
+    }
+  ]
+}
 ```
 
 ### プロジェクトの例
@@ -535,58 +553,74 @@ Controller で発生した例外を **1 箇所にまとめて**処理する仕�
 
 | アノテーション | 役割 |
 |----------------|------|
-| **@ControllerAdvice** | 全 Controller 共通の例外処理クラスに付ける |
+| **@RestControllerAdvice** | 全 REST Controller 共通の例外処理クラスに付ける。戻り値は JSON レスポンスとして扱われる |
 | **@ExceptionHandler(E.class)** | 例外 E を処理するメソッドに付ける |
 
 ### エラーレスポンスの統一形式
 
-**`GlobalExceptionHandler` が拾った例外**は、OpenAPI 定義の `ErrorResponse`（`message` + `timestamp`）を返します。
+このプロジェクトでは、エラー時のレスポンスを **RFC 9457 Problem Details** に統一します。HTTP ヘッダーの `Content-Type` は `application/problem+json` です。
 
 ```json
 {
-  "message": "Expense not found: id=999",
-  "timestamp": "2026-04-18T10:00:00Z"
+  "type": "about:blank",
+  "title": "Not Found",
+  "status": 404,
+  "detail": "ID: 999 の支出が見つかりませんでした。",
+  "instance": "/api/expenses/999"
 }
 ```
 
-一方、**ハンドラー未登録の例外**（バリデーション違反 `MethodArgumentNotValidException` 含む）は **Spring Boot 既定の JSON**（`BasicErrorController` 由来）で返るため、フィールドが異なります。
+バリデーションエラーでは、標準フィールドに加えて `errors` を追加します。これは RFC 9457 の拡張プロパティで、フロントが「どの項目が悪いか」を表示しやすくするためです。
 
 ```json
 {
-  "timestamp": "2026-04-19T10:00:00.000+00:00",
+  "type": "about:blank",
+  "title": "Bad Request",
   "status": 400,
-  "error": "Bad Request",
-  "message": "Validation failed ...",
-  "path": "/api/expenses"
+  "detail": "入力内容を確認してください。",
+  "instance": "/api/expenses",
+  "errors": [
+    {
+      "field": "description",
+      "message": "空白は許可されていません"
+    }
+  ]
 }
 ```
 
-完全に `ErrorResponse` 形式へ揃えたい場合は、その例外型向けの `@ExceptionHandler` を追加します。
+OpenAPI 上のスキーマ名は既存参照の都合で `ErrorResponse` のままですが、中身は Problem Details 形式です。将来的に参照整理後、スキーマ名も `ProblemDetail` に寄せる予定です。
 
 ### プロジェクトの実装
 
-[`GlobalExceptionHandler.java`](../../backend/src/main/java/com/example/backend/exception/GlobalExceptionHandler.java) は型ごとにステータスと `ErrorResponse` を返します。タイムスタンプは `Instant.now().atOffset(ZoneOffset.UTC)` で UTC に固定。
+[`GlobalExceptionHandler.java`](../../backend/src/main/java/com/smarthouseholdaccountbook/backend/exception/GlobalExceptionHandler.java) は `ResponseEntityExceptionHandler` を継承し、Spring MVC 標準例外とアプリ独自例外を同じ `ProblemDetail` 形式に変換します。
 
 ```java
-@ControllerAdvice
-public class GlobalExceptionHandler {
+@RestControllerAdvice
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
-    @ExceptionHandler(ExpenseNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleNotFound(ExpenseNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse(e.getMessage(), Instant.now().atOffset(ZoneOffset.UTC)));
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ProblemDetail> handleBusinessException(
+            BusinessException exception,
+            HttpServletRequest request) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+                exception.getStatus(),
+                exception.getMessage()
+        );
+        problemDetail.setInstance(URI.create(request.getRequestURI()));
+        return ResponseEntity.status(exception.getStatus()).body(problemDetail);
     }
-    // UserNotFoundException           → 404
-    // RequestNotPermitted / QuotaExceededException → 429
-    // AiServiceException              → 500
-    // CsvUploadException              → 例外が保持する HttpStatus（400 / 500）
 }
 ```
 
-**このクラスにないもの**（= Boot 既定にフォールバック）
+主な変換:
 
-- `Exception.class` のフォールバックハンドラー（未登録例外は概ね 500）
-- `MethodArgumentNotValidException`（バリデーション違反は既定処理で 400）
+- `BusinessException` → 例外が持つ HTTP ステータス
+- `IllegalArgumentException` → 400 Bad Request
+- `RequestNotPermitted` / `QuotaExceededException` → 429 Too Many Requests
+- `AiServiceException` → 502 Bad Gateway
+- `MethodArgumentNotValidException` / `HandlerMethodValidationException` → 400 + `errors`
+- `HttpMessageNotReadableException` → 400（不正 JSON）
+- `Exception` → 500。内部情報を漏らさない固定メッセージ
 
 ---
 
@@ -596,15 +630,15 @@ public class GlobalExceptionHandler {
 
 | エラーの種類 | 処理する場所（このプロジェクト） | ステータス |
 |--------------|----------------------------------|-----------|
-| **認証されていない** | Spring Security のフィルター | 401 Unauthorized |
-| **認証済みだが権限なし** | Spring Security の認可チェック | 403 Forbidden |
-| **バリデーション違反**（`@Valid` 等） | **`GlobalExceptionHandler` では未登録** → Spring MVC / Boot の**既定処理** | 400 Bad Request（ボディ形式は既定 JSON） |
-| **業務例外**（登録済みの型のみ） | [`GlobalExceptionHandler`](../../backend/src/main/java/com/example/backend/exception/GlobalExceptionHandler.java) | 例: 404（`ExpenseNotFoundException` / `UserNotFoundException`）、400（`IllegalArgumentException`）、429（`RequestNotPermitted` / `QuotaExceededException`）、500（`AiServiceException`）、`CsvUploadException` は内部の `HttpStatus` |
+| **認証されていない** | Spring Security の `AuthenticationEntryPoint` | 401 Unauthorized |
+| **認証済みだが権限なし** | Spring Security の `AccessDeniedHandler` | 403 Forbidden |
+| **バリデーション違反**（`@Valid` 等） | `GlobalExceptionHandler` | 400 Bad Request + `errors` |
+| **業務例外**（`BusinessException`） | [`GlobalExceptionHandler`](../../backend/src/main/java/com/smarthouseholdaccountbook/backend/exception/GlobalExceptionHandler.java) | 例: 404（NotFound）、400（CSV入力不備）、429（Quota）、502（AIサービス障害） |
 | **レート制限超過**（Resilience4j） | 上記 `@ExceptionHandler(RequestNotPermitted.class)` | 429 Too Many Requests |
-| **想定外の例外**、または **ハンドラー未登録の例外型** | **`GlobalExceptionHandler` にフォールバックはない** → Spring Boot の**既定** | 500 Internal Server Error（多くの場合。`@ResponseStatus` 付き例外などは別） |
+| **想定外の例外** | `GlobalExceptionHandler` の catch-all | 500 Internal Server Error |
 
 
-**覚え方**: 「**401/403 は Security**。**`ErrorResponse` で揃えたい業務例外は `GlobalExceptionHandler` に型を登録する**。**登録していない・想定外は Boot 既定**（形式が `ErrorResponse` と限らない）」
+**覚え方**: 「**Controller 以降の例外は `GlobalExceptionHandler`**。**401/403 は Security**。**レスポンス形式はどちらも ProblemDetail**」
 
 ---
 
@@ -614,8 +648,8 @@ public class GlobalExceptionHandler {
 - **OpenAPI 仕様駆動**でインターフェースを生成し、`implements` で実装する
 - **DTO と Mapper パターン**で Entity を API に漏らさない
 - **`@Valid` は `@RequestBody`、`@Validated` はクラス**（その他すべて）
-- **`GlobalExceptionHandler`（`@ControllerAdvice`）** で、**登録した例外型**について `ErrorResponse` を返す
-- **401/403 は Security**、**バリデーションと未登録例外は Boot 既定**（必要なら `@ExceptionHandler` を足して統一）
+- **`GlobalExceptionHandler`（`@RestControllerAdvice`）** で Controller 以降の例外を `ProblemDetail` に統一する
+- **401/403 は Security** の `AuthenticationEntryPoint` / `AccessDeniedHandler` で同じ `ProblemDetail` に統一する
 
 次章では、Service から Repository を経由して DB にアクセスする「データ層」を解説します。
 

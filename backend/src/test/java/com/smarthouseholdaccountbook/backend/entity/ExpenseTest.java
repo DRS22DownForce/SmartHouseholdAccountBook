@@ -252,7 +252,7 @@ class ExpenseTest {
         void createWithNullAmount() {
             assertExpenseUpdateThrows(
                     "テスト支出", null, defaultDate(), defaultCategory(),
-                    NullPointerException.class, "金額はnullであってはなりません。");
+                    IllegalArgumentException.class, "金額はnullであってはなりません。");
         }
     }
 }

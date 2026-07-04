@@ -360,8 +360,7 @@ class ExpenseControllerTest {
             givenValidCsvFile();
             CsvUploadException csvException = new CsvUploadException(
                     "ファイルの読み込みに失敗しました: ファイルの読み込みに失敗しました",
-                    new IOException("ファイルの読み込みに失敗しました"),
-                    HttpStatus.BAD_REQUEST);
+                    new IOException("ファイルの読み込みに失敗しました"));
             when(csvExpenseService.uploadCsvAndAddExpenses(any(MultipartFile.class), any(CsvFormat.class)))
                     .thenThrow(csvException);
 
@@ -375,8 +374,7 @@ class ExpenseControllerTest {
             givenValidCsvFile();
             CsvUploadException csvException = new CsvUploadException(
                     "CSVの処理中にエラーが発生しました: 予期しないエラー",
-                    new RuntimeException("予期しないエラー"),
-                    HttpStatus.INTERNAL_SERVER_ERROR);
+                    new RuntimeException("予期しないエラー"));
             when(csvExpenseService.uploadCsvAndAddExpenses(any(MultipartFile.class), any(CsvFormat.class)))
                     .thenThrow(csvException);
 

@@ -39,7 +39,13 @@
       '400':
         description: バリデーションエラー（month形式不正、page/size範囲外など）
         content:
-          application/json:
+          application/problem+json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'
+      '401':
+        description: 認証が必要
+        content:
+          application/problem+json:
             schema:
               $ref: '../components/schemas/expense.yaml#/ErrorResponse'
   post:
@@ -59,6 +65,18 @@
           application/json:
             schema:
               $ref: '../components/schemas/expense.yaml#/ExpenseDto'
+      '400':
+        description: バリデーションエラー
+        content:
+          application/problem+json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'
+      '401':
+        description: 認証が必要
+        content:
+          application/problem+json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'
 /api/expenses/{id}:
   delete:
     tags:
@@ -76,6 +94,16 @@
         description: 家計簿データ削除成功
       '404':
         description: 家計簿データが見つからない
+        content:
+          application/problem+json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'
+      '401':
+        description: 認証が必要
+        content:
+          application/problem+json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'
   put:
     tags:
       - expenses
@@ -104,13 +132,19 @@
       '400':
         description: バリデーションエラー
         content:
-          application/json:
+          application/problem+json:
             schema:
               $ref: '../components/schemas/expense.yaml#/ErrorResponse'
       '404':
         description: 家計簿データが見つからない
         content:
-          application/json:
+          application/problem+json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'
+      '401':
+        description: 認証が必要
+        content:
+          application/problem+json:
             schema:
               $ref: '../components/schemas/expense.yaml#/ErrorResponse'
 /api/expenses/summary:
@@ -137,7 +171,13 @@
       '400':
         description: バリデーションエラー
         content:
-          application/json:
+          application/problem+json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'
+      '401':
+        description: 認証が必要
+        content:
+          application/problem+json:
             schema:
               $ref: '../components/schemas/expense.yaml#/ErrorResponse'
 /api/expenses/summary/range:
@@ -174,7 +214,13 @@
       '400':
         description: バリデーションエラー
         content:
-          application/json:
+          application/problem+json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'
+      '401':
+        description: 認証が必要
+        content:
+          application/problem+json:
             schema:
               $ref: '../components/schemas/expense.yaml#/ErrorResponse'
 /api/expenses/months:
@@ -193,6 +239,12 @@
                 type: string
                 pattern: '^\d{4}-\d{2}$'
                 example: '2024-01'
+      '401':
+        description: 認証が必要
+        content:
+          application/problem+json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'
 /api/expenses/report:
   get:
     tags:
@@ -227,13 +279,25 @@
       '400':
         description: バリデーションエラー
         content:
-          application/json:
+          application/problem+json:
             schema:
               $ref: '../components/schemas/expense.yaml#/ErrorResponse'
-      '500':
+      '401':
+        description: 認証が必要
+        content:
+          application/problem+json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'
+      '429':
+        description: AIサービスの利用枠またはレート制限を超過
+        content:
+          application/problem+json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'
+      '502':
         description: AIサービスエラー
         content:
-          application/json:
+          application/problem+json:
             schema:
               $ref: '../components/schemas/expense.yaml#/ErrorResponse'
 /api/expenses/upload-csv:
@@ -273,12 +337,18 @@
       '400':
         description: バリデーションエラー（ファイルが空、形式が不正など）
         content:
-          application/json:
+          application/problem+json:
+            schema:
+              $ref: '../components/schemas/expense.yaml#/ErrorResponse'
+      '401':
+        description: 認証が必要
+        content:
+          application/problem+json:
             schema:
               $ref: '../components/schemas/expense.yaml#/ErrorResponse'
       '413':
         description: ファイルサイズが大きすぎる
         content:
-          application/json:
+          application/problem+json:
             schema:
               $ref: '../components/schemas/expense.yaml#/ErrorResponse'

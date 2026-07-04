@@ -19,7 +19,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.lang.IllegalStateException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,6 +28,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.smarthouseholdaccountbook.backend.config.security.JwtProperties;
@@ -47,9 +47,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     
     private static final Logger logger = LoggerFactory.getLogger(JwtAuthFilter.class);
     private final ConfigurableJWTProcessor<SecurityContext> jwtProcessor;
+    private final AuthenticationEntryPoint authenticationEntryPoint;
 
     @Autowired
-    public JwtAuthFilter(JwtProperties jwtProperties) {
+    public JwtAuthFilter(JwtProperties jwtProperties, AuthenticationEntryPoint authenticationEntryPoint) {
+        this.authenticationEntryPoint = authenticationEntryPoint;
         try {
             // JWKソース（公開鍵）を作成
             JWKSource<SecurityContext> jwkSource = JWKSourceBuilder
@@ -85,6 +87,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
      */
     JwtAuthFilter(ConfigurableJWTProcessor<SecurityContext> jwtProcessor) {
         this.jwtProcessor = jwtProcessor;
+        this.authenticationEntryPoint = null;
     }
 
     @Override
@@ -99,16 +102,30 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 authenticateJwtToken(authHeader.substring(BEARER_PREFIX.length()));//Bearer 以降のトークンを認証
             } catch (ParseException e) {
                 logger.warn("JWTパースエラー: {}", e.getMessage());
-                throw new BadCredentialsException("JWTトークンの形式が不正です");
+                rejectAuthentication(request, response, new BadCredentialsException("JWTトークンの形式が不正です"));
+                return;
             } catch (BadJOSEException e) {
                 logger.warn("JWTクレーム検証エラー: {}", e.getMessage());
-                throw new BadCredentialsException("JWTトークンのクレーム検証に失敗しました");
+                rejectAuthentication(request, response, new BadCredentialsException("JWTトークンのクレーム検証に失敗しました"));
+                return;
             } catch (JOSEException e) {
                 logger.warn("JWT検証エラー: {}", e.getMessage());
-                throw new BadCredentialsException("JWTトークンの検証に失敗しました");
+                rejectAuthentication(request, response, new BadCredentialsException("JWTトークンの検証に失敗しました"));
+                return;
             }
         }
         filterChain.doFilter(request, response);
+    }
+
+    private void rejectAuthentication(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            BadCredentialsException exception) throws IOException, ServletException {
+        SecurityContextHolder.clearContext();
+        if (authenticationEntryPoint == null) {
+            throw exception;
+        }
+        authenticationEntryPoint.commence(request, response, exception);
     }
 
     private void authenticateJwtToken(String jwtToken) throws ParseException, JOSEException, BadJOSEException {

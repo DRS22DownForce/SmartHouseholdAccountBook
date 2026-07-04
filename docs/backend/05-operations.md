@@ -485,7 +485,7 @@ flowchart TD
 
     R{"Rate Limiter<br/>10分50回以内?"}
     R429["RequestNotPermitted<br/>呼びすぎなので即停止"]
-    H429["GlobalExceptionHandler<br/>429 Too Many Requests"]
+    H429["GlobalExceptionHandler<br/>429 ProblemDetail"]
 
     C{"Circuit Breaker<br/>Open ではない?"}
     Fallback["callTextFallback()<br/>AiServiceException を投げる"]
@@ -618,18 +618,36 @@ public class OpenAiClient {
 
 ## GlobalExceptionHandler での 429 変換
 
-Resilience4j が投げる `RequestNotPermitted`（レート制限）と、OpenAI 由来の `QuotaExceededException`（クォータ超過）は、どちらも API として **429 Too Many Requests** で返したい。`@ControllerAdvice` で統一します。
+Resilience4j が投げる `RequestNotPermitted`（レート制限）と、OpenAI 由来の `QuotaExceededException`（クォータ超過）は、どちらも API として **429 Too Many Requests** で返したい。`GlobalExceptionHandler` で **ProblemDetail** 形式に統一します。
 
 | 例外 | 発生 | ハンドリング |
 |------|------|-------------|
-| `RequestNotPermitted` | Resilience4j の Rate Limiter | 429 + 「リクエスト数が上限を超えました」 |
-| `QuotaExceededException` | OpenAI API が 429 を返した | 429 + 「利用枠を超過しました」 |
+| `RequestNotPermitted` | Resilience4j の Rate Limiter | 429 + `application/problem+json` |
+| `QuotaExceededException` | OpenAI API が 429 を返した | 429 + `application/problem+json` |
 
 ```java
 @ExceptionHandler(RequestNotPermitted.class)
-public ResponseEntity<ErrorResponse> handleRateLimit(RequestNotPermitted e) {
-    return ResponseEntity.status(429)
-        .body(new ErrorResponse("リクエスト数が上限を超えました", OffsetDateTime.now()));
+public ResponseEntity<ProblemDetail> handleRequestNotPermitted(
+        RequestNotPermitted exception,
+        HttpServletRequest request) {
+    ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(
+            HttpStatus.TOO_MANY_REQUESTS,
+            "リクエスト数が上限を超えました。しばらく待ってから再試行してください。"
+    );
+    problemDetail.setInstance(URI.create(request.getRequestURI()));
+    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(problemDetail);
+}
+```
+
+返却例:
+
+```json
+{
+  "type": "about:blank",
+  "title": "Too Many Requests",
+  "status": 429,
+  "detail": "リクエスト数が上限を超えました。しばらく待ってから再試行してください。",
+  "instance": "/api/ai/category"
 }
 ```
 

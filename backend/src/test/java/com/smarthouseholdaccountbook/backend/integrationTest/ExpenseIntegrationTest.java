@@ -36,6 +36,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -127,7 +129,12 @@ class ExpenseIntegrationTest {
             mockMvc.perform(post("/api/expenses")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("{ invalid json }"))
-                    .andExpect(status().isBadRequest());
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                    .andExpect(jsonPath("$.title").value("Bad Request"))
+                    .andExpect(jsonPath("$.status").value(400))
+                    .andExpect(jsonPath("$.detail").value("リクエストボディの形式を確認してください。"))
+                    .andExpect(jsonPath("$.instance").value("/api/expenses"));
 
             // then
             assertThat(expenseRepository.count()).isZero();
