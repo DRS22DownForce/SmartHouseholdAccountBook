@@ -137,10 +137,9 @@ write_env_file() {
     exit 1
   fi
 
-  local client_id issuer jwk cors_origins
+  local client_id issuer cors_origins
   client_id="$(ssm_param "cognito/client-id")"
   issuer="$(ssm_param "cognito/issuer-url")"
-  jwk="${issuer}/.well-known/jwks.json"
   cors_origins="$(ssm_param "domain/cors-allowed-origins")"
 
   cat > "${ENV_FILE}" <<EOF
@@ -152,7 +151,6 @@ MYSQL_APP_USER=app_user
 MYSQL_APP_PASSWORD=${mysql_app}
 SPRING_DATASOURCE_URL_PROD=jdbc:mysql://mysql:3306/${mysql_db}?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
 SPRING_DATASOURCE_URL_DEV=jdbc:mysql://localhost:3306/${mysql_db}?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
-COGNITO_JWK_SET_URL=${jwk}
 COGNITO_ISSUER_URL=${issuer}
 COGNITO_CLIENT_ID=${client_id}
 OPENAI_API_KEY=${openai_key}

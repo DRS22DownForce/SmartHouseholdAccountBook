@@ -35,12 +35,13 @@ public class CognitoJwtDecoderConfig {
     }
 
     /**
-     * JWKS から公開鍵を取得し、署名・有効期限・Cognito 固有クレームを検証する Decoder。
+     * Issuer の OIDC メタデータから JWKS を自動取得し、
+     * 署名・有効期限・Cognito 固有クレームを検証する Decoder。
      */
     @Bean
     public JwtDecoder jwtDecoder() {
         NimbusJwtDecoder decoder = NimbusJwtDecoder
-                .withJwkSetUri(jwtProperties.getJwkSetUrl())
+                .withIssuerLocation(jwtProperties.getIssuerUrl())
                 .build();
         decoder.setJwtValidator(createCognitoTokenValidator(jwtProperties));
         return decoder;
@@ -86,10 +87,4 @@ public class CognitoJwtDecoderConfig {
 
         return new DelegatingOAuth2TokenValidator<>(withIssuer, withClientId, withTokenUse);
     }
-
-    // TODO: issuer-uri 一本化（COGNITO_JWK_SET_URL 廃止）を行う場合は
-    //       NimbusJwtDecoder.withIssuerLocation(props.getIssuerUrl()) への切替を検討する。
-    // TODO: スコープベース認可を導入する場合は JwtAuthenticationConverter で
-    //       scope クレームを GrantedAuthority に変換する。
-    // TODO: Cognito App Client の Allowed OAuth Scopes（openid 等）が有効かデプロイ時に確認する。
 }

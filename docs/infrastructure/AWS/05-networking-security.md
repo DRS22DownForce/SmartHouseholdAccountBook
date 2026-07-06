@@ -217,7 +217,7 @@ EC2 には **IAM ロール**（インスタンスプロファイル）が付与�
 
 ### Spring Boot 側
 
-- `COGNITO_ISSUER_URL` と `COGNITO_JWK_SET_URL` で JWT を検証
+- `COGNITO_ISSUER_URL` で JWT を検証（JWKS は Issuer の OIDC メタデータから自動取得）
 - 詳細はバックエンドの Security ドキュメントを参照
 
 ### Cognito コンソール側で必要な設定

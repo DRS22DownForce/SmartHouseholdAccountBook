@@ -91,11 +91,6 @@ class CognitoJwtDecoderConfigTest {
      */
     private static final class TestJwtProperties extends JwtProperties {
         @Override
-        public String getJwkSetUrl() {
-            return ISSUER + "/.well-known/jwks.json";
-        }
-
-        @Override
         public String getIssuerUrl() {
             return ISSUER;
         }

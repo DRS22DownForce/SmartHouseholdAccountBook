@@ -5,14 +5,12 @@ import org.springframework.stereotype.Component;
 
 /**
  * JWT設定プロパティクラス
- * 
- * application.propertiesからJWT関連の設定値を読み込みます。
- * CognitoのJWKセットURL、Issuer URL、Client IDを管理します。
+ *
+ * application.properties から Cognito の Issuer URL と Client ID を読み込みます。
+ * JWKS URL は Issuer の OIDC メタデータから自動解決されます。
  */
 @Component
 public class JwtProperties {
-    @Value("${cognito.jwk-set-url}")
-    private String jwkSetUrl;
 
     @Value("${cognito.issuer-url}")
     private String issuerUrl;
@@ -21,27 +19,16 @@ public class JwtProperties {
     private String clientId;
 
     /**
-     * CognitoのJWKセットURLを取得
-     * 
-     * @return JWKセットURL
-     */
-    public String getJwkSetUrl() {
-        return jwkSetUrl;
-    }
-    /**
-     * CognitoのIssuer URL(iss)を取得
-     * @return
+     * Cognito の Issuer URL（JWT の iss クレームと一致する値）を取得する。
      */
     public String getIssuerUrl() {
         return issuerUrl;
     }
 
     /**
-     * CognitoのClient ID(aud)を取得
-     * @return
+     * Cognito App Client ID（Access Token の client_id クレームと一致する値）を取得する。
      */
     public String getClientId() {
         return clientId;
     }
 }
-

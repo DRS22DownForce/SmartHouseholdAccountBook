@@ -119,7 +119,7 @@ async function resolveJwtToken(forceRefresh = false): Promise<string> {
 | 設定 | フロント | バックエンド |
 |------|----------|--------------|
 | User Pool / Client | `NEXT_PUBLIC_COGNITO_*` | `COGNITO_CLIENT_ID` |
-| Issuer / JWK | （Amplify が自動） | `COGNITO_ISSUER_URL`, `COGNITO_JWK_SET_URL` |
+| Issuer | （Amplify が自動） | `COGNITO_ISSUER_URL` |
 | CORS | ブラウザが送信 | `CORS_ALLOWED_ORIGINS` |
 
 フロントとバックエンドで **同じ User Pool / Client** を指している必要があります。
