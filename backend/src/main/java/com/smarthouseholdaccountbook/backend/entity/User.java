@@ -22,37 +22,25 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // CognitoのユーザーID
+    // CognitoのユーザーID（個人を特定する最小限の識別子。PII は保存しない）
     @Column(nullable = false, unique = true)
     private String cognitoSub;
 
-    @Column(nullable = false)
-    private String email;
-
     /**
      * ユーザーを作成する
-     * @param cognitoSub CognitoのユーザーID
-     * @param email メールアドレス
-     * @throws NullPointerException cognitoSubまたはemailがnullの場合
-     * @throws IllegalArgumentException cognitoSubが空文字列の場合、emailが空文字列の場合、emailに@が含まれていない場合
+     * @param cognitoSub CognitoのユーザーID（JWT の sub クレーム）
+     * @throws NullPointerException cognitoSubがnullの場合
+     * @throws IllegalArgumentException cognitoSubが空文字列の場合
      */
-    public User(String cognitoSub, String email) {
-        validate(cognitoSub, email);
+    public User(String cognitoSub) {
+        validate(cognitoSub);
         this.cognitoSub = cognitoSub;
-        this.email = email;
     }
 
-    private void validate(String cognitoSub, String email) {
+    private void validate(String cognitoSub) {
         Objects.requireNonNull(cognitoSub, "cognitoSubはnullであってはなりません。");
         if (cognitoSub.trim().isEmpty()) {
             throw new IllegalArgumentException("cognitoSubは空文字列であってはなりません。");
-        }
-        Objects.requireNonNull(email, "emailはnullであってはなりません。");
-        if (email.trim().isEmpty()) {
-            throw new IllegalArgumentException("emailは空文字列であってはなりません。");
-        }
-        if (!email.contains("@")) {
-            throw new IllegalArgumentException("メールアドレスの形式が正しくありません。");
         }
     }
 }

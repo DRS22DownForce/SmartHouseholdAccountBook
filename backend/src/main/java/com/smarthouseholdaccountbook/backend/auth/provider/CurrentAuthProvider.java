@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
  * 現在の認証情報を提供するクラス
  * 
  * このクラスは、Spring Securityのセキュリティコンテキストから
- * 現在の認証情報（JWT）を取得し、ユーザーIDやメールアドレスなどの
+ * 現在の認証情報（JWT）を取得し、ユーザーID（sub）などの
  * クレーム情報を提供します。
  */
 @Component
@@ -28,18 +28,9 @@ public class CurrentAuthProvider {
     }
 
     /**
-     * 現在のJWTのemailを取得
-     * 
-     * @return メールアドレス（emailクレームの値）
-     */
-    public String getCurrentEmail() {
-        return getClaimAsString("email");
-    }
-
-    /**
      * 任意のクレーム名でJWTから値を取得
      * 
-     * @param claimName 取得したいクレーム名（例: "sub", "email"）
+     * @param claimName 取得したいクレーム名（例: "sub"）
      * @return クレームの値（文字列）、存在しない場合はnull
      */
     public String getClaimAsString(String claimName) {
@@ -63,4 +54,3 @@ public class CurrentAuthProvider {
     }
 
 }
-

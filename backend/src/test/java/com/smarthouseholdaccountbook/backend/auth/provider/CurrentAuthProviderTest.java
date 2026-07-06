@@ -41,26 +41,13 @@ class CurrentAuthProviderTest {
     @DisplayName("正常にJWTのsubを取得できる")
     void getCurrentSub_正常に取得() {
         String expectedSub = "cognitoSub123";
-        Jwt jwt = createJwt(Map.of("sub", expectedSub, "email", "test@example.com"));
+        Jwt jwt = createJwt(Map.of("sub", expectedSub));
         JwtAuthenticationToken jwtAuthentication = new JwtAuthenticationToken(jwt, Collections.emptyList());
         SecurityContextHolder.getContext().setAuthentication(jwtAuthentication);
 
         String result = currentAuthProvider.getCurrentSub();
 
         assertEquals(expectedSub, result);
-    }
-
-    @Test
-    @DisplayName("正常にJWTのemailを取得できる")
-    void getCurrentEmail_正常に取得() {
-        String expectedEmail = "test@example.com";
-        Jwt jwt = createJwt(Map.of("sub", "cognitoSub123", "email", expectedEmail));
-        JwtAuthenticationToken jwtAuthentication = new JwtAuthenticationToken(jwt, Collections.emptyList());
-        SecurityContextHolder.getContext().setAuthentication(jwtAuthentication);
-
-        String result = currentAuthProvider.getCurrentEmail();
-
-        assertEquals(expectedEmail, result);
     }
 
     @Test
@@ -108,17 +95,6 @@ class CurrentAuthProviderTest {
         String result = currentAuthProvider.getClaimAsString("nonExistentClaim");
 
         assertNull(result);
-    }
-
-    @Test
-    @DisplayName("認証されていない場合でも例外が発生しない")
-    void getCurrentEmail_認証されていない場合でも例外が発生しない() {
-        SecurityContextHolder.getContext().setAuthentication(null);
-
-        assertDoesNotThrow(() -> {
-            String result = currentAuthProvider.getCurrentEmail();
-            assertNull(result);
-        });
     }
 
     private Jwt createJwt(Map<String, Object> claims) {

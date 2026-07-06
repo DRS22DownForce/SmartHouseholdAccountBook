@@ -79,7 +79,7 @@ class CsvExpenseServiceTest {
                 csvParserFactory,
                 aiCategoryService,
                 persistenceService);
-        user = new User("cognito-sub", "test@example.com");
+        user = new User("cognito-sub");
         when(userApplicationService.getUser()).thenReturn(user);
         when(csvParserFactory.getParser(any(CsvFormat.class))).thenReturn(csvParser);
         when(multipartFile.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[0]));

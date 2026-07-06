@@ -31,7 +31,7 @@ class ExpenseMapperTest {
     @Test
     void toDto_正常系() {
         // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
+        User user = new User("cognitoSub");
         ExpenseAmount amount = new ExpenseAmount(1234);
         ExpenseDate date = new ExpenseDate(LocalDate.of(2024, 6, 1));
         CategoryType category = CategoryType.FOOD;
@@ -58,7 +58,7 @@ class ExpenseMapperTest {
     @Test
     void toEntity_ExpenseDtoからEntityへ変換() {
         // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
+        User user = new User("cognitoSub");
         ExpenseDto dto = new ExpenseDto();
         dto.setDescription("テスト");
         dto.setAmount(500);
@@ -79,7 +79,7 @@ class ExpenseMapperTest {
     @Test
     void toEntity_ExpenseDto_nullならnull() {
         // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
+        User user = new User("cognitoSub");
         
         // テスト実行と検証
         assertNull(mapper.toEntity((ExpenseDto) null, user));
@@ -88,7 +88,7 @@ class ExpenseMapperTest {
     @Test
     void toEntity_ExpenseRequestDtoからEntityへ変換() {
         // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
+        User user = new User("cognitoSub");
         ExpenseRequestDto req = new ExpenseRequestDto();
         req.setDescription("リクエスト");
         req.setAmount(999);
@@ -123,7 +123,7 @@ class ExpenseMapperTest {
     @Test
     void toEntity_ExpenseRequestDto_nullならnull() {
         // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
+        User user = new User("cognitoSub");
         
         // テスト実行と検証
         assertNull(mapper.toEntity((ExpenseRequestDto) null, user));

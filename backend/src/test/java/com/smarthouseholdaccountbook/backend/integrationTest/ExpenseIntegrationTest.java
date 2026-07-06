@@ -69,7 +69,7 @@ class ExpenseIntegrationTest {
         expenseRepository.deleteAll();
         userRepository.deleteAll();
 
-        user = userRepository.save(new User(TestJwtAuthenticationFilter.TEST_SUB, TestJwtAuthenticationFilter.TEST_EMAIL));
+        user = userRepository.save(new User(TestJwtAuthenticationFilter.TEST_SUB));
         // キャッシュをクリアする。
         var usersCache = cacheManager.getCache("users");
         if (usersCache != null) {

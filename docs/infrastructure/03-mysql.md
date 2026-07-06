@@ -220,11 +220,12 @@ Docker のネットワークやボリュームの基本は [02. Docker](./02-doc
 CREATE TABLE users (
     id BIGINT NOT NULL AUTO_INCREMENT,
     cognito_sub VARCHAR(255) NOT NULL,
-    email VARCHAR(255) NOT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uk_users_cognito_sub (cognito_sub)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
+
+`V2__drop_users_email.sql` で `email` 列は削除済みです。ユーザー識別は `cognito_sub`（JWT の `sub`）のみで行い、PII は DB に保存しません。
 
 この `CREATE TABLE` から、次のことが読み取れます。
 

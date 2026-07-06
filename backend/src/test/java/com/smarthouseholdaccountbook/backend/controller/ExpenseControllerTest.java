@@ -389,7 +389,7 @@ class ExpenseControllerTest {
     }
 
     private Expense createExpense(String description, int amount, LocalDate date, CategoryType category) {
-        User user = new User("unit-test-user", "unit-test@example.com");
+        User user = new User("unit-test-user");
         return new Expense(
                 description,
                 new ExpenseAmount(amount),

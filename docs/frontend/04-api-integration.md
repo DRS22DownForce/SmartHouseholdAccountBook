@@ -165,7 +165,7 @@ export async function withAuthHeader(): Promise<{ headers: { Authorization: stri
 }
 ```
 
-バックエンドの `JwtAuthFilter` が同じ形式のトークンを検証します（[バックエンド第 4 章](../backend/04-security.md)）。
+バックエンドの OAuth2 Resource Server（`CognitoJwtDecoderConfig`）が同じ形式のトークンを検証します（[バックエンド第 4 章](../backend/04-security.md)）。
 
 **401 が返ったとき**は、トークン期限切れや未ログインの可能性があります。フロントは [エラーハンドリング](#エラーハンドリング) でトーストを出します。
 

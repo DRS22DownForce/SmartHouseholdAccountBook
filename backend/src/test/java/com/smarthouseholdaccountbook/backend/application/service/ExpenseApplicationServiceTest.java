@@ -47,7 +47,7 @@ class ExpenseApplicationServiceTest {
                 new ExpenseDate(LocalDate.of(2024, 1, 1)),
                 CategoryType.FOOD);
 
-        User user = new User("cognitoSub", "test@example.com");
+        User user = new User("cognitoSub");
         when(userApplicationService.getUser()).thenReturn(user);
         when(expenseRepository.save(any(Expense.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -70,7 +70,7 @@ class ExpenseApplicationServiceTest {
                 new ExpenseDate(LocalDate.of(2024, 1, 15)),
                 CategoryType.ENTERTAINMENT);
 
-        User user = new User("cognitoSub", "test@example.com");
+        User user = new User("cognitoSub");
         Expense existingExpense = new Expense(
                 "元の支出",
                 new ExpenseAmount(1000),
@@ -102,7 +102,7 @@ class ExpenseApplicationServiceTest {
                 new ExpenseDate(LocalDate.EPOCH),
                 CategoryType.OTHER);
 
-        User user = new User("cognitoSub", "test@example.com");
+        User user = new User("cognitoSub");
         when(userApplicationService.getUser()).thenReturn(user);
         when(expenseRepository.findByIdAndUser(nonExistentId, user)).thenReturn(Optional.empty());
 
@@ -118,7 +118,7 @@ class ExpenseApplicationServiceTest {
     void getMonthlySummary_正常に取得できる() {
         // テストデータの準備
         String month = "2024-01";
-        User user = new User("cognitoSub", "test@example.com");
+        User user = new User("cognitoSub");
         ExpenseAmount amount1 = new ExpenseAmount(1000);
         ExpenseDate date1 = new ExpenseDate(LocalDate.of(2024, 1, 1));
         CategoryType category1 = CategoryType.FOOD;
@@ -163,7 +163,7 @@ class ExpenseApplicationServiceTest {
     @Test
     void getAvailableMonths_正常に取得できる() {
         // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
+        User user = new User("cognitoSub");
         // H2とMySQLの両方で動作するように、LocalDateのリストを返すように変更
         List<LocalDate> distinctDates = Arrays.asList(
             LocalDate.of(2024, 3, 15),

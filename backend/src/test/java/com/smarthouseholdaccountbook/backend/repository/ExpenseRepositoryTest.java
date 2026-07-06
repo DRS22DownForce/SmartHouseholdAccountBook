@@ -40,7 +40,7 @@ class ExpenseRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        testUser = userRepository.save(new User("cognitoSub", "test@example.com"));
+        testUser = userRepository.save(new User("cognitoSub"));
     }
 
     private Expense createExpense(String description, int amountYen, LocalDate date, CategoryType category, User user) {
@@ -76,7 +76,7 @@ class ExpenseRepositoryTest {
         @DisplayName("他ユーザーの支出は含まれない")
         void excludesOtherUsersExpenses() {
             // given
-            User otherUser = userRepository.save(new User("otherCognitoSub", "other@example.com"));
+            User otherUser = userRepository.save(new User("otherCognitoSub"));
             createExpense("テストユーザーの支出", 1000, LocalDate.of(2024, 1, 15), CategoryType.FOOD, testUser);
             createExpense("別ユーザーの支出", 2000, LocalDate.of(2024, 1, 20), CategoryType.TRANSPORT, otherUser);
 
