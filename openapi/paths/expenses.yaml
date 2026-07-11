@@ -150,7 +150,7 @@
 /api/expenses/summary:
   get:
     tags:
-      - expenses
+      - expense-summary
     summary: 月別サマリー取得
     parameters:
       - name: month
@@ -183,7 +183,7 @@
 /api/expenses/summary/range:
   get:
     tags:
-      - expenses
+      - expense-summary
     summary: 範囲指定で月別サマリー取得
     parameters:
       - name: startMonth
@@ -226,7 +226,7 @@
 /api/expenses/months:
   get:
     tags:
-      - expenses
+      - expense-summary
     summary: 利用可能な月のリスト取得
     responses:
       '200':
@@ -248,7 +248,7 @@
 /api/expenses/report:
   get:
     tags:
-      - expenses
+      - monthly-report
     summary: 月次AIレポート取得
     description: 指定された月の支出データを分析し、AIが生成した改善提案を含むレポートを返します。generate=falseのときはキャッシュのみ返し、キャッシュがなければ204を返します（OpenAIを呼び出しません）。generate=trueのときはキャッシュを無視して新規生成します。
     parameters:
@@ -303,7 +303,7 @@
 /api/expenses/upload-csv:
   post:
     tags:
-      - expenses
+      - csv-expenses
     summary: CSVファイルから家計簿データを一括インポート
     description: CSVファイルをアップロードして、複数の家計簿データを一括で追加します。部分成功をサポートし、エラーが発生した行の詳細を返します。
     requestBody:

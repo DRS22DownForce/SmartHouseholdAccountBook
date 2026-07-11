@@ -1,10 +1,7 @@
 package com.smarthouseholdaccountbook.backend.application.mapper;
 
-import com.smarthouseholdaccountbook.backend.application.service.CsvExpenseService;
-import com.smarthouseholdaccountbook.backend.application.service.csv.model.CsvParseError;
 import com.smarthouseholdaccountbook.backend.entity.Expense;
 import com.smarthouseholdaccountbook.backend.entity.User;
-import com.smarthouseholdaccountbook.backend.generated.model.CsvUploadResponseDto;
 import com.smarthouseholdaccountbook.backend.generated.model.ExpenseDto;
 import com.smarthouseholdaccountbook.backend.valueobject.CategoryType;
 import com.smarthouseholdaccountbook.backend.valueobject.ExpenseAmount;
@@ -13,8 +10,6 @@ import com.smarthouseholdaccountbook.backend.valueobject.ExpenseDate;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
-import java.util.List;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
@@ -48,22 +43,7 @@ class ExpenseMapperTest {
 
     @Test
     void toDto_nullならnull() {
-        // Expense型のnullを明示的に指定（MonthlySummaryのtoDtoメソッドとの曖昧さを回避）
-        assertNull(mapper.toDto((Expense) null));
-    }
-
-    @Test
-    void toDto_CsvUploadResult_skippedCountを含めて変換する() {
-        CsvExpenseService.CsvUploadResult result = new CsvExpenseService.CsvUploadResult(
-                3, 1, 20, List.of(new CsvParseError(5, "line", "msg")));
-
-        CsvUploadResponseDto dto = mapper.toDto(result);
-
-        assertNotNull(dto);
-        assertEquals(3, dto.getSuccessCount());
-        assertEquals(20, dto.getSkippedCount());
-        assertEquals(1, dto.getErrorCount());
-        assertEquals(1, dto.getErrors().size());
+        assertNull(mapper.toDto(null));
     }
 }
 
