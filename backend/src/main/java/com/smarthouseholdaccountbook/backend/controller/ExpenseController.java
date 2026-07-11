@@ -26,6 +26,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,6 +41,10 @@ import java.util.stream.Collectors;
 @RestController
 public class ExpenseController implements ExpensesApi {
     private static final String CSV_FORMAT_PATTERN = "MITSUISUMITOMO_OLD_FORMAT|MITSUISUMITOMO_NEW_FORMAT";  //csvFormatで許可する値の正規表現
+    // API の月パラメータ（yyyy-MM）を YearMonth に変換するためのフォーマッタ
+    private static final String MONTH_FORMAT = "yyyy-MM";
+    private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern(MONTH_FORMAT);
+
     private final ExpenseApplicationService expenseApplicationService;
     private final CsvExpenseService csvExpenseService;
     private final ExpenseMapper expenseMapper;
@@ -73,8 +80,10 @@ public class ExpenseController implements ExpensesApi {
      */
     @Override
     public ResponseEntity<ExpensePageDto> apiExpensesGet(String month, Integer page, Integer size) {
+        // HTTP の文字列パラメータを YearMonth に変換してから Service へ渡す
+        YearMonth yearMonth = parseMonth(month);
         Pageable pageable = PageRequest.of(page, size);
-        Page<Expense> expensePage = expenseApplicationService.getExpensesByMonth(month, pageable);
+        Page<Expense> expensePage = expenseApplicationService.getExpensesByMonth(yearMonth, pageable);
 
         List<ExpenseDto> content = expensePage.getContent().stream()
                 .map(expenseMapper::toDto)
@@ -136,8 +145,8 @@ public class ExpenseController implements ExpensesApi {
      */
     @Override
     public ResponseEntity<MonthlySummaryDto> apiExpensesSummaryGet(String month) {
-        // 1. ServiceからMonthlySummary値オブジェクトを取得
-        MonthlySummary monthlySummary = expenseApplicationService.getMonthlySummary(month);
+        // 1. API境界で文字列 → YearMonth に変換し、Service から値オブジェクトを取得
+        MonthlySummary monthlySummary = expenseApplicationService.getMonthlySummary(parseMonth(month));
 
         // 2. MapperでDTOに変換
         MonthlySummaryDto dto = expenseMapper.toDto(monthlySummary);
@@ -157,8 +166,10 @@ public class ExpenseController implements ExpensesApi {
      */
     @Override
     public ResponseEntity<List<MonthlySummaryDto>> apiExpensesSummaryRangeGet(String startMonth, String endMonth) {
-        // 1. ServiceからMonthlySummary値オブジェクトのリストを取得
-        List<MonthlySummary> monthlySummaries = expenseApplicationService.getMonthlySummaryRange(startMonth, endMonth);
+        // 1. API境界で文字列 → YearMonth に変換し、Service から値オブジェクトのリストを取得
+        List<MonthlySummary> monthlySummaries = expenseApplicationService.getMonthlySummaryRange(
+                parseMonth(startMonth),
+                parseMonth(endMonth));
 
         // 2. MapperでDTOのリストに変換
         List<MonthlySummaryDto> dtos = monthlySummaries.stream()
@@ -231,6 +242,24 @@ public class ExpenseController implements ExpensesApi {
         return ResponseEntity.ok(response);
     }
   
+    /**
+     * 月文字列（yyyy-MM）を YearMonth にパースする。
+     * 形式が不正な場合は IllegalArgumentException を投げる（GlobalExceptionHandlerで400に変換される）。
+     *
+     * <p>OpenAPI の {@code @Pattern} でも形式チェックされるが、
+     * Service 層へ渡す前の API 境界でも明示的に変換する。</p>
+     *
+     * @param month 月（yyyy-MM形式）
+     * @return パース結果の YearMonth
+     */
+    private static YearMonth parseMonth(String month) {
+        try {
+            return YearMonth.parse(month, MONTH_FORMATTER);
+        } catch (DateTimeParseException e) {
+            throw new IllegalArgumentException("月の形式が不正です。yyyy-MM で指定してください: " + month, e);
+        }
+    }
+
     /**
      * CSVアップロードのリクエストを検証する。
      * インターフェースのバリデーションのオーバライドができないので、メソッド内で追加で検証する。

@@ -14,10 +14,11 @@ import com.smarthouseholdaccountbook.backend.valueobject.MonthlySummary;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -28,6 +29,8 @@ import java.util.stream.Collectors;
 @Transactional
 public class ExpenseApplicationService {
     private static final String MONTH_FORMAT = "yyyy-MM";
+    private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern(MONTH_FORMAT);
+
     private final ExpenseRepository expenseRepository;
     private final UserApplicationService userApplicationService;
 
@@ -42,18 +45,6 @@ public class ExpenseApplicationService {
             UserApplicationService userApplicationService) {
         this.expenseRepository = expenseRepository;
         this.userApplicationService = userApplicationService;
-    }
-
-    /**
-     * 月文字列（yyyy-MM）を YearMonth にパースする。
-     * 形式が不正な場合は IllegalArgumentException を投げる。
-     */
-    private static YearMonth parseMonth(String month) {
-        try {
-            return YearMonth.parse(month, DateTimeFormatter.ofPattern(MONTH_FORMAT));
-        } catch (DateTimeParseException e) {
-            throw new IllegalArgumentException("月の形式が不正です。yyyy-MM で指定してください: " + month, e);
-        }
     }
 
     /**
@@ -112,13 +103,13 @@ public class ExpenseApplicationService {
      * 指定された月の支出エンティティのページを返します。
      * H2とMySQLの両方で動作するように、日付範囲を使用してクエリします。
      *
-     * @param month    月（YYYY-MM形式）
-     * @param pageable ページネーション情報
+     * @param yearMonth 対象月
+     * @param pageable  ページネーション情報
      * @return 支出エンティティのページ
      */
     @Transactional(readOnly = true)
-    public Page<Expense> getExpensesByMonth(String month, Pageable pageable) {
-        YearMonth yearMonth = parseMonth(month);
+    public Page<Expense> getExpensesByMonth(YearMonth yearMonth, Pageable pageable) {
+        Objects.requireNonNull(yearMonth, "yearMonth はnullであってはなりません。");
         User user = userApplicationService.getUser();
 
         LocalDate startDate = yearMonth.atDay(1);
@@ -129,16 +120,16 @@ public class ExpenseApplicationService {
 
     /**
      * 月別サマリーを取得するユースケース
-     * 
+     *
      * 指定された月の支出を集計し、MonthlySummary値オブジェクトを作成して返します。
-     * 
-     * @param month 月（YYYY-MM形式）
+     * 月文字列のパースは API 境界（Controller）で行い、ここでは YearMonth を受け取ります。
+     *
+     * @param yearMonth 対象月
      * @return 月別サマリー値オブジェクト
      */
-    // TODO 引数は文字列ではなく、YearMonthオブジェクトを使用するように修正する。
     @Transactional(readOnly = true)
-    public MonthlySummary getMonthlySummary(String month) {
-        YearMonth yearMonth = parseMonth(month);
+    public MonthlySummary getMonthlySummary(YearMonth yearMonth) {
+        Objects.requireNonNull(yearMonth, "yearMonth はnullであってはなりません。");
 
         User user = userApplicationService.getUser();
 
@@ -147,22 +138,24 @@ public class ExpenseApplicationService {
 
         List<Expense> expenses = expenseRepository.findByUserAndDateBetween(user, startDate, endDate);
 
-        return MonthlySummary.createMonthlySummaryFromExpenses(expenses, month);
+        // MonthlySummary は DTO 向けに String の月を持つため、ここでフォーマットする
+        return MonthlySummary.createMonthlySummaryFromExpenses(expenses, yearMonth.format(MONTH_FORMATTER));
     }
 
     /**
      * 範囲指定で月別サマリーを取得するユースケース
-     * 
+     *
      * 指定された範囲の各月の支出を集計し、MonthlySummary値オブジェクトのリストを作成して返します。
-     * 
-     * @param startMonth 開始月（YYYY-MM形式）
-     * @param endMonth   終了月（YYYY-MM形式）
+     * 期間全体を1回のクエリで取得し、メモリ上で月ごとにグルーピングします（月数分のN回クエリを避ける）。
+     *
+     * @param start 開始月
+     * @param end   終了月
      * @return 月別サマリー値オブジェクトのリスト
      */
     @Transactional(readOnly = true)
-    public List<MonthlySummary> getMonthlySummaryRange(String startMonth, String endMonth) {
-        YearMonth start = parseMonth(startMonth);
-        YearMonth end = parseMonth(endMonth);
+    public List<MonthlySummary> getMonthlySummaryRange(YearMonth start, YearMonth end) {
+        Objects.requireNonNull(start, "start はnullであってはなりません。");
+        Objects.requireNonNull(end, "end はnullであってはなりません。");
 
         if (start.isAfter(end)) {
             throw new IllegalArgumentException("開始月は終了月以前でなければなりません。");
@@ -170,17 +163,23 @@ public class ExpenseApplicationService {
 
         User user = userApplicationService.getUser();
 
+        // 開始月の1日〜終了月の末日を1回だけ取得する（N+1クエリ回避）
+        LocalDate rangeStart = start.atDay(1);
+        LocalDate rangeEnd = end.atEndOfMonth();
+        List<Expense> expenses = expenseRepository.findByUserAndDateBetween(user, rangeStart, rangeEnd);
+
+        // 支出日の YearMonth でグルーピングする
+        Map<YearMonth, List<Expense>> expensesByMonth = expenses.stream()
+                .collect(Collectors.groupingBy(expense -> YearMonth.from(expense.getDate().getDate())));
+
         List<MonthlySummary> summaries = new ArrayList<>();
         YearMonth current = start;
         while (!current.isAfter(end)) {
-            LocalDate monthStart = current.atDay(1);
-            LocalDate monthEnd = current.atEndOfMonth();
-
-            List<Expense> expenses = expenseRepository.findByUserAndDateBetween(user, monthStart, monthEnd);
-
-            MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses, current.format(DateTimeFormatter.ofPattern(MONTH_FORMAT)));
-            summaries.add(summary);
-
+            // 支出がない月は空リストでサマリーを作る（従来どおり月を欠かさない）
+            List<Expense> monthlyExpenses = expensesByMonth.getOrDefault(current, List.of());
+            summaries.add(MonthlySummary.createMonthlySummaryFromExpenses(
+                    monthlyExpenses,
+                    current.format(MONTH_FORMATTER)));
             current = current.plusMonths(1);
         }
 
@@ -202,7 +201,7 @@ public class ExpenseApplicationService {
         List<LocalDate> distinctDates = expenseRepository.findDistinctDatesByUser(user);
 
         return distinctDates.stream()
-                .map(date -> YearMonth.from(date).format(DateTimeFormatter.ofPattern(MONTH_FORMAT)))
+                .map(date -> YearMonth.from(date).format(MONTH_FORMATTER))
                 .distinct()
                 .sorted(Comparator.reverseOrder())
                 .collect(Collectors.toList());

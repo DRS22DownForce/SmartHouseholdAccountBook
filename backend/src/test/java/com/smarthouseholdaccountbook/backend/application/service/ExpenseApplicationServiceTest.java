@@ -15,6 +15,7 @@ import com.smarthouseholdaccountbook.backend.valueobject.ExpenseAmount;
 import com.smarthouseholdaccountbook.backend.valueobject.ExpenseDate;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -117,7 +118,7 @@ class ExpenseApplicationServiceTest {
     @Test
     void getMonthlySummary_正常に取得できる() {
         // テストデータの準備
-        String month = "2024-01";
+        YearMonth yearMonth = YearMonth.of(2024, 1);
         User user = new User("cognitoSub");
         ExpenseAmount amount1 = new ExpenseAmount(1000);
         ExpenseDate date1 = new ExpenseDate(LocalDate.of(2024, 1, 1));
@@ -139,25 +140,17 @@ class ExpenseApplicationServiceTest {
 
         // テスト実行
         com.smarthouseholdaccountbook.backend.valueobject.MonthlySummary result = 
-            expenseApplicationService.getMonthlySummary(month);
+            expenseApplicationService.getMonthlySummary(yearMonth);
 
         // 検証
         assertNotNull(result);
+        assertEquals("2024-01", result.month());
         assertEquals(3000, result.total());
         assertEquals(2, result.count());
         assertEquals(2, result.categorySummaries().size());
         // 金額の降順でソートされていることを確認
         assertTrue(result.categorySummaries().get(0).getAmount() >= 
                    result.categorySummaries().get(1).getAmount());
-    }
-
-    @Test
-    void getMonthlySummary_月の形式が不正なら例外() {
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> expenseApplicationService.getMonthlySummary("2024-1"));
-
-        assertTrue(exception.getMessage().contains("月の形式が不正です"));
     }
 
     @Test

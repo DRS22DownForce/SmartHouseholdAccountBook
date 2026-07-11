@@ -37,6 +37,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -77,7 +78,7 @@ class ExpenseControllerTest {
         void returnsExpensePageByMonthWhenMonthGiven() {
             Expense expense = createExpense("月指定ダミー", 1200, LocalDate.of(2024, 1, 20), CategoryType.TRANSPORT);
             Page<Expense> page = new PageImpl<>(List.of(expense), PageRequest.of(0, 20), 1);
-            when(expenseApplicationService.getExpensesByMonth(eq("2024-01"), any(Pageable.class))).thenReturn(page);
+            when(expenseApplicationService.getExpensesByMonth(eq(YearMonth.of(2024, 1)), any(Pageable.class))).thenReturn(page);
             ExpenseDto expectedDto = new ExpenseDto();
             expectedDto.setId(2L);
             expectedDto.setDescription("月指定");
@@ -92,7 +93,15 @@ class ExpenseControllerTest {
             assertThat(response.getBody().getTotalPages()).isEqualTo(1);
             assertThat(response.getBody().getNumber()).isEqualTo(0);
             assertThat(response.getBody().getSize()).isEqualTo(20);
-            verify(expenseApplicationService).getExpensesByMonth("2024-01", PageRequest.of(0, 20));
+            verify(expenseApplicationService).getExpensesByMonth(YearMonth.of(2024, 1), PageRequest.of(0, 20));
+        }
+
+        @Test
+        @DisplayName("月の形式が不正なら IllegalArgumentException を投げる")
+        void throwsWhenMonthFormatInvalid() {
+            assertThatThrownBy(() -> expenseController.apiExpensesGet("2024-1", 0, 20))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("月の形式が不正です");
         }
     }
 
@@ -178,7 +187,7 @@ class ExpenseControllerTest {
         void returnsMonthlySummary() {
             MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(List.of(
                     createExpense("サマリー1", 1000, LocalDate.of(2024, 4, 1), CategoryType.FOOD)), "2024-04");
-            when(expenseApplicationService.getMonthlySummary("2024-04")).thenReturn(summary);
+            when(expenseApplicationService.getMonthlySummary(YearMonth.of(2024, 4))).thenReturn(summary);
             MonthlySummaryDto expectedDto = new MonthlySummaryDto();
             expectedDto.setTotal(50000);
             expectedDto.setCount(10);
@@ -188,7 +197,7 @@ class ExpenseControllerTest {
             ResponseEntity<MonthlySummaryDto> response = expenseController.apiExpensesSummaryGet("2024-04");
 
             assertOkWithBody(response, expectedDto);
-            verify(expenseApplicationService).getMonthlySummary("2024-04");
+            verify(expenseApplicationService).getMonthlySummary(YearMonth.of(2024, 4));
         }
     }
 
@@ -203,7 +212,7 @@ class ExpenseControllerTest {
                     createExpense("1月分", 30000, LocalDate.of(2024, 1, 1), CategoryType.FOOD)), "2024-01");
             MonthlySummary s2 = MonthlySummary.createMonthlySummaryFromExpenses(List.of(
                     createExpense("2月分", 25000, LocalDate.of(2024, 2, 1), CategoryType.TRANSPORT)), "2024-02");
-            when(expenseApplicationService.getMonthlySummaryRange("2024-01", "2024-02"))
+            when(expenseApplicationService.getMonthlySummaryRange(YearMonth.of(2024, 1), YearMonth.of(2024, 2)))
                     .thenReturn(List.of(s1, s2));
             MonthlySummaryDto expectedDto1 = new MonthlySummaryDto();
             expectedDto1.setTotal(30000);
@@ -216,7 +225,7 @@ class ExpenseControllerTest {
                     expenseController.apiExpensesSummaryRangeGet("2024-01", "2024-02");
 
             assertOkWithBodyList(response, List.of(expectedDto1, expectedDto2));
-            verify(expenseApplicationService).getMonthlySummaryRange("2024-01", "2024-02");
+            verify(expenseApplicationService).getMonthlySummaryRange(YearMonth.of(2024, 1), YearMonth.of(2024, 2));
         }
     }
 
