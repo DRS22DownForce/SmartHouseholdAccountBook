@@ -3,7 +3,6 @@ package com.smarthouseholdaccountbook.backend.application.mapper;
 import com.smarthouseholdaccountbook.backend.entity.Expense;
 import com.smarthouseholdaccountbook.backend.entity.ExpenseUpdate;
 import com.smarthouseholdaccountbook.backend.entity.MonthlyReport;
-import com.smarthouseholdaccountbook.backend.entity.User;
 import com.smarthouseholdaccountbook.backend.application.service.CsvExpenseService;
 import com.smarthouseholdaccountbook.backend.application.service.csv.model.CsvParseError;
 import com.smarthouseholdaccountbook.backend.generated.model.CsvUploadResponseDto;
@@ -74,69 +73,18 @@ public class ExpenseMapper {
     }
 
     /**
-     * DTOからエンティティへ変換
-     * 
-     * プリミティブ型から値オブジェクトへの変換を行います。
-     * 
-     * @param dto  支出DTO
-     * @param user ユーザーエンティティ
-     * @return 支出エンティティ（dtoがnullの場合はnull）
-     */
-    public Expense toEntity(ExpenseDto dto, User user) {
-        if (dto == null) {
-            return null;
-        }
-
-        // プリミティブ型から値オブジェクト・Enumへ変換
-        ExpenseAmount amount = dto.getAmount() != null ? new ExpenseAmount(dto.getAmount()) : null;
-        ExpenseDate date = dto.getDate() != null ? new ExpenseDate(dto.getDate()) : null;
-        CategoryType category = dto.getCategory() != null ? CategoryType.fromDisplayName(dto.getCategory()) : null;
-
-        return new Expense(
-                dto.getDescription(),
-                amount,
-                date,
-                category,
-                user);
-    }
-
-    /**
-     * リクエストDTOからエンティティへ変換
-     * 
-     * プリミティブ型から値オブジェクトへの変換を行います。
-     * 
-     * @param dto  支出リクエストDTO
-     * @param user ユーザーエンティティ
-     * @return 支出エンティティ（dtoがnullの場合はnull）
-     */
-    public Expense toEntity(ExpenseRequestDto dto, User user) {
-        if (dto == null) {
-            return null;
-        }
-
-        // プリミティブ型から値オブジェクト・Enumへ変換
-        ExpenseAmount amount = dto.getAmount() != null ? new ExpenseAmount(dto.getAmount()) : null;
-        ExpenseDate date = dto.getDate() != null ? new ExpenseDate(dto.getDate()) : null;
-        CategoryType category = dto.getCategory() != null ? CategoryType.fromDisplayName(dto.getCategory()) : null;
-
-        return new Expense(
-                dto.getDescription(),
-                amount,
-                date,
-                category,
-                user);
-    }
-
-    /**
      * リクエストDTOから更新用の値オブジェクトへの変換
-     * 
+     *
+     * 作成・更新はサービス層で Entity を組み立てるため、
+     * Controller では DTO → ExpenseUpdate への変換のみ行う。
+     *
      * @param dto 支出リクエストDTO
      * @return 更新用の値オブジェクト
      */
     public ExpenseUpdate toExpenseUpdate(ExpenseRequestDto dto) {
         return new ExpenseUpdate(
                 dto.getDescription(),
-                new ExpenseAmount(dto.getAmount()), 
+                new ExpenseAmount(dto.getAmount()),
                 new ExpenseDate(dto.getDate()),
                 CategoryType.fromDisplayName(dto.getCategory()));
     }

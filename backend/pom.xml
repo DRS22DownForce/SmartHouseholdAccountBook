@@ -170,11 +170,6 @@
 			<scope>runtime</scope>
 			<optional>true</optional>
 		</dependency>
-		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>33.6.0-jre</version>
-		</dependency>
 
 		<!-- ========================================
 		     テスト関連
