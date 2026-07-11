@@ -21,6 +21,7 @@ import java.util.Optional;
  * OpenAI 呼び出しとは TX を分離し、読み取り・保存それぞれ短い TX のみを張る。
  */
 @Service
+@Transactional
 public class MonthlyReportPersistenceService {
 
     private static final String MONTH_FORMAT = "yyyy-MM";
@@ -44,46 +45,36 @@ public class MonthlyReportPersistenceService {
     }
 
     /**
-     * レポート生成に必要な支出データと既存レポートを読み取る。
+     * レポート生成に必要な支出データを読み取る。
      */
     @Transactional(readOnly = true)
-    public ReportGenerationContext loadForGeneration(User user, String month) {
+    public List<Expense> loadExpensesForGeneration(User user, String month) {
         YearMonth yearMonth = YearMonth.parse(month, DateTimeFormatter.ofPattern(MONTH_FORMAT));
         LocalDate startDate = yearMonth.atDay(1);
         LocalDate endDate = yearMonth.atEndOfMonth();
 
-        List<Expense> expenses = expenseRepository.findByUserAndDateBetween(user, startDate, endDate);
-        Optional<MonthlyReport> existing = monthlyReportRepository.findByUserAndReportMonth(user, month);
-
-        return new ReportGenerationContext(expenses, existing);
+        return expenseRepository.findByUserAndDateBetween(user, startDate, endDate);
     }
 
     /**
      * AI 生成結果を新規保存または更新する。
+     *
+     * <p>既存レポートはこの書き込みトランザクション内で取得します。したがって、既存の
+     * エンティティは managed 状態となり、{@link MonthlyReport#update(String, List)} の変更が
+     * コミット時に DB へ反映されます。</p>
      */
-    @Transactional
     public MonthlyReport saveOrUpdate(
             User user,
             String month,
-            Optional<MonthlyReport> existing,
             String summary,
             List<String> suggestions) {
-        if (existing.isPresent()) {
-            MonthlyReport entity = existing.get();
-            entity.update(summary, suggestions);
-            return entity;
-        }
-        return monthlyReportRepository.save(new MonthlyReport(user, month, summary, suggestions));
+        return monthlyReportRepository.findByUserAndReportMonth(user, month)
+                .map(existingReport -> {
+                    existingReport.update(summary, suggestions);
+                    return existingReport;
+                })
+                .orElseGet(() -> monthlyReportRepository.save(
+                        new MonthlyReport(user, month, summary, suggestions)));
     }
 
-    /**
-     * レポート生成前に読み取った DB 状態。
-     *
-     * @param expenses       対象月の支出一覧
-     * @param existingReport 既存レポート（再生成時に UPDATE する場合）
-     */
-    public record ReportGenerationContext(
-            List<Expense> expenses,
-            Optional<MonthlyReport> existingReport) {
-    }
 }

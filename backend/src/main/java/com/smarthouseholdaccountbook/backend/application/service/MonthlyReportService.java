@@ -1,5 +1,6 @@
 package com.smarthouseholdaccountbook.backend.application.service;
 
+import com.smarthouseholdaccountbook.backend.entity.Expense;
 import com.smarthouseholdaccountbook.backend.entity.MonthlyReport;
 import com.smarthouseholdaccountbook.backend.entity.User;
 import com.smarthouseholdaccountbook.backend.application.service.openai.OpenAiClient;
@@ -54,21 +55,19 @@ public class MonthlyReportService {
             return persistenceService.findExisting(user, month);
         }
 
-        MonthlyReportPersistenceService.ReportGenerationContext context =
-                persistenceService.loadForGeneration(user, month);
+        List<Expense> expenses = persistenceService.loadExpensesForGeneration(user, month);
 
-        if (context.expenses().isEmpty()) {
+        if (expenses.isEmpty()) {
             throw new IllegalArgumentException(
                     "この月の支出データがありません。レポートを生成するには支出を登録してください。");
         }
 
-        MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(context.expenses(), month);
+        MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses, month);
         ParsedAiResponse parsed = callOpenAI(buildPrompt(summary));
 
         MonthlyReport saved = persistenceService.saveOrUpdate(
                 user,
                 month,
-                context.existingReport(),
                 parsed.summary(),
                 parsed.suggestions());
         return Optional.of(saved);
