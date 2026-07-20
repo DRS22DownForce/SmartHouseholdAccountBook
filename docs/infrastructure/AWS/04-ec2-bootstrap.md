@@ -128,7 +128,6 @@ flowchart LR
 
 ### SSM から入る値
 
-- `COGNITO_JWK_SET_URL`（issuer + `/.well-known/jwks.json`）
 - `COGNITO_ISSUER_URL`
 - `COGNITO_CLIENT_ID`
 - `CORS_ALLOWED_ORIGINS`（`/domain/cors-allowed-origins`。無い場合は `/domain/app-url` にフォールバック）

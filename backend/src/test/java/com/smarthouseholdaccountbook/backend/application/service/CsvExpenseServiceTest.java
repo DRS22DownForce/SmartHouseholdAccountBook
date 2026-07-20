@@ -64,13 +64,22 @@ class CsvExpenseServiceTest {
     private MultipartFile multipartFile;
 
     @InjectMocks
+    private CsvExpensePersistenceService persistenceService;
+
     private CsvExpenseService csvExpenseService;
 
     private User user;
 
     @BeforeEach
     void setUp() throws IOException {
-        user = new User("cognito-sub", "test@example.com");
+        // Mockito は @InjectMocks 同士を相互注入しないため、
+        // 本物の persistenceService を CsvExpenseService コンストラクタへ明示的に渡す
+        csvExpenseService = new CsvExpenseService(
+                userApplicationService,
+                csvParserFactory,
+                aiCategoryService,
+                persistenceService);
+        user = new User("cognito-sub");
         when(userApplicationService.getUser()).thenReturn(user);
         when(csvParserFactory.getParser(any(CsvFormat.class))).thenReturn(csvParser);
         when(multipartFile.getInputStream()).thenReturn(new ByteArrayInputStream(new byte[0]));
@@ -170,8 +179,9 @@ class CsvExpenseServiceTest {
         }
 
         @Test
-        @DisplayName("同一CSV内に重複行があるとき、1件のみ保存する")
-        void skipsDuplicatesWithinSameCsv() throws IOException {
+        @DisplayName("同一CSV内に日付・店名・金額が同じ行が複数あるとき、それぞれ保存する")
+        void savesIdenticalLookingRowsWithinSameCsv() throws IOException {
+            // カード明細は日付までしか区別できないため、別取引でも同一キーになり得る
             List<CsvParsedExpense> parsed = List.of(
                     expense("店A", LocalDate.of(2025, 11, 1), 1000),
                     expense("店A", LocalDate.of(2025, 11, 1), 1000));
@@ -185,8 +195,8 @@ class CsvExpenseServiceTest {
             CsvExpenseService.CsvUploadResult result = csvExpenseService.uploadCsvAndAddExpenses(
                     multipartFile, CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
 
-            assertThat(result.successCount()).isEqualTo(1);
-            assertThat(result.skippedCount()).isEqualTo(1);
+            assertThat(result.successCount()).isEqualTo(2);
+            assertThat(result.skippedCount()).isZero();
         }
 
         @Test

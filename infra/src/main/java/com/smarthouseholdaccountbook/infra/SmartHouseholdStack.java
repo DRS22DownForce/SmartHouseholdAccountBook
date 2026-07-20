@@ -71,7 +71,6 @@ public class SmartHouseholdStack extends Stack {
 
         final String region = Stack.of(this).getRegion();
         final String issuerUrl = "https://cognito-idp." + region + ".amazonaws.com/" + cognitoUserPoolId;
-        final String jwkSetUrl = issuerUrl + "/.well-known/jwks.json";
         final String appBaseUrl = "https://" + domainName;
         final String corsAllowedOrigins = appBaseUrl;
 
@@ -295,10 +294,6 @@ public class SmartHouseholdStack extends Stack {
 
         CfnOutput.Builder.create(this, "CognitoIssuerUrl")
                 .value(issuerUrl)
-                .build();
-
-        CfnOutput.Builder.create(this, "CognitoJwkSetUrl")
-                .value(jwkSetUrl)
                 .build();
 
         CfnOutput.Builder.create(this, "CognitoCallbackUrlHint")

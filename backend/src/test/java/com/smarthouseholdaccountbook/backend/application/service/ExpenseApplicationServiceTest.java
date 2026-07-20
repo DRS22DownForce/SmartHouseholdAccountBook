@@ -15,6 +15,7 @@ import com.smarthouseholdaccountbook.backend.valueobject.ExpenseAmount;
 import com.smarthouseholdaccountbook.backend.valueobject.ExpenseDate;
 
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -47,7 +48,7 @@ class ExpenseApplicationServiceTest {
                 new ExpenseDate(LocalDate.of(2024, 1, 1)),
                 CategoryType.FOOD);
 
-        User user = new User("cognitoSub", "test@example.com");
+        User user = new User("cognitoSub");
         when(userApplicationService.getUser()).thenReturn(user);
         when(expenseRepository.save(any(Expense.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -70,7 +71,7 @@ class ExpenseApplicationServiceTest {
                 new ExpenseDate(LocalDate.of(2024, 1, 15)),
                 CategoryType.ENTERTAINMENT);
 
-        User user = new User("cognitoSub", "test@example.com");
+        User user = new User("cognitoSub");
         Expense existingExpense = new Expense(
                 "元の支出",
                 new ExpenseAmount(1000),
@@ -102,7 +103,7 @@ class ExpenseApplicationServiceTest {
                 new ExpenseDate(LocalDate.EPOCH),
                 CategoryType.OTHER);
 
-        User user = new User("cognitoSub", "test@example.com");
+        User user = new User("cognitoSub");
         when(userApplicationService.getUser()).thenReturn(user);
         when(expenseRepository.findByIdAndUser(nonExistentId, user)).thenReturn(Optional.empty());
 
@@ -117,8 +118,8 @@ class ExpenseApplicationServiceTest {
     @Test
     void getMonthlySummary_正常に取得できる() {
         // テストデータの準備
-        String month = "2024-01";
-        User user = new User("cognitoSub", "test@example.com");
+        YearMonth yearMonth = YearMonth.of(2024, 1);
+        User user = new User("cognitoSub");
         ExpenseAmount amount1 = new ExpenseAmount(1000);
         ExpenseDate date1 = new ExpenseDate(LocalDate.of(2024, 1, 1));
         CategoryType category1 = CategoryType.FOOD;
@@ -139,10 +140,11 @@ class ExpenseApplicationServiceTest {
 
         // テスト実行
         com.smarthouseholdaccountbook.backend.valueobject.MonthlySummary result = 
-            expenseApplicationService.getMonthlySummary(month);
+            expenseApplicationService.getMonthlySummary(yearMonth);
 
         // 検証
         assertNotNull(result);
+        assertEquals("2024-01", result.month());
         assertEquals(3000, result.total());
         assertEquals(2, result.count());
         assertEquals(2, result.categorySummaries().size());
@@ -152,18 +154,9 @@ class ExpenseApplicationServiceTest {
     }
 
     @Test
-    void getMonthlySummary_月の形式が不正なら例外() {
-        // テスト実行と検証
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
-                () -> expenseApplicationService.getMonthlySummary("2024-1"));
-
-        assertTrue(exception.getMessage().contains("月の形式が不正です"));
-    }
-
-    @Test
     void getAvailableMonths_正常に取得できる() {
         // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
+        User user = new User("cognitoSub");
         // H2とMySQLの両方で動作するように、LocalDateのリストを返すように変更
         List<LocalDate> distinctDates = Arrays.asList(
             LocalDate.of(2024, 3, 15),

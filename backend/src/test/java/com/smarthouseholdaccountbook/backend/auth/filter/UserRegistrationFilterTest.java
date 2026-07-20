@@ -39,9 +39,9 @@ class UserRegistrationFilterTest {
 
     @Test
     void testUserIsRegisteredInDatabase() throws Exception {
-        // TestJwtAuthenticationFilter と同じ sub/email のJWTでリクエストし、フィルターがユーザー登録することを検証する
+        // TestJwtAuthenticationFilter と同じ sub のJWTでリクエストし、フィルターがユーザー登録することを検証する
         Jwt jwt = new Jwt("token", null, null,
-                Map.of("sub", "none"), Map.of("sub", TestJwtAuthenticationFilter.TEST_SUB, "email", TestJwtAuthenticationFilter.TEST_EMAIL));
+                Map.of("sub", "none"), Map.of("sub", TestJwtAuthenticationFilter.TEST_SUB));
         JwtAuthenticationToken authentication = new JwtAuthenticationToken(
                 jwt, null, jwt.getClaimAsString("sub"));
 
@@ -51,6 +51,6 @@ class UserRegistrationFilterTest {
 
         User user = userRepository.findByCognitoSub(TestJwtAuthenticationFilter.TEST_SUB).orElse(null);
         assertThat(user).isNotNull();
-        assertThat(user.getEmail()).isEqualTo(TestJwtAuthenticationFilter.TEST_EMAIL);
+        assertThat(user.getCognitoSub()).isEqualTo(TestJwtAuthenticationFilter.TEST_SUB);
     }
 }

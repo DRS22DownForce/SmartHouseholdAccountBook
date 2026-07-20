@@ -33,8 +33,7 @@ public class ExpenseDate{
      * コンストラクタ
      * 
      * @param date 支出日付（nullまたは未来日付であってはならない）
-     * @throws IllegalArgumentException 日付が未来日付の場合
-     * @throws NullPointerException 日付がnullの場合
+     * @throws IllegalArgumentException 日付がnullまたは未来日付の場合
      */
     public ExpenseDate(LocalDate date) {
         validate(date);
@@ -42,7 +41,9 @@ public class ExpenseDate{
     }
 
     private static void validate(LocalDate value) {
-        Objects.requireNonNull(value, "日付はnullであってはなりません。");
+        if (value == null) {
+            throw new IllegalArgumentException("日付はnullであってはなりません。");
+        }
         // API で渡る LocalDate は「日付のみ」なので、未来判定の基準を UTC の暦日に統一する
         LocalDate today = LocalDate.now(ZoneOffset.UTC);
         if (value.isAfter(today)) {

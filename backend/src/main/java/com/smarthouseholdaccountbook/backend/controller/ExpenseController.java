@@ -1,21 +1,14 @@
 package com.smarthouseholdaccountbook.backend.controller;
 
 import com.smarthouseholdaccountbook.backend.application.mapper.ExpenseMapper;
-import com.smarthouseholdaccountbook.backend.application.service.CsvExpenseService;
 import com.smarthouseholdaccountbook.backend.application.service.ExpenseApplicationService;
-import com.smarthouseholdaccountbook.backend.application.service.MonthlyReportService;
-import com.smarthouseholdaccountbook.backend.application.service.csv.CsvFormat;
+import com.smarthouseholdaccountbook.backend.controller.support.MonthParameterParser;
 import com.smarthouseholdaccountbook.backend.entity.Expense;
 import com.smarthouseholdaccountbook.backend.entity.ExpenseUpdate;
-import com.smarthouseholdaccountbook.backend.entity.MonthlyReport;
 import com.smarthouseholdaccountbook.backend.generated.api.ExpensesApi;
-import com.smarthouseholdaccountbook.backend.generated.model.CsvUploadResponseDto;
 import com.smarthouseholdaccountbook.backend.generated.model.ExpenseDto;
 import com.smarthouseholdaccountbook.backend.generated.model.ExpensePageDto;
 import com.smarthouseholdaccountbook.backend.generated.model.ExpenseRequestDto;
-import com.smarthouseholdaccountbook.backend.generated.model.MonthlyReportResponse;
-import com.smarthouseholdaccountbook.backend.generated.model.MonthlySummaryDto;
-import com.smarthouseholdaccountbook.backend.valueobject.MonthlySummary;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -23,42 +16,32 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
+import java.time.YearMonth;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
- * 支出に関するREST APIコントローラー
- * 
- * このコントローラーは支出のCRUD操作を提供します。
- * アプリケーションサービスを呼び出してビジネスロジックを実行します。
+ * 支出の一覧・追加・更新・削除を担当する REST API コントローラー。
+ *
+ * <p>集計、CSV インポート、月次レポートは、それぞれ専用の Controller が担当します。</p>
  */
 @RestController
 public class ExpenseController implements ExpensesApi {
-    private static final String CSV_FORMAT_PATTERN = "MITSUISUMITOMO_OLD_FORMAT|MITSUISUMITOMO_NEW_FORMAT";  //csvFormatで許可する値の正規表現
+
     private final ExpenseApplicationService expenseApplicationService;
-    private final CsvExpenseService csvExpenseService;
     private final ExpenseMapper expenseMapper;
-    private final MonthlyReportService monthlyReportService;
 
     /**
      * コンストラクタ
      *
      * @param expenseApplicationService 支出アプリケーションサービス
-     * @param csvExpenseService         CSV支出処理サービス
      * @param expenseMapper             支出マッパー
-     * @param monthlyReportService      月次レポートサービス
      */
     public ExpenseController(
             ExpenseApplicationService expenseApplicationService,
-            CsvExpenseService csvExpenseService,
-            ExpenseMapper expenseMapper,
-            MonthlyReportService monthlyReportService) {
+            ExpenseMapper expenseMapper) {
         this.expenseApplicationService = expenseApplicationService;
-        this.csvExpenseService = csvExpenseService;
         this.expenseMapper = expenseMapper;
-        this.monthlyReportService = monthlyReportService;
     }
 
     /**
@@ -72,12 +55,14 @@ public class ExpenseController implements ExpensesApi {
      */
     @Override
     public ResponseEntity<ExpensePageDto> apiExpensesGet(String month, Integer page, Integer size) {
+        // HTTP の文字列パラメータを YearMonth に変換してから Service へ渡す
+        YearMonth yearMonth = MonthParameterParser.parse(month);
         Pageable pageable = PageRequest.of(page, size);
-        Page<Expense> expensePage = expenseApplicationService.getExpensesByMonth(month, pageable);
+        Page<Expense> expensePage = expenseApplicationService.getExpensesByMonth(yearMonth, pageable);
 
         List<ExpenseDto> content = expensePage.getContent().stream()
                 .map(expenseMapper::toDto)
-                .collect(Collectors.toList());
+                .toList();
         
         ExpensePageDto dto = new ExpensePageDto(
                 content,
@@ -125,134 +110,6 @@ public class ExpenseController implements ExpensesApi {
         ExpenseUpdate update = expenseMapper.toExpenseUpdate(expenseRequestDto);
         Expense expense = expenseApplicationService.updateExpense(id, update);
         return ResponseEntity.ok(expenseMapper.toDto(expense));
-    }
-
-    /**
-     * 月別サマリー取得エンドポイント
-     * 
-     * @param month 対象月（YYYY-MM形式）
-     * @return 月別サマリーDTO
-     */
-    @Override
-    public ResponseEntity<MonthlySummaryDto> apiExpensesSummaryGet(String month) {
-        // 1. ServiceからMonthlySummary値オブジェクトを取得
-        MonthlySummary monthlySummary = expenseApplicationService.getMonthlySummary(month);
-
-        // 2. MapperでDTOに変換
-        MonthlySummaryDto dto = expenseMapper.toDto(monthlySummary);
-
-        // 3. レスポンスを返す
-        return ResponseEntity.ok(dto);
-    }
-
-    /**
-     * 範囲指定で月別サマリー取得エンドポイント
-     * 
-     * DDDの原則に従い、ServiceからMonthlySummary値オブジェクトのリストを取得し、MapperでDTOのリストに変換します。
-     * 
-     * @param startMonth 開始月（YYYY-MM形式）
-     * @param endMonth   終了月（YYYY-MM形式）
-     * @return 月別サマリーDTOのリスト
-     */
-    @Override
-    public ResponseEntity<List<MonthlySummaryDto>> apiExpensesSummaryRangeGet(String startMonth, String endMonth) {
-        // 1. ServiceからMonthlySummary値オブジェクトのリストを取得
-        List<MonthlySummary> monthlySummaries = expenseApplicationService.getMonthlySummaryRange(startMonth, endMonth);
-
-        // 2. MapperでDTOのリストに変換
-        List<MonthlySummaryDto> dtos = monthlySummaries.stream()
-                .map(expenseMapper::toDto)
-                .collect(Collectors.toList());
-
-        // 3. レスポンスを返す
-        return ResponseEntity.ok(dtos);
-    }
-
-    /**
-     * 利用可能な月のリスト取得エンドポイント
-     * 
-     * @return 利用可能な月のリスト（YYYY-MM形式）
-     */
-    @Override
-    public ResponseEntity<List<String>> apiExpensesMonthsGet() {
-        // 1. Serviceから利用可能な月のリストを取得
-        List<String> months = expenseApplicationService.getAvailableMonths();
-
-        // 2. レスポンスを返す
-        return ResponseEntity.ok(months);
-    }
-
-    /**
-     * 月次AIレポート取得エンドポイント
-     *
-     * @param month    対象月（YYYY-MM形式）
-     * @param generate trueのときはキャッシュを無視して再生成。falseのときはキャッシュのみ返し、なければ204。
-     * @return AIが生成した月次レポート（generate=falseでキャッシュなしの場合は204）
-     */
-    @Override
-    public ResponseEntity<MonthlyReportResponse> apiExpensesReportGet(String month, Boolean generate) {
-        if (Boolean.FALSE.equals(generate)) {
-            return monthlyReportService.generateReport(month, false)
-                    .map(expenseMapper::toMonthlyReportResponse)
-                    .map(ResponseEntity::ok)
-                    .orElse(ResponseEntity.noContent().build());
-        }
-        MonthlyReport report = monthlyReportService.generateReport(month, true)
-                .orElseThrow(() -> new IllegalStateException("月次レポートの生成に失敗しました"));
-        return ResponseEntity.ok(expenseMapper.toMonthlyReportResponse(report));
-    }
-
-    /**
-     * CSVファイルアップロードエンドポイント
-     * 
-     * このメソッドはコントローラー層として、HTTPリクエストの受け取りとレスポンスの返却に専念します。
-     * 
-     * @param file      {@code multipart/form-data} のパート名 {@code file} に対応するアップロード内容。
-     *                  Spring が {@link MultipartFile} にバインドする。
-     * @param csvFormat CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード 確定月、
-     *                  MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 未確定月）
-     * @return CSVアップロード結果（成功件数、エラー件数、エラー詳細）
-     */
-    @Override
-    public ResponseEntity<CsvUploadResponseDto> apiExpensesUploadCsvPost(
-            MultipartFile file,
-            String csvFormat) {
-        validateCsvUploadRequest(file, csvFormat);
-
-        CsvFormat format = CsvFormat.valueOf(csvFormat);
-
-        // CSV処理を実行（部分成功をサポート）
-        CsvExpenseService.CsvUploadResult result = csvExpenseService.uploadCsvAndAddExpenses(file, format);
-
-        // MapperでDTOに変換
-        CsvUploadResponseDto response = expenseMapper.toDto(result);
-
-        return ResponseEntity.ok(response);
-    }
-  
-    /**
-     * CSVアップロードのリクエストを検証する。
-     * インターフェースのバリデーションのオーバライドができないので、メソッド内で追加で検証する。
-     * 
-     * @param file      アップロードファイル
-     * @param csvFormat CSV形式
-     * @throws IllegalArgumentException 検証エラー時（GlobalExceptionHandlerで400に変換される）
-     */
-    private void validateCsvUploadRequest(MultipartFile file, String csvFormat) {
-        if (file.isEmpty()) {
-            throw new IllegalArgumentException("ファイルが空です");
-        }
-        String originalFilename = file.getOriginalFilename();
-        if (originalFilename == null || !originalFilename.toLowerCase().endsWith(".csv")) {
-            throw new IllegalArgumentException("CSVファイルを選択してください");
-        }
-        if (csvFormat.isBlank()) {
-            throw new IllegalArgumentException("CSV形式を指定してください");
-        }
-        if (!csvFormat.matches(CSV_FORMAT_PATTERN)) {
-            throw new IllegalArgumentException(
-                    "無効なCSV形式です。MITSUISUMITOMO_OLD_FORMAT（三井住友カード 確定月）またはMITSUISUMITOMO_NEW_FORMAT（三井住友カード 未確定月）を指定してください");
-        }
     }
 
 }

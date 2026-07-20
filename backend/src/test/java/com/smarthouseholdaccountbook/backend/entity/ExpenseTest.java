@@ -24,7 +24,7 @@ class ExpenseTest {
     private static final LocalDate TEST_DATE = LocalDate.of(2025, 1, 15);
 
     private static User defaultUser() {
-        return new User("cognitoSub", "test@example.com");
+        return new User("cognitoSub");
     }
 
     private static ExpenseAmount defaultAmount() {
@@ -252,7 +252,7 @@ class ExpenseTest {
         void createWithNullAmount() {
             assertExpenseUpdateThrows(
                     "テスト支出", null, defaultDate(), defaultCategory(),
-                    NullPointerException.class, "金額はnullであってはなりません。");
+                    IllegalArgumentException.class, "金額はnullであってはなりません。");
         }
     }
 }

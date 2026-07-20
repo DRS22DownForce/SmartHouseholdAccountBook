@@ -60,7 +60,7 @@ class ExpenseAmountTest {
         void createWithNull() {
             // given, when, then
             assertThatThrownBy(() -> new ExpenseAmount(null))
-                    .isInstanceOf(NullPointerException.class)
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("金額はnullであってはなりません。");
         }
 

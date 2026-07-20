@@ -19,5 +19,25 @@
                 $ref: '../components/schemas/ai-category.yaml#/CategoryPredictionResponse'
         '400':
           description: 不正なリクエスト（説明文が空など）
-        '500':
-          description: サーバーエラー
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../components/schemas/expense.yaml#/ErrorResponse'
+        '401':
+          description: 認証が必要
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../components/schemas/expense.yaml#/ErrorResponse'
+        '429':
+          description: AIサービスの利用枠またはレート制限を超過
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../components/schemas/expense.yaml#/ErrorResponse'
+        '502':
+          description: AIサービスエラー
+          content:
+            application/problem+json:
+              schema:
+                $ref: '../components/schemas/expense.yaml#/ErrorResponse'

@@ -13,7 +13,7 @@
 7. [CSRF 攻撃の原理と対策](#csrf-攻撃の原理と対策)
 8. [XSS / SQL インジェクション](#xss--sql-インジェクション)
 9. [OAuth2 と JWT の基礎](#oauth2-と-jwt-の基礎)
-10. [JwtAuthFilter の実装解説](#jwtauthfilter-の実装解説)
+10. [CognitoJwtDecoderConfig の実装解説](#cognitojwtdecoderconfig-の実装解説)
 11. [JWT 認証の全体フロー](#jwt-認証の全体フロー)
 12. [UsernamePasswordAuthenticationFilter を基準点にする理由](#usernamepasswordauthenticationfilter-を基準点にする理由)
 
@@ -124,7 +124,7 @@ flowchart TB
     Req["HTTP リクエスト"]
     F1["1. SecurityContextHolderFilter — SecurityContext の初期化 / クリア"]
     F2["2. CorsFilter — プリフライト応答 / ヘッダ付与"]
-    F3["3. JwtAuthFilter (自作) — JWT 検証 → SecurityContext 設定"]
+    F3["3. BearerTokenAuthenticationFilter — JWT 検証 → SecurityContext 設定"]
     F4["4. UserRegistrationFilter (自作) — 初回ユーザー登録"]
     F5["5. AuthorizationFilter — /api/** は認証必須を検証"]
     Ctrl["Controller"]
@@ -168,7 +168,7 @@ flowchart LR
 
 | 処理 | 担当 |
 |------|------|
-| JWT が正しいか？ | `JwtAuthFilter`（認証） |
+| JWT が正しいか？ | OAuth2 Resource Server（`BearerTokenAuthenticationFilter` + `CognitoJwtDecoderConfig`） |
 | `/api/**` にアクセスしていいか？ | `AuthorizationFilter`（認可） |
 
 ---
@@ -210,14 +210,18 @@ http.authorizeHttpRequests(auth -> auth
 
 **`denyAll()` をデフォルトにする**のがセキュアな設計。許可するパスを明示する方が安全。
 
-### 5. カスタムフィルターの登録
+### 5. OAuth2 Resource Server とカスタムフィルター
 
 ```java
-http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-    .addFilterAfter(userRegistrationFilter, JwtAuthFilter.class);
+.oauth2ResourceServer(oauth2 -> oauth2
+        .authenticationEntryPoint(authenticationEntryPoint)
+        .jwt(jwt -> jwt
+                .decoder(jwtDecoder)
+                .jwtAuthenticationConverter(jwtAuthenticationConverter)))
+.addFilterAfter(userRegistrationFilter, BearerTokenAuthenticationFilter.class);
 ```
 
-`addFilterBefore` / `addFilterAfter` で、Spring Security のフィルターチェーンの特定位置に自作フィルターを挿入します。
+Spring 標準の `BearerTokenAuthenticationFilter` が JWT を検証し、`UserRegistrationFilter` が初回ログイン時の DB 登録を担当します。
 
 ---
 
@@ -516,7 +520,8 @@ sequenceDiagram
     participant SPA as フロントエンド
     participant Cog as AWS Cognito
     participant API as バックエンド
-    participant Filter as JwtAuthFilter
+    participant Filter as BearerTokenAuthenticationFilter
+    participant Decoder as CognitoJwtDecoderConfig
     participant JWKS as Cognito JWKS<br/>公開鍵
     participant Ctx as SecurityContext
     participant Controller as Controller / Service
@@ -525,16 +530,16 @@ sequenceDiagram
     SPA->>Cog: 2. ログインリクエスト
     Cog->>Cog: 3. メールアドレス・パスワードを確認
     Cog->>Cog: 4. 秘密鍵で JWT に署名（RS256）
-    Cog-->>SPA: 5. JWT トークンを返す
+    Cog-->>SPA: 5. Access Token を返す
     SPA->>SPA: 6. JWT を保持（メモリ / localStorage）
 
-    SPA->>API: 7. GET /api/expenses<br/>Authorization: Bearer JWT
-    API->>Filter: 8. JwtAuthFilter が先に実行される
+    SPA->>API: 7. GET /api/expenses<br/>Authorization: Bearer Access Token
+    API->>Filter: 8. BearerTokenAuthenticationFilter が先に実行される
     Filter->>Filter: 9. Authorization ヘッダから JWT を抽出
-    Filter->>JWKS: 10. 公開鍵を取得（初回中心、以降キャッシュ）
-    JWKS-->>Filter: 11. 公開鍵を返す
-    Filter->>Filter: 12. Nimbus でパース・署名検証
-    Filter->>Filter: 13. exp / iat / nbf / iss / aud 等のクレームを検証
+    Filter->>Decoder: 10. JwtDecoder で検証
+    Decoder->>JWKS: 11. 公開鍵を取得（初回中心、以降キャッシュ）
+    JWKS-->>Decoder: 12. 公開鍵を返す
+    Decoder->>Decoder: 13. 署名・exp / iss / client_id / token_use を検証
     alt 検証成功
         Filter->>Ctx: 14. Authentication を設定（sub / claims）
         Filter->>API: 15. 次のフィルターへ進む
@@ -542,11 +547,23 @@ sequenceDiagram
         Controller-->>API: 17. JSON レスポンスを返す
         API-->>SPA: 18. 200 OK + JSON
     else 検証失敗
-        Filter-->>SPA: 401 Unauthorized
+        Filter-->>SPA: 401 Unauthorized + ProblemDetail
     end
 ```
 
 この図で重要なのは、**Cognito は秘密鍵で署名する側**、**バックエンドは公開鍵で検証する側**という分担です。JWT の中身は誰でも読めますが、署名があるため、途中で書き換えられた JWT は検証で失敗します。
+
+検証失敗や未ログイン時は、Spring Security の `AuthenticationEntryPoint` が `application/problem+json` の 401 を返します。認証済みだが権限が足りない場合は `AccessDeniedHandler` が 403 を同じ形式で返します。
+
+```json
+{
+  "type": "about:blank",
+  "title": "Unauthorized",
+  "status": 401,
+  "detail": "認証が必要です。再ログインしてください。",
+  "instance": "/api/expenses"
+}
+```
 
 ### RS256 の仕組み（公開鍵暗号）
 
@@ -567,16 +584,19 @@ https://cognito-idp.{region}.amazonaws.com/{userPoolId}/.well-known/jwks.json
 
 バックエンドはここから公開鍵を取得し、キャッシュして署名検証に使います。
 
-### JwtAuthFilter の実装解説
+### CognitoJwtDecoderConfig の実装解説
 
-`backend/src/main/java/com/example/backend/auth/filter/JwtAuthFilter.java`
+`backend/src/main/java/com/smarthouseholdaccountbook/backend/config/security/CognitoJwtDecoderConfig.java`
 
 #### 主要な処理
 
-1. **JWT トークンの取得**: `Authorization: Bearer xxx` からトークンを切り出す
-2. **署名検証**: Nimbus JOSE + JWT の `DefaultJWTProcessor` が JWKS から公開鍵を取り、RS256 で検証
-3. **クレーム検証**: `exp`（有効期限）、`iat`、`nbf`、`iss`、`aud` 等をチェック
-4. **SecurityContext に設定**: 検証済みトークンから `Authentication` を組み立てて `SecurityContextHolder.getContext().setAuthentication(auth)`
+1. **JWKS から Decoder 構築**: `NimbusJwtDecoder.withJwkSetUri(...)` で公開鍵を取得し RS256 署名を検証
+2. **標準クレーム検証**: `JwtValidators.createDefaultWithIssuer` で `iss` / `exp` / `nbf` を検証
+3. **Cognito 固有検証**: `client_id`（App Client ID）と `token_use=access` を検証（Access Token のみ許可）
+4. **SecurityContext に設定**: `BearerTokenAuthenticationFilter` が検証済み `Jwt` を `JwtAuthenticationToken` として設定
+5. **検証失敗時の応答**: `ProblemDetailAuthenticationEntryPoint` が 401 の ProblemDetail を返す
+
+DB にはユーザーの `sub`（`cognito_sub`）のみを保存し、email 等の PII は保存しません。
 
 #### SecurityContext と SecurityContextHolder
 
@@ -587,13 +607,13 @@ https://cognito-idp.{region}.amazonaws.com/{userPoolId}/.well-known/jwks.json
 
 後続の Controller / Service から `SecurityContextHolder.getContext().getAuthentication()` で認証情報が取れます。プロジェクトでは `CurrentAuthProvider` がこれをラップし、`getCurrentSub()` でユーザー ID を返します。
 
-#### Nimbus JOSE + JWT
+#### NimbusJwtDecoder（Spring 標準）
 
-プロジェクトで使っている JWT 検証ライブラリ。Spring Security の JWT サポートは内部でこれを使っています。
+Spring OAuth2 Resource Server が内部で Nimbus JOSE + JWT を使用します。自前で `DefaultJWTProcessor` を組み立てる必要はありません。
 
-- `RemoteJWKSet`: JWKS エンドポイントから公開鍵を取得・キャッシュ
-- `DefaultJWTProcessor`: JWT のパース・検証を統合
-- `JWSVerificationKeySelector`: 署名アルゴリズムと鍵選択
+- `NimbusJwtDecoder`: JWKS エンドポイントから公開鍵を取得・キャッシュ
+- `DelegatingOAuth2TokenValidator`: 複数の検証ルールをチェーンで適用
+- `JwtAuthenticationConverter`: 検証済み JWT を Spring Security の `Authentication` に変換
 
 ### JWT のメリット
 
@@ -610,30 +630,25 @@ https://cognito-idp.{region}.amazonaws.com/{userPoolId}/.well-known/jwks.json
 
 ---
 
-## UsernamePasswordAuthenticationFilter を基準点にする理由
+## BearerTokenAuthenticationFilter の位置づけ
 
 プロジェクトの `SecurityConfig`:
 
 ```java
-http.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+.oauth2ResourceServer(oauth2 -> oauth2.jwt(...))
+.addFilterAfter(userRegistrationFilter, BearerTokenAuthenticationFilter.class);
 ```
 
-### UsernamePasswordAuthenticationFilter とは
+### BearerTokenAuthenticationFilter とは
 
-Spring Security が提供する**標準のフォーム認証フィルター**。`/login` エンドポイントで ID/PW を POST されると認証する、従来型の仕組み。
-
-### なぜこれを基準点にするか
-
-1. **JWT 認証を先に実行**: JWT があれば認証完了、なければフォーム認証に進む（だが本プロジェクトではフォーム認証は使わない）
-2. **SecurityContext に認証情報があれば、以降の認証フィルターはスキップ**される Spring Security の仕組みがあり、`UsernamePasswordAuthenticationFilter` は結果的に何もしない。認可を担当する AuthorizationFilter は動作します。
-3. **慣習**: Spring Security のドキュメントでも、カスタム認証フィルターは**この位置に入れるのが定番**
+Spring Security OAuth2 Resource Server が提供する**標準の Bearer トークン認証フィルター**。`Authorization: Bearer` ヘッダからトークンを取り出し、`JwtDecoder` で検証して `SecurityContext` に認証情報を設定します。
 
 ```mermaid
 flowchart LR
-    A["JwtAuthFilter（自作）"]
-    B["UsernamePasswordAuthenticationFilter（標準）"]
+    A["BearerTokenAuthenticationFilter（標準）"]
+    B["UserRegistrationFilter（自作）"]
     C["AuthorizationFilter"]
-    A -- "認証済みなら以降スキップ" --> B --> C
+    A --> B --> C
 ```
 
 ---
@@ -646,7 +661,7 @@ flowchart LR
 - **CORS のプリフライト（OPTIONS）**を理解する
 - **SQL インジェクション / XSS はフレームワークが多くを支援する**。自分で文字列連結や生 HTML 出力をして崩さないこと
 - **RS256**: 秘密鍵で署名、公開鍵で検証。JWKS で公開鍵を配信
-- `JwtAuthFilter` が **Nimbus JOSE** で署名・クレームを検証
+- OAuth2 Resource Server（`BearerTokenAuthenticationFilter` + `CognitoJwtDecoderConfig`）が **署名・クレームを検証**
 
 次章では、本番運用のための監視・キャッシュ・耐障害性を扱います。
 

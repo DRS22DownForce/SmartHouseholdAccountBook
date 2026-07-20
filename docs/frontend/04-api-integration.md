@@ -165,7 +165,7 @@ export async function withAuthHeader(): Promise<{ headers: { Authorization: stri
 }
 ```
 
-バックエンドの `JwtAuthFilter` が同じ形式のトークンを検証します（[バックエンド第 4 章](../backend/04-security.md)）。
+バックエンドの OAuth2 Resource Server（`CognitoJwtDecoderConfig`）が同じ形式のトークンを検証します（[バックエンド第 4 章](../backend/04-security.md)）。
 
 **401 が返ったとき**は、トークン期限切れや未ログインの可能性があります。フロントは [エラーハンドリング](#エラーハンドリング) でトーストを出します。
 
@@ -190,28 +190,42 @@ export async function withAuthHeader(): Promise<{ headers: { Authorization: stri
 
 ```typescript
 export function showApiErrorMessage(error: unknown, defaultMessage: string): void {
-  if (error && typeof error === "object" && "response" in error) {
-    const apiError = error as { response?: { status?: number } }
-    if (apiError.response?.status === 401) {
-      toast.error("認証エラー: 再ログインしてください")
-      return
-    }
-    if (apiError.response?.status === 404) {
-      toast.error("データが見つかりませんでした")
-      return
-    }
+  const apiMessage = extractApiErrorMessage(error)
+
+  if (axios.isAxiosError(error) && error.response?.status === 401) {
+    toast.error("認証エラー: 再ログインしてください")
+    return
   }
-  toast.error(defaultMessage)
+
+  toast.error(apiMessage ?? defaultMessage)
 }
 ```
 
 | 層 | 役割 |
 |----|------|
-| **Spring `GlobalExceptionHandler`** | 業務例外 → `ErrorResponse` JSON |
-| **Spring Security** | 401 / 403 |
-| **フロント** | ステータスに応じたユーザー向けメッセージ（トースト） |
+| **Spring `GlobalExceptionHandler`** | 業務例外・バリデーション・想定外例外 → `ProblemDetail` |
+| **Spring Security** | 401 / 403 → `ProblemDetail` |
+| **フロント** | `detail` / `errors[]` とステータスに応じたユーザー向けメッセージ（トースト） |
 
-バックエンドのエラーボディ形式と完全にパースして表示する実装にはしていません。学習を進めたら、`response.data.message` を読む拡張も検討できます。
+バックエンドのエラーは RFC 9457 Problem Details として返ります。通常のエラーメッセージは `response.data.detail`、バリデーション詳細は `response.data.errors[]` に入ります。
+
+```json
+{
+  "type": "about:blank",
+  "title": "Bad Request",
+  "status": 400,
+  "detail": "入力内容を確認してください。",
+  "instance": "/api/expenses",
+  "errors": [
+    {
+      "field": "amount",
+      "message": "1以上を指定してください"
+    }
+  ]
+}
+```
+
+フロントでは `errors[]` の先頭メッセージを優先し、なければ `detail` を表示します。古い形式との互換のため、`message` もフォールバックとして読めるようにしています。
 
 通知 UI には [Sonner](https://sonner.emilkowal.ski/) を使用（`toast.success` / `toast.error`）。
 
@@ -263,6 +277,7 @@ useRefreshTrigger(refreshTrigger, fetchMonthlySummary, fetchAvailableMonths)
 - **openapi.yaml → generate:api → generated/** の順でクライアントを更新
 - **expenseApi + Mapper** で画面型に変換してから hooks に渡す
 - 認証は **`withAuthHeader()`** で Bearer を付与
+- API エラーは **ProblemDetail** の `detail` / `errors[]` を読んでトースト表示
 - 複数ウィジェットの更新は **refreshTrigger**
 
 次章では、Tailwind と shadcn-ui による **UI の作り方**を解説します。

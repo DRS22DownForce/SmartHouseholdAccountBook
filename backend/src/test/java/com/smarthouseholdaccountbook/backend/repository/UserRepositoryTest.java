@@ -23,8 +23,8 @@ class UserRepositoryTest {
     @Autowired
     private UserRepository userRepository;
 
-    private User createUser(String cognitoSub, String email) {
-        return userRepository.save(new User(cognitoSub, email));
+    private User createUser(String cognitoSub) {
+        return userRepository.save(new User(cognitoSub));
     }
 
     @Nested
@@ -36,8 +36,7 @@ class UserRepositoryTest {
         void returnsUserWhenSubExists() {
             // given
             String cognitoSub = "cognitoSub123";
-            String email = "test@example.com";
-            createUser(cognitoSub, email);
+            createUser(cognitoSub);
 
             // when
             Optional<User> foundUser = userRepository.findByCognitoSub(cognitoSub);
@@ -45,7 +44,6 @@ class UserRepositoryTest {
             // then
             assertThat(foundUser).isPresent();
             assertThat(foundUser.get().getCognitoSub()).isEqualTo(cognitoSub);
-            assertThat(foundUser.get().getEmail()).isEqualTo(email);
         }
 
         @Test
@@ -62,9 +60,9 @@ class UserRepositoryTest {
         @DisplayName("複数のユーザーが存在する場合でも正しいユーザーを取得できる")
         void returnsCorrectUserWhenMultipleUsersExist() {
             // given
-            createUser("cognitoSub1", "user1@example.com");
-            createUser("cognitoSub2", "user2@example.com");
-            createUser("cognitoSub3", "user3@example.com");
+            createUser("cognitoSub1");
+            createUser("cognitoSub2");
+            createUser("cognitoSub3");
 
             // when
             Optional<User> foundUser = userRepository.findByCognitoSub("cognitoSub2");
@@ -72,7 +70,6 @@ class UserRepositoryTest {
             // then
             assertThat(foundUser).isPresent();
             assertThat(foundUser.get().getCognitoSub()).isEqualTo("cognitoSub2");
-            assertThat(foundUser.get().getEmail()).isEqualTo("user2@example.com");
         }
     }
 
@@ -85,8 +82,7 @@ class UserRepositoryTest {
         void savesUserWithGeneratedId() {
             // given
             String cognitoSub = "cognitoSub123";
-            String email = "test@example.com";
-            User user = new User(cognitoSub, email);
+            User user = new User(cognitoSub);
 
             // when
             User savedUser = userRepository.save(user);
@@ -94,7 +90,6 @@ class UserRepositoryTest {
             // then
             assertThat(savedUser.getId()).isNotNull();
             assertThat(savedUser.getCognitoSub()).isEqualTo(cognitoSub);
-            assertThat(savedUser.getEmail()).isEqualTo(email);
         }
 
         @Test
@@ -102,8 +97,7 @@ class UserRepositoryTest {
         void savedUserCanBeFoundById() {
             // given
             String cognitoSub = "cognitoSub123";
-            String email = "test@example.com";
-            User savedUser = createUser(cognitoSub, email);
+            User savedUser = createUser(cognitoSub);
 
             // when
             Optional<User> foundUser = userRepository.findById(savedUser.getId());
@@ -111,7 +105,6 @@ class UserRepositoryTest {
             // then
             assertThat(foundUser).isPresent();
             assertThat(foundUser.get().getCognitoSub()).isEqualTo(cognitoSub);
-            assertThat(foundUser.get().getEmail()).isEqualTo(email);
         }
     }
 
@@ -123,7 +116,7 @@ class UserRepositoryTest {
         @DisplayName("ユーザーを削除できる")
         void deletesUser() {
             // given
-            User savedUser = createUser("cognitoSub123", "test@example.com");
+            User savedUser = createUser("cognitoSub123");
 
             // when
             userRepository.delete(savedUser);

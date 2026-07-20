@@ -18,7 +18,8 @@ interface RetryableConfig extends InternalAxiosRequestConfig {
 
 async function resolveJwtToken(forceRefresh = false): Promise<string> {
   const session = await fetchAuthSession({ forceRefresh })
-  const token = session.tokens?.idToken?.toString()
+  // API には Access Token を送る（ID Token はフロントのログイン状態確認用）
+  const token = session.tokens?.accessToken?.toString()
   if (!token) {
     throw new Error("認証トークンの取得に失敗しました")
   }

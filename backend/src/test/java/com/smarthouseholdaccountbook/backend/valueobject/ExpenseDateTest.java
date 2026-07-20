@@ -75,7 +75,7 @@ class ExpenseDateTest {
         void validateDateNotNull() {
             // given, when, then
             assertThatThrownBy(() -> new ExpenseDate(null))
-                    .isInstanceOf(NullPointerException.class)
+                    .isInstanceOf(IllegalArgumentException.class)
                     .hasMessage("日付はnullであってはなりません。");
         }
 

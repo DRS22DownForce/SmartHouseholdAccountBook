@@ -22,7 +22,6 @@ import java.util.Collections;
 public class TestJwtAuthenticationFilter extends OncePerRequestFilter {
 
     public static final String TEST_SUB = "cognitoSub";
-    public static final String TEST_EMAIL = "test@example.com";
 
     @Override
     protected void doFilterInternal(
@@ -44,7 +43,6 @@ public class TestJwtAuthenticationFilter extends OncePerRequestFilter {
         return Jwt.withTokenValue("test-token")
                 .header("alg", "RS256")
                 .claim("sub", TEST_SUB)
-                .claim("email", TEST_EMAIL)
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(3600))
                 .build();

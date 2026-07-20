@@ -22,16 +22,10 @@ import java.util.Optional;
  */
 public interface ExpenseRepository extends JpaRepository<Expense, Long> {
     /**
-     * ユーザーを指定して支出を取得
-     * 
-     * @param user ユーザーエンティティ
-     * @return 該当ユーザーの支出リスト
-     */
-    List<Expense> findByUser(User user);
-    
-    /**
      * ユーザーとIDを指定して支出を取得
-     * 
+     *
+     * 他ユーザーのデータは取得できないように、常に user 条件を付ける。
+     *
      * @param id 支出ID
      * @param user ユーザーエンティティ
      * @return 該当ユーザーの支出（存在しない場合は空）

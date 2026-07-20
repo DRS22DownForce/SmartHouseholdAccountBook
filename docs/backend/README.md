@@ -36,7 +36,7 @@ flowchart TB
     Client -- "HTTP + JWT" --> Tomcat
     subgraph JVM["JVM (Spring Boot アプリ)"]
         Tomcat["組み込み Tomcat（Servlet コンテナ）"]
-        Filters["Filter チェーン：SecurityContextHolderFilter → CORS → JwtAuthFilter → AuthorizationFilter"]
+        Filters["Filter チェーン：SecurityContextHolderFilter → CORS → BearerTokenAuthenticationFilter → AuthorizationFilter"]
         Dispatcher["DispatcherServlet：URL → Controller"]
         Controller["@RestController"]
         Service["@Service（ビジネスロジック + @Transactional）"]

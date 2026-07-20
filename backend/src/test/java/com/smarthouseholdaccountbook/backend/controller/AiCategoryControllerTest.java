@@ -14,8 +14,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -49,18 +47,6 @@ class AiCategoryControllerTest {
             assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().getCategory()).isEqualTo("食費");
             verify(aiCategoryService).predictCategory("コンビニでおにぎりを購入");
-        }
-
-        @Test
-        @DisplayName("説明文が空文字のとき、IllegalArgumentExceptionを送出する")
-        void throwsWhenDescriptionIsEmpty() {
-            CategoryPredictionRequest request = new CategoryPredictionRequest();
-            request.setDescription("");
-
-            assertThatThrownBy(() -> aiCategoryController.apiAiCategoryPost(request))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessage("説明文が空白です。");
-            verify(aiCategoryService, never()).predictCategory(request.getDescription());
         }
     }
 }

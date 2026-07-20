@@ -93,8 +93,7 @@ MYSQL_APP_PASSWORD=your-app-password
 SPRING_DATASOURCE_URL_DEV=jdbc:mysql://localhost:3306/household_book?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
 SPRING_DATASOURCE_URL_PROD=jdbc:mysql://mysql:3306/household_book?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
 
-# Cognito (JWT 検証)
-COGNITO_JWK_SET_URL=https://cognito-idp.<region>.amazonaws.com/<user-pool-id>/.well-known/jwks.json
+# Cognito (JWT 検証。JWKS は Issuer から自動解決)
 COGNITO_ISSUER_URL=https://cognito-idp.<region>.amazonaws.com/<user-pool-id>
 COGNITO_CLIENT_ID=your-client-id
 

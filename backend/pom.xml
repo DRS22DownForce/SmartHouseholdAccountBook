@@ -73,17 +73,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-oauth2-client</artifactId>
-		</dependency>
-		<!-- JWT 検証で Nimbus API を直接使用するため明示（親 BOM 未管理のためバージョン指定）。DoS 対策含む 10.0.2 以降を維持する。 -->
-		<dependency>
-			<groupId>com.nimbusds</groupId>
-			<artifactId>nimbus-jose-jwt</artifactId>
-			<version>10.9</version>
-		</dependency>
-
 		<!-- ========================================
 		     Database
 		     本番環境用（MySQL）とテスト用（H2）
@@ -180,11 +169,6 @@
 			<!-- 実行時のみ必要、optional=trueで本番ビルド時には除外される -->
 			<scope>runtime</scope>
 			<optional>true</optional>
-		</dependency>
-		<dependency>
-			<groupId>com.google.guava</groupId>
-			<artifactId>guava</artifactId>
-			<version>33.6.0-jre</version>
 		</dependency>
 
 		<!-- ========================================

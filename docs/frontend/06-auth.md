@@ -24,7 +24,7 @@
 | トークンの取得・保持（Amplify が担当） | パスワードのサーバー保存 |
 | API リクエストに `Authorization` を付与 | 最終的な認可・所有権チェック |
 
-**正しい検証はバックエンド**（`JwtAuthFilter` + Cognito JWK）で行います（[バックエンド第 4 章](../backend/04-security.md)）。
+**正しい検証はバックエンド**（OAuth2 Resource Server + Cognito JWK）で行います（[バックエンド第 4 章](../backend/04-security.md)）。
 
 フロントは「ログイン済みユーザーとしてトークンを送る」責務です。
 
@@ -41,8 +41,8 @@ flowchart LR
 
     User --> Next
     Next --> Cognito
-    Cognito -- "ID Token (JWT)" --> Next
-    Next -- "Bearer JWT" --> API
+    Cognito -- "Access Token (JWT)" --> Next
+    Next -- "Bearer Access Token" --> API
     API -- "JWK で検証" --> Cognito
 ```
 
@@ -50,7 +50,8 @@ flowchart LR
 |------|------|
 | **User Pool** | ユーザーアカウントを管理する Cognito のコンテナ |
 | **App Client** | フロントアプリ用のクライアント ID（公開可） |
-| **ID Token** | ログイン後に発行される JWT（ユーザー識別に使用） |
+| **ID Token** | ログイン後に発行される JWT（フロントのログイン状態確認用） |
+| **Access Token** | API アクセス用 JWT（バックエンドへ Bearer で送信） |
 | **Amplify** | ブラウザから Cognito を呼ぶ SDK + UI |
 
 ---
@@ -85,27 +86,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
 ## JWT を API に載せる
 
-[`authUtils.ts`](../../frontend-nextjs/src/api/authUtils.ts):
+[`authenticatedAxios.ts`](../../frontend-nextjs/src/api/authenticatedAxios.ts):
 
 ```typescript
-import { fetchAuthSession } from 'aws-amplify/auth';
-
-async function getJwtToken(): Promise<string> {
-    const session = await fetchAuthSession();
-    const token = session.tokens?.idToken?.toString();
-    if (!token) {
-        throw new Error('認証トークンの取得に失敗しました');
-    }
-    return token;
+async function resolveJwtToken(forceRefresh = false): Promise<string> {
+  const session = await fetchAuthSession({ forceRefresh })
+  // API には Access Token を送る（ID Token はフロントのログイン状態確認用）
+  const token = session.tokens?.accessToken?.toString()
+  if (!token) {
+    throw new Error("認証トークンの取得に失敗しました")
+  }
+  return token
 }
 ```
 
-各 API 関数は `withAuthHeader()` を await してから生成クライアントを呼びます。
-
-```typescript
-const options = await withAuthHeader();
-await api.apiExpensesGet(month, page, size, options);
-```
+`authenticatedAxios` のインターセプターが全 API リクエストに `Authorization: Bearer` を自動付与します。
 
 ### 401 が返ったとき
 
@@ -124,7 +119,7 @@ await api.apiExpensesGet(month, page, size, options);
 | 設定 | フロント | バックエンド |
 |------|----------|--------------|
 | User Pool / Client | `NEXT_PUBLIC_COGNITO_*` | `COGNITO_CLIENT_ID` |
-| Issuer / JWK | （Amplify が自動） | `COGNITO_ISSUER_URL`, `COGNITO_JWK_SET_URL` |
+| Issuer | （Amplify が自動） | `COGNITO_ISSUER_URL` |
 | CORS | ブラウザが送信 | `CORS_ALLOWED_ORIGINS` |
 
 フロントとバックエンドで **同じ User Pool / Client** を指している必要があります。
@@ -140,7 +135,7 @@ sequenceDiagram
 
     U->>F: メール/パスワード
     F->>C: サインイン
-    C-->>F: ID Token
+    C-->>F: Access Token
     U->>F: 支出一覧を表示
     F->>B: GET /api/expenses + Bearer
     B->>C: JWK で署名検証
@@ -217,8 +212,8 @@ Cognito Client ID は公開情報ですが、**User Pool のパスワードポ�
 ## この章のまとめ
 
 - ログイン UI は **Amplify Authenticator**
-- API には **ID Token を Bearer で付与**
-- **検証は Spring Security + Cognito JWK**
+- API には **Access Token を Bearer で付与**（ID Token はフロント内のみ使用）
+- **検証は Spring OAuth2 Resource Server + Cognito JWK**
 - 環境変数はフロント・バックエンドで **同じ Pool / Client** を指す
 
 ---

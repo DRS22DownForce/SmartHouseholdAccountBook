@@ -1,14 +1,8 @@
 package com.smarthouseholdaccountbook.backend.application.mapper;
 
-import com.smarthouseholdaccountbook.backend.application.service.CsvExpenseService;
-import com.smarthouseholdaccountbook.backend.application.service.csv.model.CsvParseError;
 import com.smarthouseholdaccountbook.backend.entity.Expense;
 import com.smarthouseholdaccountbook.backend.entity.User;
-import com.smarthouseholdaccountbook.backend.generated.model.CsvUploadResponseDto;
 import com.smarthouseholdaccountbook.backend.generated.model.ExpenseDto;
-import com.smarthouseholdaccountbook.backend.generated.model.ExpenseRequestDto;
-
-import java.util.List;
 import com.smarthouseholdaccountbook.backend.valueobject.CategoryType;
 import com.smarthouseholdaccountbook.backend.valueobject.ExpenseAmount;
 import com.smarthouseholdaccountbook.backend.valueobject.ExpenseDate;
@@ -16,13 +10,12 @@ import com.smarthouseholdaccountbook.backend.valueobject.ExpenseDate;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * ExpenseMapperのテストクラス
- * 
- * エンティティとDTO間の変換をテストします。
+ *
+ * 本番で使用している変換（Entity/値オブジェクト → DTO）を検証します。
  */
 class ExpenseMapperTest {
 
@@ -31,12 +24,12 @@ class ExpenseMapperTest {
     @Test
     void toDto_正常系() {
         // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
+        User user = new User("cognitoSub");
         ExpenseAmount amount = new ExpenseAmount(1234);
         ExpenseDate date = new ExpenseDate(LocalDate.of(2024, 6, 1));
         CategoryType category = CategoryType.FOOD;
         Expense expense = new Expense("説明", amount, date, category, user);
-        
+
         // テスト実行
         ExpenseDto dto = mapper.toDto(expense);
 
@@ -50,83 +43,7 @@ class ExpenseMapperTest {
 
     @Test
     void toDto_nullならnull() {
-        // テスト実行と検証
-        // Expense型のnullを明示的に指定（MonthlySummaryのtoDtoメソッドとの曖昧さを回避）
-        assertNull(mapper.toDto((Expense) null));
-    }
-
-    @Test
-    void toEntity_ExpenseDtoからEntityへ変換() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-        ExpenseDto dto = new ExpenseDto();
-        dto.setDescription("テスト");
-        dto.setAmount(500);
-        dto.setDate(LocalDate.of(2024, 5, 1));
-        dto.setCategory("交通費");
-
-        // テスト実行
-        Expense entity = mapper.toEntity(dto, user);
-
-        // 検証
-        assertNotNull(entity);
-        assertEquals("テスト", entity.getDescription());
-        assertEquals(500, entity.getAmount().getAmount());
-        assertEquals(LocalDate.of(2024, 5, 1), entity.getDate().getDate());
-        assertEquals("交通費", entity.getCategory().getDisplayName());
-    }
-
-    @Test
-    void toEntity_ExpenseDto_nullならnull() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-        
-        // テスト実行と検証
-        assertNull(mapper.toEntity((ExpenseDto) null, user));
-    }
-
-    @Test
-    void toEntity_ExpenseRequestDtoからEntityへ変換() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-        ExpenseRequestDto req = new ExpenseRequestDto();
-        req.setDescription("リクエスト");
-        req.setAmount(999);
-        req.setDate(LocalDate.of(2024, 4, 1));
-        req.setCategory("日用品");
-
-        // テスト実行
-        Expense entity = mapper.toEntity(req, user);
-
-        // 検証
-        assertNotNull(entity);
-        assertEquals("リクエスト", entity.getDescription());
-        assertEquals(999, entity.getAmount().getAmount());
-        assertEquals(LocalDate.of(2024, 4, 1), entity.getDate().getDate());
-        assertEquals("日用品", entity.getCategory().getDisplayName());
-    }
-
-    @Test
-    void toDto_CsvUploadResult_skippedCountを含めて変換する() {
-        CsvExpenseService.CsvUploadResult result = new CsvExpenseService.CsvUploadResult(
-                3, 1, 20, List.of(new CsvParseError(5, "line", "msg")));
-
-        CsvUploadResponseDto dto = mapper.toDto(result);
-
-        assertNotNull(dto);
-        assertEquals(3, dto.getSuccessCount());
-        assertEquals(20, dto.getSkippedCount());
-        assertEquals(1, dto.getErrorCount());
-        assertEquals(1, dto.getErrors().size());
-    }
-
-    @Test
-    void toEntity_ExpenseRequestDto_nullならnull() {
-        // テストデータの準備
-        User user = new User("cognitoSub", "test@example.com");
-        
-        // テスト実行と検証
-        assertNull(mapper.toEntity((ExpenseRequestDto) null, user));
+        assertNull(mapper.toDto(null));
     }
 }
 

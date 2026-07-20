@@ -53,12 +53,10 @@ public class UserApplicationServiceTest {
     private UserApplicationService userApplicationService;
 
     private String cognitoSub;
-    private String email;
 
     @BeforeEach
     public void setUp() {
         cognitoSub = "cognitoSub";
-        email = "test@example.com";
         when(currentAuthProvider.getCurrentSub()).thenReturn(cognitoSub);
         // 「確認済みキャッシュ」のふるまいを ConcurrentHashMap で簡易再現する。
         // これにより「1回目の呼び出しでキャッシュに載り、2回目以降は DB を叩かない」挙動をテストできる。
@@ -90,7 +88,6 @@ public class UserApplicationServiceTest {
 
     @Test
     void ensureUserExists_ユーザーが存在しない場合は新規作成する() {
-        when(currentAuthProvider.getCurrentEmail()).thenReturn(email);
         when(userRepository.findByCognitoSub(cognitoSub)).thenReturn(Optional.empty());
 
         userApplicationService.ensureUserExists();
@@ -100,12 +97,11 @@ public class UserApplicationServiceTest {
         verify(userRepository).save(captor.capture());
         User saved = captor.getValue();
         assertEquals(cognitoSub, saved.getCognitoSub());
-        assertEquals(email, saved.getEmail());
     }
 
     @Test
     void ensureUserExists_ユーザーが存在する場合は何もしない() {
-        User existingUser = new User(cognitoSub, email);
+        User existingUser = new User(cognitoSub);
         when(userRepository.findByCognitoSub(cognitoSub)).thenReturn(Optional.of(existingUser));
 
         userApplicationService.ensureUserExists();
@@ -115,7 +111,7 @@ public class UserApplicationServiceTest {
 
     @Test
     void ensureUserExists_2回目以降はキャッシュが効いてDBアクセスしない() {
-        User existingUser = new User(cognitoSub, email);
+        User existingUser = new User(cognitoSub);
         when(userRepository.findByCognitoSub(cognitoSub)).thenReturn(Optional.of(existingUser));
 
         // 1回目: DB を引いて「存在」を確認し、キャッシュに載せる
@@ -131,7 +127,7 @@ public class UserApplicationServiceTest {
 
     @Test
     void getUser_ユーザーが存在する場合は既存ユーザーを返し保存しない() {
-        User existingUser = new User(cognitoSub, email);
+        User existingUser = new User(cognitoSub);
         when(userRepository.findByCognitoSub(cognitoSub)).thenReturn(Optional.of(existingUser));
 
         User result = userApplicationService.getUser();

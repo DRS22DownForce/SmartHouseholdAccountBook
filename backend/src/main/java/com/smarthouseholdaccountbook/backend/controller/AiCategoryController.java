@@ -40,9 +40,6 @@ public class AiCategoryController implements AiApi {
     public ResponseEntity<CategoryPredictionResponse> apiAiCategoryPost(
             CategoryPredictionRequest categoryPredictionRequest) {
         String description = categoryPredictionRequest.getDescription();
-        if (description.isEmpty()) {
-            throw new IllegalArgumentException("説明文が空白です。");
-        }
         // カテゴリーを推論
         String predictedCategory = aiCategoryService.predictCategory(description);
 

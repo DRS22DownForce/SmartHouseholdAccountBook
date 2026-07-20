@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class MonthlySummaryTest {
 
     private static User testUser() {
-        return new User("cognitoSub", "test@example.com");
+        return new User("cognitoSub");
     }
     
     private static final LocalDate TEST_DATE = LocalDate.of(2024, 1, 1);

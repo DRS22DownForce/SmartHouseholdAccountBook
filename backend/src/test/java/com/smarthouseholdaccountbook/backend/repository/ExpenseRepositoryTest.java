@@ -40,7 +40,7 @@ class ExpenseRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        testUser = userRepository.save(new User("cognitoSub", "test@example.com"));
+        testUser = userRepository.save(new User("cognitoSub"));
     }
 
     private Expense createExpense(String description, int amountYen, LocalDate date, CategoryType category, User user) {
@@ -52,51 +52,6 @@ class ExpenseRepositoryTest {
                         category,
                         user
                 ));
-    }
-
-    @Nested
-    @DisplayName("findByUser - ユーザー指定で支出取得")
-    class FindByUser {
-
-        @Test
-        @DisplayName("指定ユーザーの支出が取得できる")
-        void returnsExpensesForUser() {
-            // given
-            createExpense("支出1", 1000, LocalDate.of(2024, 1, 15), CategoryType.FOOD, testUser);
-            createExpense("支出2", 2000, LocalDate.of(2024, 1, 20), CategoryType.TRANSPORT, testUser);
-
-            // when
-            List<Expense> expenses = expenseRepository.findByUser(testUser);
-
-            // then
-            assertThat(expenses).hasSize(2);
-        }
-
-        @Test
-        @DisplayName("他ユーザーの支出は含まれない")
-        void excludesOtherUsersExpenses() {
-            // given
-            User otherUser = userRepository.save(new User("otherCognitoSub", "other@example.com"));
-            createExpense("テストユーザーの支出", 1000, LocalDate.of(2024, 1, 15), CategoryType.FOOD, testUser);
-            createExpense("別ユーザーの支出", 2000, LocalDate.of(2024, 1, 20), CategoryType.TRANSPORT, otherUser);
-
-            // when
-            List<Expense> expenses = expenseRepository.findByUser(testUser);
-
-            // then
-            assertThat(expenses).hasSize(1);
-            assertThat(expenses.get(0).getDescription()).isEqualTo("テストユーザーの支出");
-        }
-
-        @Test
-        @DisplayName("支出が無い場合は空リストを返す")
-        void returnsEmptyWhenNoExpenses() {
-            // when
-            List<Expense> expenses = expenseRepository.findByUser(testUser);
-
-            // then
-            assertThat(expenses).isEmpty();
-        }
     }
 
     @Nested

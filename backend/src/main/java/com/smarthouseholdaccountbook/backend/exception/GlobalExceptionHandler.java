@@ -1,99 +1,236 @@
 package com.smarthouseholdaccountbook.backend.exception;
 
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
-import org.springframework.web.bind.annotation.ControllerAdvice;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.http.ResponseEntity;
-import org.springframework.http.HttpStatus;
-import com.smarthouseholdaccountbook.backend.generated.model.ErrorResponse;
-import java.time.Instant;
-import java.time.ZoneOffset;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.MessageSourceResolvable;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.ObjectError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.ServletWebRequest;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
+
+import java.net.URI;
+import java.util.List;
 
 /**
- * @ControllerAdviceアノテーションにより全てのControllerで発生する例外を処理するグローバル例外ハンドラー
+ * Controllerで発生した例外を RFC 9457 Problem Details 形式へ変換するグローバル例外ハンドラー。
  */
-@ControllerAdvice
-public class GlobalExceptionHandler {
+@RestControllerAdvice
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final String VALIDATION_ERROR_DETAIL = "入力内容を確認してください。";
+    private static final String UNEXPECTED_ERROR_DETAIL = "予期しないエラーが発生しました。";
 
-    @ExceptionHandler(ExpenseNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleExpenseNotFoundException(ExpenseNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse(e.getMessage(), Instant.now().atOffset(ZoneOffset.UTC)));
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ProblemDetail> handleBusinessException(
+            BusinessException exception,
+            HttpServletRequest request) {
+        logByStatus(exception.getStatus(), exception);
+
+        ProblemDetail problemDetail = buildProblemDetail(
+                exception.getStatus(),
+                exception.getMessage(),
+                request.getRequestURI());
+
+        return ResponseEntity.status(exception.getStatus()).body(problemDetail);
     }
 
-    @ExceptionHandler(UserNotFoundException.class)
-    public ResponseEntity<ErrorResponse> handleUserNotFoundException(UserNotFoundException e) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(new ErrorResponse(e.getMessage(), Instant.now().atOffset(ZoneOffset.UTC)));
-    }
-
+    // TODO: 入力・ドメイン検証用のプロジェクト例外を導入したら、
+    // IllegalArgumentException の一括400変換は段階的に縮小する。
     @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException e) {
-        logger.warn("不正な引数が渡されました: {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(new ErrorResponse(e.getMessage(), Instant.now().atOffset(ZoneOffset.UTC)));
+    public ResponseEntity<ProblemDetail> handleIllegalArgumentException(
+            IllegalArgumentException exception,
+            HttpServletRequest request) {
+        logger.warn("不正な引数が渡されました: {}", exception.getMessage());
+
+        ProblemDetail problemDetail = buildProblemDetail(
+                HttpStatus.BAD_REQUEST,
+                exception.getMessage(),
+                request.getRequestURI());
+
+        return ResponseEntity.badRequest().body(problemDetail);
     }
 
-    /**
-     * レート制限超過エラーを処理
-     * 429 Too Many Requestsを返す
-     */
     @ExceptionHandler(RequestNotPermitted.class)
-    public ResponseEntity<ErrorResponse> handleRequestNotPermitted(RequestNotPermitted e) {
-        logger.warn("リクエスト数が上限を超えました: {}", e.getMessage());
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body(new ErrorResponse("リクエスト数が上限を超えました。しばらく待ってから再試行してください。", Instant.now().atOffset(ZoneOffset.UTC)));
+    public ResponseEntity<ProblemDetail> handleRequestNotPermitted(
+            RequestNotPermitted exception,
+            HttpServletRequest request) {
+        logger.warn("リクエスト数が上限を超えました: {}", exception.getMessage());
+
+        ProblemDetail problemDetail = buildProblemDetail(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "リクエスト数が上限を超えました。しばらく待ってから再試行してください。",
+                request.getRequestURI());
+
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body(problemDetail);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<ProblemDetail> handleConstraintViolationException(
+            ConstraintViolationException exception,
+            HttpServletRequest request) {
+        logger.warn("リクエストパラメータの検証に失敗しました: {}", exception.getMessage());
+
+        List<ValidationError> errors = exception.getConstraintViolations().stream()
+                .map(violation -> new ValidationError(
+                        violation.getPropertyPath().toString(),
+                        violation.getMessage()))
+                .toList();
+
+        ProblemDetail problemDetail = buildProblemDetail(
+                HttpStatus.BAD_REQUEST,
+                VALIDATION_ERROR_DETAIL,
+                request.getRequestURI());
+        problemDetail.setProperty("errors", errors);
+
+        return ResponseEntity.badRequest().body(problemDetail);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ProblemDetail> handleUnexpectedException(
+            Exception exception,
+            HttpServletRequest request) {
+        logger.error("予期しないエラーが発生しました", exception);
+
+        ProblemDetail problemDetail = buildProblemDetail(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                UNEXPECTED_ERROR_DETAIL,
+                request.getRequestURI());
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(problemDetail);
     }
 
     /**
-     * OpenAI APIの利用枠（クォータ）超過エラーを処理
-     * 429 Too Many Requestsを返す
+     * バリデーション系の例外ではProblem Details の errors プロパティにバリデーションエラーのフィールド別詳細を格納するため、
+     * Spring標準の例外ハンドラーをオーバーライドする。
      */
-    @ExceptionHandler(QuotaExceededException.class)
-    public ResponseEntity<ErrorResponse> handleQuotaExceededException(QuotaExceededException e) {
-        logger.warn("OpenAI APIの利用枠を超過しました");
-        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                .body(new ErrorResponse(e.getMessage(), Instant.now().atOffset(ZoneOffset.UTC)));
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(
+            MethodArgumentNotValidException exception,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        logger.warn("リクエストボディの検証に失敗しました: {}", exception.getMessage());
+
+        List<ValidationError> errors = exception.getBindingResult().getAllErrors().stream()
+                .map(this::toValidationError)
+                .toList();
+
+        ProblemDetail problemDetail = buildProblemDetail(
+                status,
+                VALIDATION_ERROR_DETAIL,
+                getRequestUri(request));
+        problemDetail.setProperty("errors", errors);
+
+        return handleExceptionInternal(exception, problemDetail, headers, status, request);
     }
 
-    /**
-     * AIサービスとの通信エラーを処理
-     * 500 Internal Server Errorを返す
-     */
-    @ExceptionHandler(AiServiceException.class)
-    public ResponseEntity<ErrorResponse> handleAiServiceException(AiServiceException e) {
-        logger.error("AIサービスとの通信でエラーが発生しました");
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(new ErrorResponse(e.getMessage(), Instant.now().atOffset(ZoneOffset.UTC)));
+    @Override
+    protected ResponseEntity<Object> handleHandlerMethodValidationException(
+            HandlerMethodValidationException exception,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        logger.warn("リクエストパラメータの検証に失敗しました: {}", exception.getMessage());
+
+        List<ValidationError> errors = exception.getAllErrors().stream()
+                .map(error -> new ValidationError(
+                        error.getCodes() != null && error.getCodes().length > 0 ? error.getCodes()[0] : "request",
+                        defaultMessage(error)))
+                .toList();
+
+        ProblemDetail problemDetail = buildProblemDetail(
+                status,
+                VALIDATION_ERROR_DETAIL,
+                getRequestUri(request));
+        problemDetail.setProperty("errors", errors);
+
+        return handleExceptionInternal(exception, problemDetail, headers, status, request);
     }
 
-    /**
-     * CSVアップロード処理で発生したエラーを処理
-     * 
-     * バリデーションエラー（BAD_REQUEST）の場合はErrorResponseを返します。
-     * 処理中のエラー（INTERNAL_SERVER_ERROR）の場合もErrorResponseを返します。
-     * 
-     * 部分成功の場合は、ExpenseControllerでCsvUploadResponseDtoを返すため、
-     * このハンドラーは処理全体が失敗した場合のみ処理します。
-     * 
-     * @param e CSVアップロード例外
-     * @return エラーレスポンス
-     */
-    @ExceptionHandler(CsvUploadException.class)
-    public ResponseEntity<ErrorResponse> handleCsvUploadException(CsvUploadException e) {
-        if (e.getHttpStatus() == HttpStatus.BAD_REQUEST) {
-            logger.warn("CSVファイルの読み込みに失敗しました: {}", e.getMessage());
-        } else {
-            logger.error("CSVの処理中にエラーが発生しました");
+    @Override
+    protected ResponseEntity<Object> handleHttpMediaTypeNotSupported(
+            HttpMediaTypeNotSupportedException exception,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        ProblemDetail problemDetail = buildProblemDetail(
+                status,
+                "Content-Typeを確認してください。",
+                getRequestUri(request));
+
+        return handleExceptionInternal(exception, problemDetail, headers, status, request);
+    }
+
+    @Override
+    protected ResponseEntity<Object> handleHttpMessageNotReadable(
+            HttpMessageNotReadableException exception,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
+        ProblemDetail problemDetail = buildProblemDetail(
+                status,
+                "リクエストボディの形式を確認してください。",
+                getRequestUri(request));
+
+        return handleExceptionInternal(exception, problemDetail, headers, status, request);
+    }
+
+    private ProblemDetail buildProblemDetail(HttpStatusCode status, String detail, String requestUri) {
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, detail);
+        problemDetail.setTitle(reasonPhrase(status));
+        problemDetail.setInstance(URI.create(requestUri));
+        return problemDetail;
+    }
+
+    private ValidationError toValidationError(ObjectError error) {
+        String field = error instanceof FieldError fieldError ? fieldError.getField() : error.getObjectName();
+        return new ValidationError(field, defaultMessage(error));
+    }
+
+    private String defaultMessage(ObjectError error) {
+        return error.getDefaultMessage() != null ? error.getDefaultMessage() : "値が不正です。";
+    }
+
+    private String defaultMessage(MessageSourceResolvable error) {
+        return error.getDefaultMessage() != null ? error.getDefaultMessage() : "値が不正です。";
+    }
+
+    private String getRequestUri(WebRequest request) {
+        if (request instanceof ServletWebRequest servletWebRequest) {
+            return servletWebRequest.getRequest().getRequestURI();
         }
-
-        // OpenAPI定義に合わせてErrorResponseを返す
-        return ResponseEntity.status(e.getHttpStatus())
-                .body(new ErrorResponse(e.getMessage(), Instant.now().atOffset(ZoneOffset.UTC)));
+        return "/";
     }
 
+    private String reasonPhrase(HttpStatusCode status) {
+        HttpStatus httpStatus = HttpStatus.resolve(status.value());
+        return httpStatus != null ? httpStatus.getReasonPhrase() : "HTTP " + status.value();
+    }
+
+    private void logByStatus(HttpStatus status, BusinessException exception) {
+        if (status.is5xxServerError()) {
+            logger.error("業務例外が発生しました: {}", exception.getMessage(), exception);
+            return;
+        }
+        logger.warn("業務例外が発生しました: {}", exception.getMessage());
+    }
+    // Problem Details の errors プロパティに格納するバリデーションエラーのフィールド別詳細用DTO。
+    private record ValidationError(String field, String message) {
+    }
 }

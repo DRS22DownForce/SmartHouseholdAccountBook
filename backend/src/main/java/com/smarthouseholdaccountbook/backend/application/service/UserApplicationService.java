@@ -87,8 +87,7 @@ public class UserApplicationService {
             return;
         }
         logger.info("ユーザが見つからないため新規作成します");
-        String email = currentAuthProvider.getCurrentEmail();
-        userRepository.save(new User(sub, email));
+        userRepository.save(new User(sub));
     }
 
     private boolean isEnsured(String sub) {

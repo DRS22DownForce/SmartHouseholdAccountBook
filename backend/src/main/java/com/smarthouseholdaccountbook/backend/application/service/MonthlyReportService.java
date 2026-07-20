@@ -5,18 +5,12 @@ import com.smarthouseholdaccountbook.backend.entity.MonthlyReport;
 import com.smarthouseholdaccountbook.backend.entity.User;
 import com.smarthouseholdaccountbook.backend.application.service.openai.OpenAiClient;
 import com.smarthouseholdaccountbook.backend.exception.AiServiceException;
-import com.smarthouseholdaccountbook.backend.repository.ExpenseRepository;
-import com.smarthouseholdaccountbook.backend.repository.MonthlyReportRepository;
 import com.smarthouseholdaccountbook.backend.valueobject.MonthlySummary;
 
 import tools.jackson.core.type.TypeReference;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-import java.time.YearMonth;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -24,30 +18,26 @@ import java.util.stream.Collectors;
 /**
  * 月次AIレポート生成サービス
  *
- * 指定された月の支出データを詳細に分析し、AIが生成した総評と改善提案を含むレポートを返します。
- * 生成済みレポートはDBに永続化し、再リクエスト時はキャッシュから返します。
+ * 支出データの読み取り・OpenAI 呼び出し・保存を段階的に実行する。
+ * DB アクセスは {@link MonthlyReportPersistenceService} に委譲し、OpenAI 呼び出し中は TX を張らない。
  */
 @Service
 public class MonthlyReportService {
-    private static final String MONTH_FORMAT = "yyyy-MM";
     private static final int TOP_ITEMS_PER_CATEGORY = 3;
     private static final int TOP_OVERALL_ITEMS = 5;
     private static final String MONTHLY_REPORT_SYSTEM_PROMPT = "あなたは家計改善アドバイザーです。提供された支出データを詳細に分析し、具体的な品目・金額に基づいた実践的な改善提案を日本語で行ってください。";
 
-    private final ExpenseRepository expenseRepository;
-    private final MonthlyReportRepository monthlyReportRepository;
     private final UserApplicationService userApplicationService;
     private final OpenAiClient openAiClient;
+    private final MonthlyReportPersistenceService persistenceService;
 
     public MonthlyReportService(
-            ExpenseRepository expenseRepository,
-            MonthlyReportRepository monthlyReportRepository,
             UserApplicationService userApplicationService,
-            OpenAiClient openAiClient) {
-        this.expenseRepository = expenseRepository;
-        this.monthlyReportRepository = monthlyReportRepository;
+            OpenAiClient openAiClient,
+            MonthlyReportPersistenceService persistenceService) {
         this.userApplicationService = userApplicationService;
         this.openAiClient = openAiClient;
+        this.persistenceService = persistenceService;
     }
 
     /**
@@ -55,39 +45,32 @@ public class MonthlyReportService {
      *
      * @param month    対象月（YYYY-MM形式）
      * @param generate trueの場合、すでに生成済みのレポートを無視して再生成する。falseの場合はすでに生成済みのレポートを返す（なければ空）
-     * @return 月次レポート（キャッシュなし・再生成しない場合は空）
+     * @return 月次レポート（再生成しないかつキャッシュがない場合は空）
      * @throws IllegalArgumentException 対象月の支出が0件で再生成する場合
      */
-    @Transactional
     public Optional<MonthlyReport> generateReport(String month, boolean generate) {
         User user = userApplicationService.getUser();
-        Optional<MonthlyReport> existing = monthlyReportRepository.findByUserAndReportMonth(user, month);
 
         if (!generate) {
-            return existing;
+            return persistenceService.findExisting(user, month);
         }
 
-        YearMonth yearMonth = YearMonth.parse(month, DateTimeFormatter.ofPattern(MONTH_FORMAT));
-        LocalDate startDate = yearMonth.atDay(1);
-        LocalDate endDate = yearMonth.atEndOfMonth();
-
-        List<Expense> expenses = expenseRepository.findByUserAndDateBetween(user, startDate, endDate);
+        List<Expense> expenses = persistenceService.loadExpensesForGeneration(user, month);
 
         if (expenses.isEmpty()) {
             throw new IllegalArgumentException(
                     "この月の支出データがありません。レポートを生成するには支出を登録してください。");
         }
-        MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses, month);
-        String prompt = buildPrompt(summary);
-        ParsedAiResponse parsed = callOpenAI(prompt);
 
-        if (existing.isPresent()) {
-            MonthlyReport entity = existing.get();
-            entity.update(parsed.summary(), parsed.suggestions());
-            return Optional.of(entity);
-        }
-        return Optional.of(monthlyReportRepository.save(
-                new MonthlyReport(user, month, parsed.summary(), parsed.suggestions())));
+        MonthlySummary summary = MonthlySummary.createMonthlySummaryFromExpenses(expenses, month);
+        ParsedAiResponse parsed = callOpenAI(buildPrompt(summary));
+
+        MonthlyReport saved = persistenceService.saveOrUpdate(
+                user,
+                month,
+                parsed.summary(),
+                parsed.suggestions());
+        return Optional.of(saved);
     }
 
     private String buildPrompt(MonthlySummary summary) {
@@ -121,13 +104,11 @@ public class MonthlyReportService {
          * 
          */
         String topItemsByCategory = summary.getTopExpensesByCategory(TOP_ITEMS_PER_CATEGORY).entrySet().stream()
-                .map(entry -> {
-                    return String.format("[%s]\n%s", entry.getKey().getDisplayName(), entry.getValue().stream()
-                            .map(e -> String.format("  - %s: %,d円（%s）",
-                                    e.getDescription(), e.getAmount().getAmount(),
-                                    e.getDate().getDate()))
-                            .collect(Collectors.joining("\n")));
-                })
+                .map(entry -> String.format("[%s]\n%s", entry.getKey().getDisplayName(), entry.getValue().stream()
+                        .map(e -> String.format("  - %s: %,d円（%s）",
+                                e.getDescription(), e.getAmount().getAmount(),
+                                e.getDate().getDate()))
+                        .collect(Collectors.joining("\n"))))
                 .collect(Collectors.joining("\n"));
 
         /**
