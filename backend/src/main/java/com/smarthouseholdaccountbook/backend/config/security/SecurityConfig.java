@@ -80,7 +80,8 @@ public class SecurityConfig {
                         .anyRequest().denyAll())
 
                 // OAuth2 Resource Server: Bearer トークンを JwtDecoder で検証
-                // SecurityContextHolderへのセットは自動登録されるBearerTokenAuthenticationFilterで行われる。
+                // JwtAuthenticationConverterを使用してJwtをAuthenticationに変換する。
+                // SecurityContextHolderへのAuthenticationのセットは自動登録されるBearerTokenAuthenticationFilterで行われる。
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .authenticationEntryPoint(authenticationEntryPoint)
                         .jwt(jwt -> jwt

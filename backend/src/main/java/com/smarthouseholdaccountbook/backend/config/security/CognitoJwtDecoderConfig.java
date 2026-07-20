@@ -41,7 +41,7 @@ public class CognitoJwtDecoderConfig {
     @Bean
     public JwtDecoder jwtDecoder() {
         NimbusJwtDecoder decoder = NimbusJwtDecoder
-                .withIssuerLocation(jwtProperties.getIssuerUrl())
+                .withIssuerLocation(jwtProperties.getIssuerUrl())//Issuer URLを設定するとOIDCの仕様に沿ってメタデータが取得でき、JWKSのURLも分かるので自動取得する。
                 .build();
         decoder.setJwtValidator(createCognitoTokenValidator(jwtProperties));
         return decoder;
