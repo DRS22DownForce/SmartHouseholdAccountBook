@@ -50,7 +50,7 @@ Spring Boot は、**Java でアプリケーションを素早く作るための�
 ### このプロジェクトでの位置づけ
 
 - バージョン: `spring-boot-starter-parent` `3.5.13`（`backend/pom.xml`）
-- 言語: Java 21
+- 言語: Java 25
 - 実行形式: 実行可能 JAR（Maven のビルド出力は `target/app.jar`。`pom.xml` の `<finalName>app</finalName>` で固定）
 
 ---

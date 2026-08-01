@@ -25,13 +25,13 @@ EC2 1 台 + Docker Compose + 既存 Cognito + Route 53 + HTTPS (Let's Encrypt)
 | 方針      | 内容                                               |
 | ------- | ------------------------------------------------ |
 | コンピュート  | EC2 1 台（既定: `t4g.small`、ARM64）                   |
-| アプリ実行   | Docker Compose（MySQL + Spring Boot Backend）      |
-| フロントエンド | EC2 上で Next.js をビルドし、systemd で起動                 |
+| アプリ実行   | Docker Compose（MySQL + Backend + Frontend）         |
+| フロントエンド | ECR の Next.js イメージを Compose で起動（systemd なし）   |
 | 認証      | **既存の** Amazon Cognito User Pool を利用（CDK では作らない） |
 | ドメイン    | Route 53 の既存ホストゾーンに A レコードを追加                    |
 | HTTPS   | EC2 上の Nginx + certbot（Let's Encrypt）            |
 | 秘密情報    | AWS Secrets Manager                              |
-| イメージ配布  | Amazon ECR（Backend の Docker イメージ）                |
+| イメージ配布  | Amazon ECR（Backend / Frontend の Docker イメージ）     |
 
 
 ---
@@ -117,9 +117,9 @@ CDK は「インフラの設計図」を CloudFormation テンプレートに変
 
 ### メリット
 
-- **学習しやすい**: 1 台の Linux サーバーに Nginx、Docker、Node.js が載っている形は、従来の VPS 運用に近い
+- **学習しやすい**: 1 台の Linux サーバーに Nginx と Docker（アプリ一式）が載っている形は、従来の VPS 運用に近い
 - **コストが読みやすい**: NAT Gateway や ALB、RDS を使わないため、固定費を抑えやすい
-- **ローカルとの対応が明確**: [02. Docker](../02-docker.md) の `single-host` 構成をそのまま EC2 に持ち込める
+- **ローカルとの対応が明確**: [02. Docker](../02-docker.md) の `prod` profile をそのまま EC2 に持ち込める
 
 ### トレードオフ
 
@@ -139,14 +139,13 @@ CDK は「インフラの設計図」を CloudFormation テンプレートに変
 ローカルと AWS では、**同じ Docker Compose ファイル**をベースに、上書きファイルだけ変えています。
 
 
-| 環境                        | Compose の組み合わせ                                                            | Backend の取得方法              |
-| ------------------------- | ------------------------------------------------------------------------- | -------------------------- |
-| ローカル（single-host-local）   | `single-host.yaml` + `single-host.local.yaml`                             | `docker build`（Dockerfile） |
-| ローカル（single-host-prod 寄せ） | `single-host.yaml` + `single-host.prod.yaml`                              | `docker build`             |
-| **AWS EC2**               | `single-host.yaml` + `single-host.prod.yaml` + `**single-host.aws.yaml`** | **ECR から `docker pull`**   |
+| 環境 | Compose | イメージ取得 |
+|------|---------|--------------|
+| ローカル `dev` | `docker-compose.yaml` + `--profile dev` | `docker build` |
+| ローカル `prod` | `docker-compose.yaml` + `--profile prod` | `docker build` |
+| **AWS EC2** | 上記 `prod` + `docker-compose.aws.yaml` | **ECR から `docker pull`（Backend / Frontend）** |
 
-
-AWS 用の `docker-compose.single-host.aws.yaml` は、Backend の `build` 定義を消し、ECR のイメージ URL を使うための差分です。EC2 上で Maven ビルドや `docker build` を毎回行わないようにしています。
+AWS 用の `docker-compose.aws.yaml` は、Backend / Frontend の `build` を消し、ECR のイメージ URL を使うための差分です。EC2 上で Maven / Next ビルドを行いません。
 
 MySQL のデータ永続化、ユーザー作成、Flyway の役割分担は [03. MySQL](../03-mysql.md) と同じ考え方です。
 
@@ -156,7 +155,7 @@ MySQL のデータ永続化、ユーザー作成、Flyway の役割分担は [03
 
 - このプロジェクトの AWS 構成は **EC2 1 台 + Docker Compose + 既存 Cognito** です。
 - ユーザーは **Route 53 → Elastic IP → Nginx → Next.js / Spring Boot** の順でアクセスします。
-- Backend イメージは **ECR**、DB パスワードなどは **Secrets Manager** に置きます。
+- Backend / Frontend イメージは **ECR**、DB パスワードなどは **Secrets Manager** に置きます。
 - インフラ定義は **AWS CDK（Java）** の `SmartHouseholdStack` にまとまっています。
-- ローカルの `single-host` 構成をベースに、AWS では **ECR pull 用の compose 上書き**を足しています。
+- ローカルの `prod` profile をベースに、AWS では **ECR pull 用の compose 上書き**を足しています。
 

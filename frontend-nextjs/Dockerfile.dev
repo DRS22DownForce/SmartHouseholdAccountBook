@@ -1,0 +1,16 @@
+# 開発用: ソースは compose のバインドマウントで渡す
+# Node 20.19+（package.json engines に合わせる）
+FROM node:20.19-alpine
+
+WORKDIR /app
+
+# 依存だけ先に入れてレイヤーキャッシュを効かせる
+COPY package.json package-lock.json ./
+#pack-lock.jsonどおりに依存パッケージをインストールする。
+RUN npm ci
+
+# ソースは起動時にマウントするため COPY しない
+EXPOSE 3000
+
+# ホストPCからコンテナの3000番ポートに転送されたアクセスが届くようにコンテナ内の0.0.0.0:3000で待ち受ける
+CMD ["npm", "run", "dev", "--", "-H", "0.0.0.0", "-p", "3000"]

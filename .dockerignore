@@ -1,0 +1,27 @@
+# ルートを build context にするとき（backend / frontend 本番イメージ共通）
+# frontend 本番 Dockerfile は frontend-nextjs/ と openapi/ を COPY するため、
+# frontend-nextjs/ ディレクトリ自体は除外しないこと。
+
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+docs/
+infra/
+*.md
+LICENSE
+
+# IDE / OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# 重い成果物（ソースは残す）
+**/target/
+**/node_modules/
+**/.next/
+agent-transcripts/
+.cursor/

@@ -21,7 +21,7 @@ AWS デプロイは、ローカル開発で使う Docker / MySQL の知識とつ
 
 | 内容 | 参照先 |
 |------|--------|
-| Docker Compose、single-host 構成 | [02. Docker](../02-docker.md) |
+| Docker Compose、prod profile 構成 | [02. Docker](../02-docker.md) |
 | MySQL ユーザー、Flyway、接続 URL | [03. MySQL](../03-mysql.md) |
 | バックエンドの Spring Security / Cognito | [docs/backend/](../backend/README.md) |
 

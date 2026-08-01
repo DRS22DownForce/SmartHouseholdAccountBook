@@ -51,11 +51,12 @@
 ```text
 SmartHouseholdAccountBook/
 ├── backend/                 # Spring Boot API
-├── frontend-nextjs/         # Next.js アプリ
+├── frontend-nextjs/         # Next.js アプリ（Dockerfile / Dockerfile.dev）
 ├── openapi/                 # OpenAPI 仕様と paths/components
 ├── docker/
-│   ├── compose/             # 実行モード別 compose ファイル
-│   └── scripts/             # 起動補助スクリプト（stack.sh）
+│   ├── compose/             # docker-compose.yaml + aws overlay
+│   ├── scripts/             # stack.sh（起動ショートカット）
+│   └── mysql/               # my.cnf / init
 └── docs/                    # 学習用ドキュメント
 ```
 
@@ -63,9 +64,8 @@ SmartHouseholdAccountBook/
 
 ### 前提
 
-- Docker / Docker Compose
-- Node.js 18 以上
-- Java 25（ローカルで Spring を起動する場合）
+- Docker / Docker Compose（フロント・バックともコンテナで起動）
+- Java 25（`db` プロファイルで IDE から Spring を動かす場合のみ）
 
 ### 1) リポジトリを取得
 
@@ -76,38 +76,13 @@ cd SmartHouseholdAccountBook
 
 ### 2) 環境変数を設定
 
-#### ルート `.env`（バックエンド / Docker 用）
+ルート `.env`（`.env.example` をコピー）に MySQL / Cognito / OpenAI / CORS / **`SPRING_PROFILES_ACTIVE`** / **Frontend の `NEXT_PUBLIC_*`** を設定します。
 
 ```env
-# MySQL（root はコンテナ運用・init 用。Spring には渡さない）
-MYSQL_ROOT_PASSWORD=your-strong-password
-MYSQL_DATABASE=household_book
+# ... MySQL / Cognito / OpenAI / CORS ...
+SPRING_PROFILES_ACTIVE=dev
 
-# Flyway / アプリ専用ユーザー（init スクリプトで作成）
-MYSQL_FLYWAY_USER=flyway_user
-MYSQL_FLYWAY_PASSWORD=your-flyway-password
-MYSQL_APP_USER=app_user
-MYSQL_APP_PASSWORD=your-app-password
-
-# DataSource（DEV=IDE、PROD=single-host コンテナ。パスは MYSQL_DATABASE と一致）
-SPRING_DATASOURCE_URL_DEV=jdbc:mysql://localhost:3306/household_book?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
-SPRING_DATASOURCE_URL_PROD=jdbc:mysql://mysql:3306/household_book?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
-
-# Cognito (JWT 検証。JWKS は Issuer から自動解決)
-COGNITO_ISSUER_URL=https://cognito-idp.<region>.amazonaws.com/<user-pool-id>
-COGNITO_CLIENT_ID=your-client-id
-
-# OpenAI
-OPENAI_API_KEY=your-openai-api-key
-OPENAI_API_URL=https://api.openai.com/v1
-
-# CORS
-CORS_ALLOWED_ORIGINS=http://localhost:3000
-```
-
-#### `frontend-nextjs/.env.local`（フロント用）
-
-```env
+# Frontend（ブラウザに埋め込まれる公開値。秘密情報を入れない）
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 NEXT_PUBLIC_AWS_REGION=ap-northeast-1
 NEXT_PUBLIC_COGNITO_USER_POOL_ID=your-user-pool-id
@@ -116,42 +91,46 @@ NEXT_PUBLIC_COGNITO_CLIENT_ID=your-client-id
 
 ### 3) 起動方法を選ぶ
 
-#### A. 一番簡単（推奨）
-
-バックエンド + MySQL + フロント（Next.js）をまとめて起動:
+#### A. 全部 Docker（推奨・日常開発）
 
 ```bash
-./docker/scripts/stack.sh up single-host-local
+./docker/scripts/stack.sh up dev
 ```
+
+MySQL + Backend + Frontend（`next dev`・ソースのバインドマウント）が起動します。  
+UI: http://localhost:3000 / API: http://localhost:8080
 
 停止:
 
 ```bash
-./docker/scripts/stack.sh down single-host-local
+./docker/scripts/stack.sh down dev
 ```
 
-#### B. Spring をローカルで起動したい場合
-
-MySQL のみ Docker で起動:
+#### B. 本番寄せ（standalone Frontend）
 
 ```bash
-docker compose --project-directory "$(pwd)" --env-file .env \
-  -f docker/compose/docker-compose.dev.yaml up -d
+./docker/scripts/stack.sh up prod
 ```
 
-バックエンド:
+#### C. IDE で Spring だけ動かす
+
+MySQL のみ:
+
+```bash
+./docker/scripts/stack.sh up db
+```
 
 ```bash
 cd backend
 ./mvnw spring-boot:run -Plocal
 ```
 
-フロントエンド:
+（Frontend も使う場合は `up dev` を推奨）
+
+### イメージの脆弱性確認（任意）
 
 ```bash
-cd frontend-nextjs
-npm install
-npm run dev
+docker scout cves smart_household_backend
 ```
 
 ## 開発でよく使うコマンド

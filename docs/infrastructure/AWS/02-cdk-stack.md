@@ -202,9 +202,14 @@ Repository backendRepository = Repository.Builder.create(this, "BackendRepositor
         .repositoryName(projectName + "/backend")
         .lifecycleRules(...)  // 直近 5 イメージだけ保持
         .build();
+
+Repository frontendRepository = Repository.Builder.create(this, "FrontendRepository")
+        .repositoryName(projectName + "/frontend")
+        .lifecycleRules(...)
+        .build();
 ```
 
-Backend の Docker イメージを push する場所です。古いイメージを自動削除し、ストレージコストを抑えます。
+Backend / Frontend の Docker イメージを push する場所です。古いイメージを自動削除し、ストレージコストを抑えます。
 
 ### EC2 インスタンス
 
@@ -247,7 +252,8 @@ Role instanceRole = Role.Builder.create(this, "Ec2InstanceRole")
         .build();
 
 appSecret.grantRead(instanceRole);           // Secrets Manager
-backendRepository.grantPull(instanceRole);   // ECR イメージ pull
+backendRepository.grantPull(instanceRole);   // ECR Backend pull
+frontendRepository.grantPull(instanceRole);  // ECR Frontend pull
 bootstrapAsset.grantRead(instanceRole);      // bootstrap zip（S3）
 // + SSM Parameter（/smart-household/*）の GetParameter
 ```
@@ -256,7 +262,7 @@ bootstrapAsset.grantRead(instanceRole);      // bootstrap zip（S3）
 |------|------|
 | `AmazonSSMManagedInstanceCore` | SSM Session Manager / Run Command（SSH なし運用） |
 | Secrets Manager 読み取り | DB パスワード・API キーなど |
-| ECR pull | Backend イメージの取得 |
+| ECR pull | Backend / Frontend イメージの取得 |
 | SSM Parameter 読み取り | Cognito ID、ドメイン名、Git URL など |
 | Bootstrap Asset（S3）読み取り | deploy-app 時の bootstrap zip ダウンロード |
 
@@ -360,7 +366,8 @@ sequenceDiagram
 | `InstanceId` | SSM で EC2 を操作するとき |
 | `ElasticIp` | 公開 IP の確認 |
 | `AppUrl` | `https://{domainName}` |
-| `BackendRepositoryUri` | `deploy-app.sh` が ECR に push するとき |
+| `BackendRepositoryUri` | `deploy-app.sh` が Backend を ECR に push するとき |
+| `FrontendRepositoryUri` | `deploy-app.sh` が Frontend を ECR に push するとき |
 | `AppSecretArn` | bootstrap が Secrets を読むとき |
 | `BootstrapAssetS3Url` | bootstrap 修復用 zip の場所 |
 | `CognitoIssuerUrl` | Spring Boot の JWT 検証設定の確認 |
@@ -382,7 +389,7 @@ sequenceDiagram
 
 ### パフォーマンス / コスト
 
-- `t4g.small`（2 GB RAM）は Backend + Frontend ビルドを想定。`t4g.micro` では Next.js ビルドが OOM になりやすいです。
+- `t4g.small`（2 GB RAM）は **実行**向け（ビルドはローカルの `deploy-app.sh`）。`t4g.micro` ではメモリ不足になりやすいです。
 - ECR のライフサイクルルールで古いイメージを削除し、ストレージ課金を抑えます。
 - NAT Gateway なしの VPC で、月額の固定ネットワークコストを避けています。
 

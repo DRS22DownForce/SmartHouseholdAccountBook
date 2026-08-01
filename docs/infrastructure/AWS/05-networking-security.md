@@ -244,7 +244,7 @@ CDK（`SmartHouseholdStack`）が `domainName` から CORS 許可 Origin を **`
 |------|----------|
 | SSH が不要なら閉じている | `enableSshAccess: false` |
 | 80/443 以外が外部に開いていない | AWS コンソールの SG を確認 |
-| MySQL が外部公開されていない | `single-host.prod` に `ports` が無いこと |
+| MySQL が外部公開されていない | MySQL が `127.0.0.1` のみ（または非公開）であること |
 | Secrets が入っている | `aws secretsmanager get-secret-value --secret-id smart-household/app` |
 | HTTPS が有効 | ブラウザで鍵マーク、HTTP が HTTPS にリダイレクト |
 | Cognito コールバック URL | 本番ドメインと一致 |

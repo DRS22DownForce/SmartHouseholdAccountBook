@@ -196,8 +196,8 @@ Cognito Client ID は公開情報ですが、**User Pool のパスワードポ�
 
 1. AWS で User Pool と App Client を作成
 2. ルート `.env` に `COGNITO_*` を設定（バックエンド）
-3. `frontend-nextjs/.env.local` に `NEXT_PUBLIC_COGNITO_*` を設定
-4. `stack.sh up` または `npm run dev` で起動
+3. ルート `.env` に `NEXT_PUBLIC_COGNITO_*` も設定（Frontend コンテナ用）
+4. `./docker/scripts/stack.sh up dev` で起動
 5. ブラウザでサインアップ → 確認メール → ログイン
 6. DevTools → Network で API に `Authorization` が付いているか確認
 

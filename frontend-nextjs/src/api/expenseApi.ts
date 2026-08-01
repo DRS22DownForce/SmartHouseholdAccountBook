@@ -2,7 +2,7 @@
  * Expense API クライアント
  */
 
-import { getExpenseApiClient } from './apiClient';
+import { getExpenseApiClient, getExpenseSummaryApiClient, getCsvExpensesApiClient } from './apiClient';
 import {
     toExpense,
     toExpenseRequestDto,
@@ -77,7 +77,7 @@ export async function deleteExpense(id: string): Promise<void> {
  * 利用可能な月のリストを取得
  */
 export async function fetchAvailableMonths(): Promise<string[]> {
-    const api = getExpenseApiClient();
+    const api = getExpenseSummaryApiClient();
     const response = await api.apiExpensesMonthsGet();
     return response.data ?? [];
 }
@@ -86,7 +86,7 @@ export async function fetchAvailableMonths(): Promise<string[]> {
  * 月別サマリーを取得
  */
 export async function fetchMonthlySummary(month: string): Promise<MonthlySummary> {
-    const api = getExpenseApiClient();
+    const api = getExpenseSummaryApiClient();
     const response = await api.apiExpensesSummaryGet(month);
     return toMonthlySummary(response.data);
 }
@@ -98,7 +98,7 @@ export async function fetchMonthlySummaryRange(
     startMonth: string,
     endMonth: string
 ): Promise<MonthlySummary[]> {
-    const api = getExpenseApiClient();
+    const api = getExpenseSummaryApiClient();
     const response = await api.apiExpensesSummaryRangeGet(startMonth, endMonth);
     return response.data.map(toMonthlySummary);
 }
@@ -127,7 +127,7 @@ export interface CsvUploadResponse {
  *                         （MITSUISUMITOMO_OLD_FORMAT: 三井住友カード 確定月、MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 未確定月）
  */
 export async function uploadCsvFile(file: File, csvFormat: ApiExpensesUploadCsvPostCsvFormatEnum): Promise<CsvUploadResponse> {
-    const api = getExpenseApiClient();
+    const api = getCsvExpensesApiClient();
     const response = await api.apiExpensesUploadCsvPost(file, csvFormat);
     const d = response.data;
     return {

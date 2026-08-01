@@ -73,8 +73,8 @@ public class MyClass {
 
 | プロファイル | 設定ファイル | 用途 |
 |-------------|-------------|------|
-| `dev` | `application-dev.properties` | ローカル IDE、`single-host-local` |
-| `prod` | `application-prod.properties` | EC2 `single-host-prod` |
+| `dev` | `application-dev.properties` | ローカル IDE、`./docker/scripts/stack.sh up dev` |
+| `prod` | `application-prod.properties` | EC2 / `./docker/scripts/stack.sh up prod` |
 
 | 項目 | dev | prod |
 |------|-----|------|

@@ -179,7 +179,7 @@ EC2 上では状況に応じて処理が変わります（詳細は [EC2 ブー�
 |------|------|
 | 初回（bootstrap 未完了） | `bootstrap.sh` をフル実行 |
 | 通常更新 | `BOOTSTRAP_MODE=update-backend`（`.env` 再生成 → ECR pull → `compose up`） |
-| Frontend 未構築 | `BOOTSTRAP_MODE=frontend-only` で Next.js ビルド |
+| Frontend / Backend | ECR イメージを pull して Compose で起動 |
 
 ---
 
@@ -194,7 +194,7 @@ init-secrets.sh
   → Secrets にパスワード投入
 deploy-app.sh
   → ECR にイメージ push、SSM 経由で bootstrap 開始
-  → Next.js ビルド（数分〜十数分かかることがある）
+  → Frontend / Backend イメージを ECR から pull（ビルドはローカルの deploy-app）
 ```
 
 初回の Frontend ビルドは `t4g.small` でも時間がかかります。swap を追加するなど、bootstrap 側でメモリ不足対策をしています。

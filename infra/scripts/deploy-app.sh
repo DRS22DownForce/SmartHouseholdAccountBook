@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# バックエンド Docker イメージを ECR に push し、EC2 上で bootstrap 修復 + Compose 更新（SSM）
+# Backend / Frontend Docker イメージを ECR に push し、EC2 上で bootstrap 修復 + Compose 更新（SSM）
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -13,8 +13,7 @@ if [[ ! -d node_modules ]]; then
   npm install
 fi
 
-#CDK(AWS Cloud Development Kit)のスタック出力を取得する関数
-#OutputはSmartHouseholdStatck.javaで定義されている
+# CDK スタック出力を取得する関数
 stack_output() {
   local key="$1"
   aws cloudformation describe-stacks \
@@ -24,14 +23,30 @@ stack_output() {
     --region "${AWS_REGION}" 2>/dev/null || true
 }
 
+ssm_param() {
+  local name="$1"
+  aws ssm get-parameter \
+    --name "/${PROJECT_NAME}/${name}" \
+    --query Parameter.Value \
+    --output text \
+    --region "${AWS_REGION}" 2>/dev/null || true
+}
+
 echo "[deploy-app] Resolving stack outputs..."
 ECR_URI="$(stack_output BackendRepositoryUri)"
-INSTANCE_ID="$(stack_output InstanceId)" #EC2のインスタンスIDを取得する
+ECR_FRONTEND_URI="$(stack_output FrontendRepositoryUri)"
+INSTANCE_ID="$(stack_output InstanceId)"
 APP_SECRET_ARN="$(stack_output AppSecretArn)"
 BOOTSTRAP_ASSET_URL="$(stack_output BootstrapAssetS3Url)"
+APP_URL="$(stack_output AppUrl)"
 
 if [[ -z "${ECR_URI}" || "${ECR_URI}" == "None" ]]; then
-  echo "ERROR: ECR URI を取得できません。先に ./infra/scripts/deploy.sh を実行してください。" >&2
+  echo "ERROR: Backend ECR URI を取得できません。先に ./infra/scripts/deploy.sh を実行してください。" >&2
+  exit 1
+fi
+
+if [[ -z "${ECR_FRONTEND_URI}" || "${ECR_FRONTEND_URI}" == "None" ]]; then
+  echo "ERROR: Frontend ECR URI を取得できません。cdk deploy で FrontendRepository を作成してください。" >&2
   exit 1
 fi
 
@@ -45,15 +60,39 @@ docker build --platform "${DOCKER_PLATFORM}" \
   -t "${ECR_URI}:latest" \
   "${ROOT}"
 
+# Frontend: NEXT_PUBLIC_* はビルド時に埋め込む（ブラウザ向け公開値）
+POOL_ID="$(ssm_param "cognito/user-pool-id")"
+CLIENT_ID="$(ssm_param "cognito/client-id")"
+if [[ -z "${APP_URL}" || "${APP_URL}" == "None" ]]; then
+  APP_URL="$(ssm_param "domain/app-url")"
+fi
+if [[ -z "${APP_URL}" || "${APP_URL}" == "None" ]]; then
+  echo "ERROR: App URL を取得できません。" >&2
+  exit 1
+fi
+
+echo "[deploy-app] Building frontend image for ${DOCKER_PLATFORM}..."
+docker build --platform "${DOCKER_PLATFORM}" \
+  -f "${ROOT}/frontend-nextjs/Dockerfile" \
+  --build-arg "NEXT_PUBLIC_API_BASE_URL=${APP_URL}" \
+  --build-arg "NEXT_PUBLIC_AWS_REGION=${AWS_REGION}" \
+  --build-arg "NEXT_PUBLIC_COGNITO_USER_POOL_ID=${POOL_ID}" \
+  --build-arg "NEXT_PUBLIC_COGNITO_CLIENT_ID=${CLIENT_ID}" \
+  -t "${PROJECT_NAME}-frontend:latest" \
+  -t "${ECR_FRONTEND_URI}:latest" \
+  "${ROOT}"
+
 echo "[deploy-app] Logging in to ECR..."
 aws ecr get-login-password --region "${AWS_REGION}" \
   | docker login --username AWS --password-stdin "${ECR_URI%%/*}"
 
 echo "[deploy-app] Pushing ${ECR_URI}:latest ..."
 docker push "${ECR_URI}:latest"
+echo "[deploy-app] Pushing ${ECR_FRONTEND_URI}:latest ..."
+docker push "${ECR_FRONTEND_URI}:latest"
 
 if [[ -z "${INSTANCE_ID}" || "${INSTANCE_ID}" == "None" ]]; then
-  echo "[deploy-app] Image pushed. EC2 instance ID が不明なため SSM 更新はスキップします。"
+  echo "[deploy-app] Images pushed. EC2 instance ID が不明なため SSM 更新はスキップします。"
   exit 0
 fi
 
@@ -75,8 +114,8 @@ fi
 echo "[deploy-app] Updating EC2 via SSM (${INSTANCE_ID})..."
 echo "[deploy-app] 未セットアップの EC2 は bootstrap 修復後に Backend/Frontend を起動します（最大 90 分）。"
 
-#Pythonを利用してJSON形式でSSMのパラメータを作成する
 SSM_PARAMS="$(PROJECT_NAME="${PROJECT_NAME}" AWS_REGION="${AWS_REGION}" ECR_URI="${ECR_URI}" \
+  ECR_FRONTEND_URI="${ECR_FRONTEND_URI}" \
   APP_SECRET_ARN="${APP_SECRET_ARN}" BOOTSTRAP_ASSET_URL="${BOOTSTRAP_ASSET_URL}" \
   python3 <<'PY'
 import json
@@ -85,6 +124,7 @@ import os
 region = os.environ["AWS_REGION"]
 project = os.environ["PROJECT_NAME"]
 ecr = os.environ["ECR_URI"]
+ecr_fe = os.environ["ECR_FRONTEND_URI"]
 secret_arn = os.environ["APP_SECRET_ARN"]
 bootstrap_url = os.environ["BOOTSTRAP_ASSET_URL"]
 
@@ -93,6 +133,7 @@ commands = [
     f"export PROJECT_NAME={project}",
     f"export AWS_REGION={region}",
     f"export ECR_REPO_URI={ecr}",
+    f"export ECR_FRONTEND_REPO_URI={ecr_fe}",
     f"export APP_SECRET_ARN={secret_arn}",
     f"export BOOTSTRAP_ASSET_URL={bootstrap_url}",
     "dnf install -y aws-cli unzip || true",
@@ -105,11 +146,11 @@ commands = [
 print(json.dumps({"commands": commands}))
 PY
 )"
-#ssm send-commandを使用してSSHを利用せず、EC2にコマンドを送信する
+
 COMMAND_ID="$(aws ssm send-command \
   --instance-ids "${INSTANCE_ID}" \
   --document-name "AWS-RunShellScript" \
-  --comment "Deploy Smart Household (bootstrap repair + backend)" \
+  --comment "Deploy Smart Household (bootstrap repair + backend/frontend)" \
   --timeout-seconds 7200 \
   --parameters "${SSM_PARAMS}" \
   --region "${AWS_REGION}" \
@@ -122,7 +163,6 @@ poll_ssm() {
   local start_ts
   start_ts=$(date +%s)
   for _ in $(seq 1 180); do
-  #ssm get-command-invocationを使用してSSMコマンドの実行状況を取得する
     status="$(aws ssm get-command-invocation \
       --command-id "${COMMAND_ID}" \
       --instance-id "${INSTANCE_ID}" \
@@ -157,7 +197,6 @@ poll_ssm() {
 
 poll_ssm
 
-APP_URL="$(stack_output AppUrl)"
 if [[ -z "${APP_URL}" || "${APP_URL}" == "None" ]]; then
   APP_URL="$(stack_output ElasticIp)"
 fi

@@ -70,10 +70,8 @@ MySQL に直接関係するファイルは次の通りです。
 
 ```text
 .
-├── docker/compose/docker-compose.dev.yaml
-├── docker/compose/docker-compose.single-host.yaml
-├── docker/compose/docker-compose.single-host.local.yaml
-├── docker/compose/docker-compose.single-host.prod.yaml
+├── docker/compose/docker-compose.yaml
+├── docker/compose/docker-compose.aws.yaml
 ├── docker/mysql/my.cnf
 ├── docker/mysql/init/01-create-db-users.sh
 ├── backend/src/main/resources/application.properties
@@ -82,10 +80,8 @@ MySQL に直接関係するファイルは次の通りです。
 
 | ファイル | 見るポイント |
 |----------|--------------|
-| `docker/compose/docker-compose.dev.yaml` | MySQL だけをローカル開発用に起動する設定 |
-| `docker/compose/docker-compose.single-host.yaml` | MySQL とバックエンドを同じ Docker ネットワークで起動する設定 |
-| `docker/compose/docker-compose.single-host.local.yaml` | ローカル用のポート公開と SQL ログ設定 |
-| `docker/compose/docker-compose.single-host.prod.yaml` | 本番寄せの SQL ログ抑制設定 |
+| `docker-compose.yaml` | MySQL（profiles: `db` / `dev` / `prod`） |
+| `docker-compose.aws.yaml` | ECR 用 override（MySQL は本体のまま） |
 | `docker/mysql/my.cnf` | MySQL サーバーの文字コード・タイムゾーン設定 |
 | `docker/mysql/init/01-create-db-users.sh` | 初回起動時のみ DB ユーザー作成 |
 | `application.properties` | app / Flyway 用の接続設定 |
@@ -99,8 +95,8 @@ MySQL に直接関係するファイルは次の通りです。
 
 | 実行方法 | Spring Boot の場所 | MySQL の見え方 | JDBC URL のホスト |
 |----------|-------------------|----------------|-------------------|
-| `docker/compose/docker-compose.dev.yaml` | ローカルPC / IDE | `localhost:3306` | `localhost` |
-| `docker/compose/docker-compose.single-host.yaml` | Docker コンテナ内 | Compose サービス名 | `mysql` |
+| `./docker/scripts/stack.sh up db`（IDE） | ローカルPC / IDE | `localhost:3306` | `localhost` |
+| `./docker/scripts/stack.sh up dev` / `prod` | Docker コンテナ内 | Compose サービス名 | `mysql` |
 
 ### ローカル開発時
 
@@ -121,9 +117,9 @@ spring.flyway.password=${MYSQL_FLYWAY_PASSWORD}
 
 `localhost` は Spring Boot をローカルPCで動かすため。
 
-### 単一ホスト構成時
+### コンテナ構成時
 
-JDBC URL は **`.env` の `SPRING_DATASOURCE_URL_PROD` を正**とし、Compose ではそれをコンテナへ渡します（`single-host.local` / `single-host.prod` で URL は変えません）。
+JDBC URL は **`.env` の `SPRING_DATASOURCE_URL_PROD` を正**とし、Compose ではそれを Backend コンテナへ渡します。
 
 ```yaml
 SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_PROD}
@@ -133,11 +129,11 @@ SPRING_FLYWAY_USER: ${MYSQL_FLYWAY_USER}
 SPRING_FLYWAY_PASSWORD: ${MYSQL_FLYWAY_PASSWORD}
 ```
 
-| Compose の組み合わせ | 用途 | JDBC / MySQL ポート / SQL ログ |
-|----------------------|------|--------------------------------|
-| `docker-compose.dev.yaml` | 日常開発（Spring はホスト） | `SPRING_DATASOURCE_URL_DEV`、`127.0.0.1:3306` 公開 |
-| `single-host.yaml` + `single-host.local.yaml` | デプロイ前の通し確認 | `SPRING_DATASOURCE_URL_PROD`、`127.0.0.1:3306` 公開、SQL ログ ON |
-| `single-host.yaml` + `single-host.prod.yaml` | EC2 本番 | 同上 URL、MySQL ポート非公開、SQL ログ OFF |
+| モード | 用途 | JDBC / プロファイル |
+|--------|------|---------------------|
+| `db` | IDE 用 MySQL のみ | `SPRING_DATASOURCE_URL_DEV`（ホスト側 Spring） |
+| `dev` | 日常開発フルスタック | `SPRING_DATASOURCE_URL_PROD`、`SPRING_PROFILES_ACTIVE=dev` |
+| `prod` | 通し確認・EC2 | 同上 URL、`SPRING_PROFILES_ACTIVE=prod` |
 
 `SPRING_*` は `spring.*` に対応（[01. Spring コア](../backend/01-spring-core.md)）。`mysql` は Compose のサービス名。
 Docker Compose の同じネットワーク内では、サービス名がホスト名として使えます。
@@ -148,13 +144,13 @@ Docker Compose の同じネットワーク内では、サービス名がホス�
 
 ## MySQL コンテナ設定
 
-`docker/compose/docker-compose.dev.yaml` では MySQL だけを起動します。
+`docker-compose.yaml` の `mysql` サービス（`./docker/scripts/stack.sh up db` で MySQL のみ起動できます）。
 
 ```yaml
 services:
   mysql:
-    image: mysql:8.0
-    container_name: mysql-dev
+    image: mysql:8.0.42
+    container_name: smart_household_mysql
     ports:
       - "127.0.0.1:3306:3306"
     environment:
@@ -165,7 +161,7 @@ services:
       MYSQL_APP_USER: ${MYSQL_APP_USER}
       MYSQL_APP_PASSWORD: ${MYSQL_APP_PASSWORD}
     volumes:
-      - mysql_dev_data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
       - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
       - ./docker/mysql/init:/docker-entrypoint-initdb.d
 ```
@@ -181,7 +177,7 @@ MySQL のデータは `/var/lib/mysql` に保存されます。
 
 ```yaml
 volumes:
-  - mysql_dev_data:/var/lib/mysql
+  - mysql_data:/var/lib/mysql
 ```
 
 ここを名前付きボリュームにしているため、コンテナを消しても DB データは残ります。
@@ -373,15 +369,14 @@ spring.jackson.time-zone=UTC
 ### MySQL だけ起動する
 
 ```bash
-docker compose --project-directory "$(pwd)" --env-file .env -f docker/compose/docker-compose.dev.yaml up -d
+docker compose --project-directory "$(pwd)" --env-file .env -f docker/compose/docker-compose.yaml（profile db） up -d
 ```
 
 ### MySQL とバックエンドをまとめて起動する
 
 ```bash
 docker compose --project-directory "$(pwd)" --env-file .env \
-  -f docker/compose/docker-compose.single-host.yaml \
-  -f docker/compose/docker-compose.single-host.local.yaml \
+  -f docker/compose/docker-compose.yaml --profile dev \
   up -d --build
 ```
 
@@ -498,10 +493,10 @@ spring.jackson.time-zone=UTC
 ### セキュリティ
 
 - `.env` には DB パスワードや API キーが入るため、Git にコミットしません。
-- 本番では MySQL ポートをインターネットへ公開しません（`single-host.prod` では `ports` を付けない）。
+- 本番では MySQL ポートをインターネットへ公開しません（`prod profile` では `ports` を付けない）。
 - 本番では SQL ログを出しっぱなしにしません。支出内容やメールアドレスがログに混ざる可能性があります。
 - ランタイムは `app_user`、Flyway は `flyway_user`。`root` は init / healthcheck のみ。
-- **JDBC の `useSSL=false`** は、backend と MySQL が同一 Docker ネットワーク内の single-host 向けです。DB をネットワーク越し（RDS 等）に置く場合は `.env` の URL を `sslMode=VERIFY_IDENTITY` 等に切り替え、`allowPublicKeyRetrieval=true` は原則外してください。
+- **JDBC の `useSSL=false`** は、backend と MySQL が同一 Docker ネットワーク内の 同一 Docker ネットワーク向けです。DB をネットワーク越し（RDS 等）に置く場合は `.env` の URL を `sslMode=VERIFY_IDENTITY` 等に切り替え、`allowPublicKeyRetrieval=true` は原則外してください。
 - SQL インジェクション対策は、文字列結合ではなく Repository / JPQL のパラメータバインディングに寄せます。詳しくは [03. データ層](../backend/03-data.md#sql-インジェクション対策の仕組み) を参照してください。
 
 ### パフォーマンス

@@ -1,18 +1,17 @@
 #!/usr/bin/env bash
 # deploy-app.sh → remote-app-deploy.sh から呼ばれるセットアップスクリプト。
-# Docker Compose（MySQL + Backend）と Nginx + Next.js を 1 台に載せます。
+# Docker Compose（MySQL + Backend + Frontend）とホスト Nginx を 1 台に載せます。
 set -euxo pipefail
 
 APP_ROOT="/opt/smart-household"
 APP_DIR="${APP_ROOT}/app"
 ENV_FILE="${APP_ROOT}/.env"
 BOOTSTRAP_MARKER="${APP_ROOT}/.bootstrap-complete"
-FRONTEND_MARKER="${APP_ROOT}/.frontend-complete"
 
+# profile=prod で本体 + AWS（ECR）オーバーレイ
 COMPOSE_FILES=(
-  -f docker/compose/docker-compose.single-host.yaml
-  -f docker/compose/docker-compose.single-host.prod.yaml
-  -f docker/compose/docker-compose.single-host.aws.yaml
+  -f docker/compose/docker-compose.yaml
+  -f docker/compose/docker-compose.aws.yaml
 )
 
 log() {
@@ -34,7 +33,7 @@ compose() {
   (
     cd "${APP_DIR}"
     docker compose --project-directory "${APP_DIR}" --env-file "${ENV_FILE}" \
-      "${COMPOSE_FILES[@]}" "$@"
+      --profile prod "${COMPOSE_FILES[@]}" "$@"
   )
 }
 
@@ -43,27 +42,11 @@ ecr_login() {
     | docker login --username AWS --password-stdin "${ECR_REPO_URI%%/*}"
 }
 
-# t4g.small 向け: Next.js ビルド用 swap（初回のみ作成。再実行時は既存を触らない）
-ensure_swap() {
-  local swap_path="/swapfile"
-  local want_swap_mb=4096
-
-  [[ -f "${swap_path}" ]] && return 0
-  [[ "$(free -m | awk '/^Swap:/ {print $2}')" -ge $((want_swap_mb * 95 / 100)) ]] && return 0
-
-  log "Creating ${want_swap_mb}MB swap at ${swap_path}..."
-  fallocate -l "${want_swap_mb}M" "${swap_path}"
-  chmod 600 "${swap_path}"
-  mkswap "${swap_path}"
-  swapon "${swap_path}"
-  grep -q "${swap_path}" /etc/fstab || echo "${swap_path} none swap sw 0 0" >> /etc/fstab
-}
-
 install_packages() {
   log "Installing OS packages..."
   dnf update -y
   dnf install -y docker nginx git jq tar gzip unzip certbot \
-    python3-certbot-nginx bind-utils java-21-amazon-corretto-headless
+    python3-certbot-nginx bind-utils
   systemctl enable --now docker
   systemctl enable nginx
 
@@ -75,14 +58,6 @@ install_packages() {
       -o "${compose_plugin}"
     chmod +x "${compose_plugin}"
   fi
-
-  if ! command -v node >/dev/null 2>&1; then
-    log "Installing Node.js 20..."
-    curl -fsSL https://rpm.nodesource.com/setup_20.x | bash -
-    dnf install -y nodejs
-  fi
-
-  ensure_swap
 }
 
 fetch_application_source() {
@@ -137,10 +112,18 @@ write_env_file() {
     exit 1
   fi
 
-  local client_id issuer cors_origins
+  local client_id issuer cors_origins app_url pool_id
   client_id="$(ssm_param "cognito/client-id")"
   issuer="$(ssm_param "cognito/issuer-url")"
   cors_origins="$(ssm_param "domain/cors-allowed-origins")"
+  app_url="$(ssm_param "domain/app-url")"
+  pool_id="$(ssm_param "cognito/user-pool-id")"
+
+  # Frontend ECR URI（deploy-app が渡す）。未設定時は Backend と同じレジストリ配下の frontend を推定しないよう必須にする。
+  if [[ -z "${ECR_FRONTEND_REPO_URI:-}" ]]; then
+    log "ERROR: ECR_FRONTEND_REPO_URI が未設定です。deploy-app.sh を新しい版で実行してください。"
+    exit 1
+  fi
 
   cat > "${ENV_FILE}" <<EOF
 MYSQL_ROOT_PASSWORD=${mysql_root}
@@ -151,12 +134,18 @@ MYSQL_APP_USER=app_user
 MYSQL_APP_PASSWORD=${mysql_app}
 SPRING_DATASOURCE_URL_PROD=jdbc:mysql://mysql:3306/${mysql_db}?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
 SPRING_DATASOURCE_URL_DEV=jdbc:mysql://localhost:3306/${mysql_db}?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8&serverTimezone=UTC
+SPRING_PROFILES_ACTIVE=prod
 COGNITO_ISSUER_URL=${issuer}
 COGNITO_CLIENT_ID=${client_id}
 OPENAI_API_KEY=${openai_key}
 OPENAI_API_URL=${openai_url}
 CORS_ALLOWED_ORIGINS=${cors_origins}
 ECR_BACKEND_IMAGE=${ECR_REPO_URI}:latest
+ECR_FRONTEND_IMAGE=${ECR_FRONTEND_REPO_URI}:latest
+NEXT_PUBLIC_API_BASE_URL=${app_url}
+NEXT_PUBLIC_AWS_REGION=${AWS_REGION}
+NEXT_PUBLIC_COGNITO_USER_POOL_ID=${pool_id}
+NEXT_PUBLIC_COGNITO_CLIENT_ID=${client_id}
 EOF
 }
 
@@ -252,82 +241,14 @@ setup_https() {
   log "HTTPS setup completed."
 }
 
-setup_frontend_unit() {
-  if [[ ! -f "${APP_DIR}/frontend-nextjs/package.json" ]]; then
-    log "Frontend source not found. Skip Next.js setup."
-    return 0
-  fi
-
-  log "Building frontend (this may take several minutes on first boot)..."
-  local app_url pool_id client_id
-  app_url="$(ssm_param "domain/app-url")"
-  pool_id="$(ssm_param "cognito/user-pool-id")"
-  client_id="$(ssm_param "cognito/client-id")"
-
-  cat > "${APP_DIR}/frontend-nextjs/.env.local" <<EOF
-NEXT_PUBLIC_API_BASE_URL=${app_url}
-NEXT_PUBLIC_AWS_REGION=${AWS_REGION}
-NEXT_PUBLIC_COGNITO_USER_POOL_ID=${pool_id}
-NEXT_PUBLIC_COGNITO_CLIENT_ID=${client_id}
-EOF
-
-  # ビルド中は RAM 確保のため Compose を一時停止
-  log "Stopping Docker stack temporarily to free RAM for frontend build..."
-  compose stop || true
-
-  cd "${APP_DIR}/frontend-nextjs"
-  export NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=1536}"
-  export NEXT_TELEMETRY_DISABLED=1
-  npm ci
-  npm run generate:api
-  npm run build
-
-  log "Restarting Docker stack after frontend build..."
-  cd "${APP_DIR}"
-  compose up -d
-
-#Next.jsサーバーをsystemdのサービスとして登録する
-  cat > /etc/systemd/system/smart-household-frontend.service <<'UNIT'
-[Unit]
-Description=Smart Household Next.js frontend
-After=network.target
-
-[Service]
-Type=simple
-WorkingDirectory=/opt/smart-household/app/frontend-nextjs
-Environment=NODE_ENV=production
-Environment=PORT=3000
-ExecStart=/usr/bin/npm run start
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-UNIT
-
-  systemctl daemon-reload
-  systemctl enable --now smart-household-frontend.service
-}
-
 # --- 特殊モード（remote-app-deploy.sh から呼び出し） ---
 
-if [[ "${BOOTSTRAP_MODE:-}" == "update-backend" ]]; then
+if [[ "${BOOTSTRAP_MODE:-}" == "update-app" ]]; then
   write_env_file
   ecr_login
-  compose pull backend
+  compose pull backend frontend
   compose up -d
-  log "Backend updated (.env refreshed, image pulled, stack restarted)."
-  exit 0
-fi
-
-if [[ "${BOOTSTRAP_MODE:-}" == "frontend-only" ]]; then
-  if [[ ! -f "${ENV_FILE}" ]]; then
-    log "ERROR: ${ENV_FILE} がありません。先に full bootstrap を実行してください。"
-    exit 1
-  fi
-  setup_frontend_unit
-  touch "${FRONTEND_MARKER}"
-  log "Frontend setup completed."
+  log "App updated (.env refreshed, images pulled, stack restarted)."
   exit 0
 fi
 
@@ -340,12 +261,11 @@ configure_nginx
 setup_https
 
 ecr_login
-if docker pull "${ECR_REPO_URI}:latest"; then
+if docker pull "${ECR_REPO_URI}:latest" && docker pull "${ECR_FRONTEND_REPO_URI}:latest"; then
   compose up -d
 else
-  log "Backend image not found in ECR yet. Run ./infra/scripts/deploy-app.sh after deploy."
+  log "Backend/Frontend image not found in ECR yet. Run ./infra/scripts/deploy-app.sh after deploy."
 fi
 
-setup_frontend_unit
-touch "${BOOTSTRAP_MARKER}" "${FRONTEND_MARKER}"
+touch "${BOOTSTRAP_MARKER}"
 log "Bootstrap completed."

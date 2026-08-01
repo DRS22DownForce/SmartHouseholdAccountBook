@@ -192,7 +192,7 @@ export default function RootPage() {
 | `npm run build` | 本番用静的解析 + ビルド |
 | `npm run start` | ビルド成果物の起動 |
 
-Docker の single-host 構成では、ビルド済み Next をコンテナで動かします（[インフラ第 2 章](../infrastructure/02-docker.md)）。
+Docker の `prod` profile では、ビルド済み Next（standalone）をコンテナで動かします（[インフラ第 2 章](../infrastructure/02-docker.md)）。
 
 ### .next ディレクトリ
 

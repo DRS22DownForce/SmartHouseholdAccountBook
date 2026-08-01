@@ -35,8 +35,8 @@ export async function predictCategory(description: string): Promise<string> {
             const status = error.response?.status;
             const errorResponse = error.response?.data as ErrorResponse | undefined;
 
-            // エラーレスポンスボディからメッセージを取得（存在する場合）
-            const errorMessage = errorResponse?.message;
+            // Problem Details (RFC 9457) の detail を優先して表示する
+            const errorMessage = errorResponse?.detail;
 
             // HTTPステータスコードに応じて適切なエラーメッセージを返す
             if (status === 429) {

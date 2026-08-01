@@ -116,7 +116,7 @@ frontend-nextjs/
 
 ## 学習の進め方のコツ
 
-1. **まず動かす**: `cd frontend-nextjs && npm install && npm run dev` で `http://localhost:3000` を開く（バックエンドも起動しておくと API まで試せる）
+1. **まず動かす**: `./docker/scripts/stack.sh up dev` → `http://localhost:3000`
 2. **章を読む**: 各章の冒頭の「この章で学ぶこと」→「図解」→「本文」の順に読む
 3. **実コードを開く**: 章末の「プロジェクトでの実装」で紹介されたファイルを IDE で開く
 4. **Network タブを見る**: ブラウザの開発者ツールで `/api/expenses` のリクエスト・レスポンス・`Authorization` ヘッダを確認する

@@ -47,7 +47,7 @@ InstanceId は `cdk deploy` の Output か、CloudFormation コンソールか�
 ./infra/scripts/resume.sh
 ```
 
-停止中はアプリにアクセスできません。再開後、Docker と systemd サービスが自動起動するかは設定次第です。問題があれば `deploy-app.sh` で修復できます。
+停止中はアプリにアクセスできません。再開後、Docker Compose（`--restart unless-stopped`）が自動起動するかは設定次第です。問題があれば `deploy-app.sh` で修復できます。
 
 ---
 
@@ -112,17 +112,18 @@ EC2 上（SSM セッション内）:
 ```bash
 cd /opt/smart-household/app
 docker compose --env-file /opt/smart-household/.env \
-  -f docker/compose/docker-compose.single-host.yaml \
-  -f docker/compose/docker-compose.single-host.prod.yaml \
-  -f docker/compose/docker-compose.single-host.aws.yaml \
+  -f docker/compose/docker-compose.yaml \
+  -f docker/compose/docker-compose.aws.yaml \
+  --profile prod \
   ps
 ```
 
-### Frontend（systemd）
+### Frontend（Compose）
 
 ```bash
-systemctl status smart-household-frontend.service
-journalctl -u smart-household-frontend.service -n 100
+docker compose --project-directory /opt/smart-household/app --env-file /opt/smart-household/.env \
+  -f docker/compose/docker-compose.yaml -f docker/compose/docker-compose.aws.yaml \
+  --profile prod logs -f frontend
 ```
 
 ### Nginx / certbot

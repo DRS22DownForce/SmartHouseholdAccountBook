@@ -1,6 +1,6 @@
 # 04. EC2 ブートストラップ：サーバー起動時に何が起きるか
 
-> この章で学ぶこと: **`bootstrap.sh` の処理順**、**`.env` の組み立て方**、**Nginx / HTTPS / Docker Compose / Next.js の配置**、**`remote-app-deploy.sh` による更新**。
+> この章で学ぶこと: **`bootstrap.sh` の処理順**、**`.env` の組み立て方**、**Nginx / HTTPS / Docker Compose（MySQL+Backend+Frontend）**、**`remote-app-deploy.sh` による更新**。
 
 ## 目次
 
@@ -33,7 +33,7 @@ flowchart TB
     NGX["Nginx 設定"]
     TLS["certbot HTTPS"]
     DC["Docker Compose up"]
-    FE["Next.js build + systemd"]
+    FE["Frontend container from ECR"]
 
     DA --> RAD --> BS --> PK --> GIT --> ENV --> NGX --> TLS --> DC --> FE
 ```
@@ -63,7 +63,6 @@ EC2 起動時の User Data は `aws-cli` / `unzip` のインストールのみ�
 |------|------|
 | `/opt/smart-household/.env` | Docker Compose とアプリが読む環境変数 |
 | `/etc/nginx/conf.d/smart-household.conf` | リバースプロキシ設定 |
-| `/etc/systemd/system/smart-household-frontend.service` | Next.js 本番起動用 |
 
 ---
 
@@ -71,23 +70,21 @@ EC2 起動時の User Data は `aws-cli` / `unzip` のインストールのみ�
 
 ### 通常モード（初回フル bootstrap）
 
-1. `install_packages` — Docker、Nginx、git、certbot、Node.js 20、Java 21 など
+1. `install_packages` — Docker、Nginx、git、certbot など（Node / Java は不要）
 2. `fetch_application_source` — Git clone または bundled docker のみ
 3. `write_env_file` — Secrets Manager + SSM から `.env` を生成
 4. `configure_nginx` — テンプレートにドメイン名を埋めて Nginx 再起動
 5. `setup_https` — DNS が向いたら certbot で Let's Encrypt 証明書取得
-6. ECR ログイン → `docker pull` → Docker Compose `up -d`
-7. `setup_frontend_unit` — Next.js ビルドと systemd 登録
+6. ECR ログイン → Backend / Frontend を `docker pull` → `compose --profile prod up -d`
 
 ### 特殊モード（環境変数 `BOOTSTRAP_MODE`）
 
 | 値 | 用途 |
 |----|------|
 | （未設定） | フル bootstrap |
-| `update-backend` | `.env` 再生成 → ECR login → `pull backend` → `compose up -d` |
-| `frontend-only` | Next.js のビルドと systemd 起動だけ |
+| `update-app`（旧名 `update-backend` も可） | `.env` 再生成 → ECR login → `pull backend frontend` → `compose up -d` |
 
-`deploy-app.sh` からの通常更新では `update-backend` が使われます。
+`deploy-app.sh` からの通常更新では `update-app` が使われます。
 
 ---
 
@@ -98,7 +95,7 @@ EC2 起動時の User Data は `aws-cli` / `unzip` のインストールのみ�
 | git URL | 動作 |
 |---------|------|
 | 有効な HTTPS URL | `git clone --depth 1` で `/opt/smart-household/app` に取得 |
-| `none` / 空 | bundled の `docker/` だけコピー（Frontend なし） |
+| `none` / 空 | bundled の `docker/` だけコピー |
 
 clone 後は常に `apply_bundled_docker_overlays` で、bootstrap 同梱の `docker/` を上書きコピーします。リポジトリに AWS 用 compose が無くても、EC2 デプロイ用の設定が確実に載るためです。
 
@@ -179,13 +176,13 @@ EC2 では次の 3 ファイルをマージして起動します。
 
 ```bash
 docker compose \
-  -f docker/compose/docker-compose.single-host.yaml \
-  -f docker/compose/docker-compose.single-host.prod.yaml \
-  -f docker/compose/docker-compose.single-host.aws.yaml \
+  -f docker/compose/docker-compose.yaml \
+  -f docker/compose/docker-compose.aws.yaml \
+  --profile prod \
   up -d
 ```
 
-### `docker-compose.single-host.aws.yaml` の意味
+### `docker-compose.aws.yaml` の意味
 
 ```yaml
 services:
@@ -207,25 +204,14 @@ EC2 上で Maven ビルドしない理由は、**メモリと時間の節約**�
 
 ---
 
-## Next.js（Frontend）のセットアップ
+## Frontend（Docker / ECR）
 
-`setup_frontend_unit` は `frontend-nextjs/package.json` がある場合だけ実行します。
+EC2 上では Next.js をビルドしません。`deploy-app.sh` が Frontend イメージを ECR に push し、bootstrap が pull して Compose で起動します。
 
-### 処理の概要
-
-1. `.env.local` に `NEXT_PUBLIC_*`（API URL、Cognito、リージョン）を書く
-2. **Frontend ビルドのため一時的に Docker Compose を stop**（RAM 確保）
-3. `npm ci` → `npm run generate:api` → `npm run build`
-4. Compose を再 `up -d`
-5. systemd ユニット `smart-household-frontend.service` で `npm run start`（ポート 3000）
-
-`t4g.small` でも Next.js ビルドは重いため、bootstrap では次の対策をしています。
-
-- swap を最大 4 GB まで追加
-- `NODE_OPTIONS=--max-old-space-size=1536`
-- ビルド中だけ MySQL / Backend コンテナを停止
-
----
+- サービス名: `frontend`（profile `prod`）
+- ポート: `127.0.0.1:3000`（Nginx がプロキシ）
+- `NEXT_PUBLIC_*` はイメージビルド時に埋め込み（App URL / Cognito）
+- 旧 `smart-household-frontend.service` があれば bootstrap が disable します
 
 ## remote-app-deploy.sh
 
@@ -236,20 +222,16 @@ flowchart TD
     Start["remote-app-deploy.sh"]
     Check{".bootstrap-complete あり?"}
     Full["bootstrap.sh フル実行"]
-    Update["update-backend"]
-    FE{"Frontend 要セットアップ?"}
-    FEOnly["frontend-only bootstrap"]
+    Update["update-app"]
 
     Start --> Check
     Check -->|No| Full
-    Check -->|Yes| Update --> FE
-    FE -->|Yes| FEOnly
-    FE -->|No| Done["完了"]
-    FEOnly --> Done
+    Check -->|Yes| Update
+    Update --> Done["完了"]
     Full --> Done
 ```
 
-bootstrap zip の展開は `deploy-app.sh`（SSM コマンド）が毎回行います。`.bootstrap-complete` が無い EC2 ではフル bootstrap、ある EC2 では Backend 更新のみ実行されます。
+bootstrap zip の展開は `deploy-app.sh`（SSM コマンド）が毎回行います。`.bootstrap-complete` が無い EC2 ではフル bootstrap、ある EC2 では Backend / Frontend イメージ更新を実行します。
 
 ---
 
@@ -275,6 +257,6 @@ bootstrap zip の展開は `deploy-app.sh`（SSM コマンド）が毎回行い�
 - アプリの bootstrap は **`deploy-app.sh` → `remote-app-deploy.sh` → `bootstrap.sh`** の 1 経路のみです。
 - EC2 起動時の User Data は `aws-cli` / `unzip` の準備だけを行います。
 - `.env` は Secrets Manager と SSM から動的に組み立てられます。
-- Nginx が 80/443 の入口になり、内部の 3000/8080 へプロキシします。
+- Nginx が 80/443 の入口になり、Frontend / Backend コンテナ（3000/8080）へプロキシします。
 - Backend は ECR から pull し、AWS 用 compose で `build` を無効化しています。
 - `deploy-app.sh` は `remote-app-deploy.sh` 経由で、未セットアップならフル bootstrap、済みなら pull のみ更新します。
