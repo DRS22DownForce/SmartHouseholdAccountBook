@@ -142,9 +142,20 @@ public class SmartHouseholdStack extends Stack {
                 .removalPolicy(RemovalPolicy.DESTROY)
                 .build();
 
-        // --- ECR ---
+        // --- ECR（Backend / Frontend） ---
         Repository backendRepository = Repository.Builder.create(this, "BackendRepository")
                 .repositoryName(projectName + "/backend")
+                .removalPolicy(RemovalPolicy.DESTROY)
+                .emptyOnDelete(true)
+                .lifecycleRules(List.of(
+                        software.amazon.awscdk.services.ecr.LifecycleRule.builder()
+                                .maxImageCount(5)
+                                .description("Keep only recent images to save storage cost")
+                                .build()))
+                .build();
+
+        Repository frontendRepository = Repository.Builder.create(this, "FrontendRepository")
+                .repositoryName(projectName + "/frontend")
                 .removalPolicy(RemovalPolicy.DESTROY)
                 .emptyOnDelete(true)
                 .lifecycleRules(List.of(
@@ -163,6 +174,7 @@ public class SmartHouseholdStack extends Stack {
 
         appSecret.grantRead(instanceRole);
         backendRepository.grantPull(instanceRole);
+        frontendRepository.grantPull(instanceRole);
 
         instanceRole.addToPolicy(PolicyStatement.Builder.create()
                 .effect(Effect.ALLOW)
@@ -268,6 +280,10 @@ public class SmartHouseholdStack extends Stack {
 
         CfnOutput.Builder.create(this, "BackendRepositoryUri")
                 .value(backendRepository.getRepositoryUri())
+                .build();
+
+        CfnOutput.Builder.create(this, "FrontendRepositoryUri")
+                .value(frontendRepository.getRepositoryUri())
                 .build();
 
         CfnOutput.Builder.create(this, "AppSecretName")

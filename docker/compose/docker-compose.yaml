@@ -1,0 +1,152 @@
+# ========================================
+# 統合 Compose: MySQL + Backend + Frontend
+#
+# profiles:
+#   db   … MySQL のみ（IDE で Spring を動かす用）
+#   dev  … MySQL + Backend + Frontend(dev / バインドマウント)
+#   prod … MySQL + Backend + Frontend(standalone)
+#
+# 使い方:
+#   ./docker/scripts/stack.sh up|down db|dev|prod
+# AWS: + docker-compose.aws.yaml（ECR イメージ）
+# ========================================
+
+services:
+  mysql:
+    image: mysql:8.0.42
+    container_name: smart_household_mysql
+    restart: unless-stopped
+    profiles: ["db", "dev", "prod"]
+    # 127.0.0.1 のみ公開（インターネット非公開）。IDE / ローカル確認用。
+    ports:
+      - "127.0.0.1:3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_FLYWAY_USER: ${MYSQL_FLYWAY_USER}
+      MYSQL_FLYWAY_PASSWORD: ${MYSQL_FLYWAY_PASSWORD}
+      MYSQL_APP_USER: ${MYSQL_APP_USER}
+      MYSQL_APP_PASSWORD: ${MYSQL_APP_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf:ro
+      - ./docker/mysql/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 180s
+    networks:
+      - app-network
+
+  backend:
+    build:
+      context: ./
+      dockerfile: backend/Dockerfile
+    container_name: smart_household_backend
+    restart: unless-stopped
+    profiles: ["dev", "prod"]
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
+      SPRING_DATASOURCE_URL: ${SPRING_DATASOURCE_URL_PROD}
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_APP_USER}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_APP_PASSWORD}
+      SPRING_FLYWAY_USER: ${MYSQL_FLYWAY_USER}
+      SPRING_FLYWAY_PASSWORD: ${MYSQL_FLYWAY_PASSWORD}
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+      COGNITO_ISSUER_URL: ${COGNITO_ISSUER_URL}
+      COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENAI_API_URL: ${OPENAI_API_URL:-https://api.openai.com/v1/chat/completions}
+    depends_on:
+      mysql:
+        condition: service_healthy
+    # コンテナ内のプロセスの権限を昇格させないようにする
+    security_opt:
+      - no-new-privileges:true
+    # コンテナ内のプロセスからLinuxのcapability(特別権限)を削除する
+    cap_drop:
+      - ALL
+    mem_limit: 768m
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8080/actuator/health | grep -q UP || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 90s
+    networks:
+      - app-network
+
+  # 開発用: next dev + ソースのバインドマウント
+  frontend-dev:
+    build:
+      context: ./frontend-nextjs
+      dockerfile: Dockerfile.dev
+    container_name: smart_household_frontend_dev
+    restart: unless-stopped
+    profiles: ["dev"]
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      # ブラウザがホストの backend に接続する（クライアント側 API）
+      NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
+      NEXT_PUBLIC_AWS_REGION: ${NEXT_PUBLIC_AWS_REGION:-ap-northeast-1}
+      NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${NEXT_PUBLIC_COGNITO_USER_POOL_ID:-}
+      NEXT_PUBLIC_COGNITO_CLIENT_ID: ${NEXT_PUBLIC_COGNITO_CLIENT_ID:-}
+    volumes:
+      - ./frontend-nextjs:/app
+      - frontend_node_modules:/app/node_modules # ホストのnode_modulesをコンテナで使わないようにボリュームでマウントする
+      # openapi 生成用
+      - ./openapi:/openapi:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 1024m
+    networks:
+      - app-network
+
+  # 本番 / 通し確認用: standalone ビルド済みイメージ
+  frontend:
+    build:
+      context: ./
+      dockerfile: frontend-nextjs/Dockerfile
+      # builderステージで使用する環境変数を指定する。environmentで指定すると最終的に起動したコンテナ内の環境変数となり、ビルド時に組み込まれない。
+      args:
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-http://localhost:8080}
+        NEXT_PUBLIC_AWS_REGION: ${NEXT_PUBLIC_AWS_REGION:-ap-northeast-1}
+        NEXT_PUBLIC_COGNITO_USER_POOL_ID: ${NEXT_PUBLIC_COGNITO_USER_POOL_ID:-}
+        NEXT_PUBLIC_COGNITO_CLIENT_ID: ${NEXT_PUBLIC_COGNITO_CLIENT_ID:-}
+    container_name: smart_household_frontend
+    restart: unless-stopped
+    profiles: ["prod"]
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      backend:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 512m
+    networks:
+      - app-network
+
+volumes:
+  mysql_data:
+    name: smart_household_mysql_data
+  frontend_node_modules:
+    name: smart_household_frontend_node_modules
+
+networks:
+  app-network:
+    name: smart_household_app_network
+    driver: bridge

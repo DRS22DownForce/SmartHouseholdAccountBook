@@ -2,7 +2,7 @@
  * 月次レポート API クライアント
  */
 
-import { getExpenseApiClient } from './apiClient';
+import { getMonthlyReportApiClient } from './apiClient';
 import type { MonthlyReportResponse } from './generated/api';
 
 /**
@@ -16,7 +16,7 @@ export async function getMonthlyReport(
     month: string,
     generate = false
 ): Promise<MonthlyReportResponse | null> {
-    const api = getExpenseApiClient();
+    const api = getMonthlyReportApiClient();
     const response = await api.apiExpensesReportGet(month, generate);
     if (response.status === 204 || response.data == null) {
         return null;
