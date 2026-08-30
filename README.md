@@ -1,104 +1,146 @@
-# Smart Household Account Book
+# SmartHouseholdAccountBook
 
-学習用に設計したフルスタック家計簿アプリです。  
-「入力しやすい」「振り返りやすい」「改善につなげやすい」を目標に、Next.js フロントエンドと Spring Boot バックエンドで実装しています。
+家計管理・生成 AI 分析 Web アプリです。支出の登録・集計、CSV 取り込み、OpenAI API による支出分類・家計分析・改善提案を提供します。
 
-## このプロジェクトでできること
+## 主な機能
 
-- 支出の登録・編集・削除
-- 月ごとの一覧表示とサマリー表示
+- 支出の登録・編集・削除、月次一覧・サマリー
 - CSV 一括インポート（三井住友カードの新旧フォーマット対応）
-- AI によるカテゴリ提案
-- AI による月次レポート生成（キャッシュ利用あり）
-- AWS Cognito ベースの認証（JWT 検証）
-
-## アプリ画面
-
-<div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end;">
-  <img src="docs/images/sampleUI.png" style="height: 280px; width: auto; object-fit: contain;" alt="スマート家計簿の画面イメージ" />
-  <img src="docs/images/sampleUI2.png" style="height: 280px; width: auto; object-fit: contain;" alt="スマート家計簿の画面イメージ 2" />
-  <img src="docs/images/sampleUI3.png" style="height: 280px; width: auto; object-fit: contain;" alt="スマート家計簿の画面イメージ 3" />
-</div>
+- OpenAI API による支出カテゴリ提案
+- OpenAI API による月次レポート生成（キャッシュあり）
+- Amazon Cognito による認証（JWT 検証）
 
 ## 技術スタック
 
 ### フロントエンド
 
-- Next.js 15.5（App Router）
-- React 19 / TypeScript 5
-- Tailwind CSS 4 / shadcn-ui
+- Next.js 15（App Router） / React 19 / TypeScript
+- Tailwind CSS / shadcn-ui
 - AWS Amplify（Cognito 連携）
 - OpenAPI Generator（TypeScript Axios クライアント）
 
 ### バックエンド
 
-- Spring Boot 4.0.6
-- Java 25 / Maven Wrapper
-- Spring Data JPA / Hibernate
-- MySQL 8 / Flyway
+- Spring Boot / Java 25 / Maven
+- Spring Data JPA / Hibernate / MySQL 8 / Flyway
 - Spring Security（OAuth2 Resource Server）
 - Resilience4j / Caffeine Cache / Actuator
 - OpenAPI Generator（Spring インターフェース生成）
 
-### CI / 品質
+### 認証・品質
 
-- GitHub Actions（`mvn verify`）
-- CodeQL（Java + TypeScript）
-- JaCoCo（カバレッジレポート）
+- Amazon Cognito + JWT
+- JUnit / MockMvc
+- GitHub Actions（ビルド・テスト）
+- CodeQL / OSV Scanner
+
+### インフラ
+
+- Docker / Docker Compose
+- Amazon ECR / EC2
+- AWS CDK（Java）
+- Route 53 / Nginx + Let's Encrypt / Secrets Manager / SSM
+
+## インフラ構成
+
+EC2 1 台上で Docker Compose（MySQL + Backend + Frontend）を動かし、Nginx で HTTPS 終端します。イメージは ECR、秘密情報は Secrets Manager、認証は既存の Cognito User Pool を利用します。
+
+### リクエストの流れ
+
+```mermaid
+flowchart TB
+    User[Browser]
+    R53[Route 53]
+    EIP[Elastic IP]
+    Cognito[Amazon Cognito]
+    OpenAI[OpenAI API]
+
+    subgraph EC2["EC2"]
+        Nginx[Nginx :80 / :443]
+        Next[Next.js :3000]
+        Backend[Spring Boot :8080]
+        MySQL[(MySQL 8)]
+    end
+
+    User -->|HTTPS| R53
+    R53 --> EIP
+    EIP --> Nginx
+    Nginx -->|"/"| Next
+    Nginx -->|"/api/*"| Backend
+    User --> Cognito
+    Next --> Cognito
+    Backend --> Cognito
+    Backend --> MySQL
+    Backend --> OpenAI
+```
+
+### デプロイ・運用
+
+```mermaid
+flowchart LR
+    Dev[Developer PC]
+    CDK[AWS CDK / CloudFormation]
+    ECR[Amazon ECR]
+    SSM[SSM Run Command]
+    SM[Secrets Manager]
+    EC2[EC2]
+
+    Dev -->|deploy.sh| CDK
+    CDK --> EC2
+    Dev -->|deploy-app.sh| ECR
+    Dev --> SSM
+    SSM --> EC2
+    EC2 -->|docker pull| ECR
+    EC2 -->|read secrets| SM
+```
 
 ## ディレクトリ構成
 
 ```text
 SmartHouseholdAccountBook/
-├── backend/                 # Spring Boot API
-├── frontend-nextjs/         # Next.js アプリ（Dockerfile / Dockerfile.dev）
-├── openapi/                 # OpenAPI 仕様と paths/components
-├── docker/
-│   ├── compose/             # docker-compose.yaml + aws overlay
-│   ├── scripts/             # stack.sh（起動ショートカット）
-│   └── mysql/               # my.cnf / init
-└── docs/                    # 学習用ドキュメント
+├── backend/              # Spring Boot API
+├── frontend-nextjs/      # Next.js
+├── openapi/              # OpenAPI 仕様（双方のコード生成元）
+├── docker/               # Compose・起動スクリプト・MySQL 初期化
+├── infra/                # AWS CDK（ECR / EC2 など）
+└── .github/workflows/    # CI / CodeQL
 ```
 
 ## クイックスタート
 
 ### 前提
 
-- Docker / Docker Compose（フロント・バックともコンテナで起動）
-- Java 25（`db` プロファイルで IDE から Spring を動かす場合のみ）
+- Docker / Docker Compose
 
-### 1) リポジトリを取得
+### 1. クローン
 
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/DRS22DownForce/SmartHouseholdAccountBook.git
 cd SmartHouseholdAccountBook
 ```
 
-### 2) 環境変数を設定
+### 2. 環境変数
 
-ルート `.env`（`.env.example` をコピー）に MySQL / Cognito / OpenAI / CORS / **`SPRING_PROFILES_ACTIVE`** / **Frontend の `NEXT_PUBLIC_*`** を設定します。
+`.env.example` をコピーして `.env` を作成し、MySQL / Cognito / OpenAI / CORS / `SPRING_PROFILES_ACTIVE` / `NEXT_PUBLIC_*` を設定します。
 
 ```env
-# ... MySQL / Cognito / OpenAI / CORS ...
 SPRING_PROFILES_ACTIVE=dev
-
-# Frontend（ブラウザに埋め込まれる公開値。秘密情報を入れない）
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
 NEXT_PUBLIC_AWS_REGION=ap-northeast-1
 NEXT_PUBLIC_COGNITO_USER_POOL_ID=your-user-pool-id
 NEXT_PUBLIC_COGNITO_CLIENT_ID=your-client-id
 ```
 
-### 3) 起動方法を選ぶ
+`.env` およびシークレットは Git 管理外です。
 
-#### A. 全部 Docker（推奨・日常開発）
+### 3. 起動
 
 ```bash
 ./docker/scripts/stack.sh up dev
 ```
 
-MySQL + Backend + Frontend（`next dev`・ソースのバインドマウント）が起動します。  
-UI: http://localhost:3000 / API: http://localhost:8080
+- UI: http://localhost:3000
+- API: http://localhost:8080
 
 停止:
 
@@ -106,34 +148,37 @@ UI: http://localhost:3000 / API: http://localhost:8080
 ./docker/scripts/stack.sh down dev
 ```
 
-#### B. 本番寄せ（standalone Frontend）
+`prod`（本番寄せ Compose）や `db`（MySQL のみ）も `stack.sh` で利用できます。
+
+## AWS デプロイ・起動
+
+AWS CLI で認証後、環境固有の CDK 設定を作成します。`infra/cdk.context.json` は機密情報を含むため、Git にコミットしないでください。
 
 ```bash
-./docker/scripts/stack.sh up prod
+aws configure
+aws sts get-caller-identity
+cp infra/cdk.context.example.json infra/cdk.context.json
 ```
 
-#### C. IDE で Spring だけ動かす
-
-MySQL のみ:
+`infra/cdk.context.json` を編集してから、次の順に実行します。
 
 ```bash
-./docker/scripts/stack.sh up db
+./infra/scripts/deploy.sh
+./infra/scripts/init-secrets.sh
+./infra/scripts/deploy-app.sh
 ```
+
+停止した EC2 の再起動、課金停止、AWS リソースの完全削除には次のコマンドを使います。
 
 ```bash
-cd backend
-./mvnw spring-boot:run -Plocal
+./infra/scripts/resume.sh   # EC2 を再起動
+./infra/scripts/pause.sh    # EC2 を停止
+./infra/scripts/destroy.sh  # AWS リソースを完全削除
 ```
 
-（Frontend も使う場合は `up dev` を推奨）
+CDK の設定項目など、詳しい手順は [`infra/README.md`](infra/README.md) を参照してください。
 
-### イメージの脆弱性確認（任意）
-
-```bash
-docker scout cves smart_household_backend
-```
-
-## 開発でよく使うコマンド
+## 開発コマンド
 
 ### バックエンド
 
@@ -149,20 +194,22 @@ cd backend
 ```bash
 cd frontend-nextjs
 npm install
-npm run dev
-npm run build
-npm run lint
 npm run generate:api
+npm run dev
+npm run lint
+npm run build
 ```
 
-## OpenAPI 連携
+### OpenAPI
 
-`openapi/openapi.yaml` を変更したら、両方のコード生成を実行します。
+`openapi/openapi.yaml` 変更後は双方で生成を実行します。
 
-- バックエンド生成先: `backend/target/generated-sources/openapi/`
-- フロント生成先: `frontend-nextjs/src/api/generated/`
+| 生成先 | パス |
+| --- | --- |
+| バックエンド | `backend/target/generated-sources/openapi/` |
+| フロントエンド | `frontend-nextjs/src/api/generated/` |
 
-## API エンドポイント（現行）
+## API
 
 ### 支出
 
@@ -181,33 +228,22 @@ npm run generate:api
 ### AI
 
 - `POST /api/ai/category`
-- `GET /api/expenses/report`（`generate` パラメータで生成/キャッシュ切替）
+- `GET /api/expenses/report`（`generate` で生成 / キャッシュ切替）
 
-詳細仕様は `openapi/openapi.yaml` を参照してください。
+詳細は [`openapi/openapi.yaml`](openapi/openapi.yaml) を参照してください。
 
-## セキュリティと運用の考え方
+## セキュリティ・運用
 
-- 認証は AWS Cognito + JWT で実施
-- DB スキーマは Flyway で管理し、JPA の DDL 自動変更は無効化（`validate`）
-- シークレット（`.env` / `.env.local`）は Git 管理しない
-- OpenAI 呼び出しには Retry / Circuit Breaker / Rate Limiter を適用
-- ヘルスチェックは Actuator（`/actuator/health`）を利用
+- 認証: Cognito + JWT（Amplify / OAuth2 Resource Server）
+- DB スキーマ: Flyway（JPA DDL 自動変更は無効、`validate`）
+- シークレット: `.env` / Secrets Manager（リポジトリ外）
+- OpenAI 呼び出し: Retry / Circuit Breaker / Rate Limiter（Resilience4j）
+- ヘルスチェック: Actuator（`/actuator/health`）
 
-## CI / CodeQL
+## CI
 
-- `CI`: PR と `main` push で `backend` に対して `mvn verify` を実行
-- `CodeQL`: PR / `main` / 週次で Java と TypeScript を静的解析
-
-設定ファイル:
-
-- `.github/workflows/ci.yml`
-- `.github/workflows/codeql.yml`
-
-## 学習ドキュメント
-
-- バックエンド学習ガイド: `docs/backend/README.md`
-- フロントエンド学習ガイド: `docs/frontend/README.md`
-- インフラ学習ガイド: `docs/infrastructure/README.md`
-
-このプロジェクトは「実装しながら理解する」前提のため、README は入口、`docs/` は詳細教材という役割で分けています。
+| Workflow | 内容 |
+| --- | --- |
+| [`.github/workflows/ci.yml`](.github/workflows/ci.yml) | Backend `mvn verify` / Frontend generate・lint・build |
+| [`.github/workflows/codeql.yml`](.github/workflows/codeql.yml) | Java / TypeScript 静的解析 |
 
