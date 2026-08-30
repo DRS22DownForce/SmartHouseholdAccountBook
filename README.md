@@ -14,7 +14,7 @@
 
 ### 月別サマリー・AI 家計分析レポート
 
-![月別サマリーとAI家計分析レポート](docs/images/gui/monthly-ai-report.jpg)
+![月別サマリーとAI家計分析レポート](docs/images/gui/monthly-ai-report.png)
 
 ## 主な機能
 
