@@ -2,6 +2,20 @@
 
 家計管理・生成 AI 分析 Web アプリです。支出の登録・集計、CSV 取り込み、OpenAI API による支出分類・家計分析・改善提案を提供します。
 
+## GUI サンプル
+
+### 支出管理ダッシュボード
+
+![支出管理ダッシュボード](docs/images/gui/expense-dashboard.png)
+
+### 支出の追加
+
+![支出追加ダイアログ](docs/images/gui/add-expense-dialog.png)
+
+### 月別サマリー・AI 家計分析レポート
+
+![月別サマリーとAI家計分析レポート](docs/images/gui/monthly-ai-report.jpg)
+
 ## 主な機能
 
 - 支出の登録・編集・削除、月次一覧・サマリー
