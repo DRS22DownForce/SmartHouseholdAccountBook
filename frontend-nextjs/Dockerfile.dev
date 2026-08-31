@@ -1,4 +1,5 @@
 # 開発用: ソースは compose のバインドマウントで渡す
+# .next は compose の named volume で分離する（ホストの next build と権限衝突を防ぐ）
 # Node 20.19+（package.json engines に合わせる）
 FROM node:20.19-alpine
 

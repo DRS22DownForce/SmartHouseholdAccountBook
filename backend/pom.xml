@@ -3,10 +3,11 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
+	<!-- parent のパッチ更新で Jackson / Spring Framework 等の既知 CVE を BOM 一括更新する -->
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>4.0.6</version>
+		<version>4.0.8</version>
 		<relativePath />
 	</parent>
 	<groupId>com.smarthouseholdaccountbook</groupId>
@@ -34,8 +35,6 @@
 	<properties>
 		<!-- Javaバージョン-->
 		<java.version>25</java.version>
-		<!-- OSV: tomcat-embed-core 11.0.21 の既知 CVE 対策。4.0.7 以降の parent に上げたら削除可 -->
-		<tomcat.version>11.0.22</tomcat.version>
 		<!-- OpenAPI仕様ファイルのパス -->
 		<openapi.file>../openapi/openapi.yaml</openapi.file>
 	</properties>
