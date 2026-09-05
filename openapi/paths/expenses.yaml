@@ -319,14 +319,14 @@
               file:
                 type: string
                 format: binary
-                description: CSVファイル（UTF-8エンコーディング）
+                description: CSVファイル（三井住友カード明細は Shift_JIS）
               csvFormat:
                 type: string
                 enum:
-                  - MITSUISUMITOMO_OLD_FORMAT
-                  - MITSUISUMITOMO_NEW_FORMAT
-                description: "CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード 確定月、MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 未確定月）"
-                example: MITSUISUMITOMO_OLD_FORMAT
+                  - MITSUISUMITOMO_CONFIRMED_MONTH
+                  - MITSUISUMITOMO_UNCONFIRMED_MONTH
+                description: "CSV形式（MITSUISUMITOMO_CONFIRMED_MONTH: 三井住友カード 確定月、MITSUISUMITOMO_UNCONFIRMED_MONTH: 三井住友カード 未確定月）"
+                example: MITSUISUMITOMO_CONFIRMED_MONTH
     responses:
       '200':
         description: CSVインポート成功（部分成功も含む）

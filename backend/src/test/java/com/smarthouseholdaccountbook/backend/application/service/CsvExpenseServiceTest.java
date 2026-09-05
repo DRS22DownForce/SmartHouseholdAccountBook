@@ -120,7 +120,7 @@ class CsvExpenseServiceTest {
             when(expenseRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
 
             CsvExpenseService.CsvUploadResult result = csvExpenseService.uploadCsvAndAddExpenses(
-                    multipartFile, CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
+                    multipartFile, CsvFormat.MITSUISUMITOMO_CONFIRMED_MONTH);
 
             assertThat(result.successCount()).isEqualTo(2);
             assertThat(result.skippedCount()).isZero();
@@ -141,7 +141,7 @@ class CsvExpenseServiceTest {
                             existingExpense("店B", LocalDate.of(2025, 11, 2), 2000)));
 
             CsvExpenseService.CsvUploadResult result = csvExpenseService.uploadCsvAndAddExpenses(
-                    multipartFile, CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
+                    multipartFile, CsvFormat.MITSUISUMITOMO_CONFIRMED_MONTH);
 
             assertThat(result.successCount()).isZero();
             assertThat(result.skippedCount()).isEqualTo(2);
@@ -166,7 +166,7 @@ class CsvExpenseServiceTest {
             when(expenseRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
 
             CsvExpenseService.CsvUploadResult result = csvExpenseService.uploadCsvAndAddExpenses(
-                    multipartFile, CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
+                    multipartFile, CsvFormat.MITSUISUMITOMO_CONFIRMED_MONTH);
 
             assertThat(result.successCount()).isEqualTo(1);
             assertThat(result.skippedCount()).isEqualTo(2);
@@ -193,7 +193,7 @@ class CsvExpenseServiceTest {
             when(expenseRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
 
             CsvExpenseService.CsvUploadResult result = csvExpenseService.uploadCsvAndAddExpenses(
-                    multipartFile, CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
+                    multipartFile, CsvFormat.MITSUISUMITOMO_CONFIRMED_MONTH);
 
             assertThat(result.successCount()).isEqualTo(2);
             assertThat(result.skippedCount()).isZero();
@@ -211,7 +211,7 @@ class CsvExpenseServiceTest {
                             existingExpense("手動登録店", LocalDate.of(2025, 11, 5), 500)));
 
             CsvExpenseService.CsvUploadResult result = csvExpenseService.uploadCsvAndAddExpenses(
-                    multipartFile, CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
+                    multipartFile, CsvFormat.MITSUISUMITOMO_CONFIRMED_MONTH);
 
             assertThat(result.successCount()).isZero();
             assertThat(result.skippedCount()).isEqualTo(1);
@@ -239,7 +239,7 @@ class CsvExpenseServiceTest {
             when(aiCategoryService.predictCategoriesBatch(List.of("新店"))).thenReturn(categoryMap);
             when(expenseRepository.saveAll(any())).thenAnswer(inv -> inv.getArgument(0));
 
-            csvExpenseService.uploadCsvAndAddExpenses(multipartFile, CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
+            csvExpenseService.uploadCsvAndAddExpenses(multipartFile, CsvFormat.MITSUISUMITOMO_CONFIRMED_MONTH);
 
             verify(aiCategoryService).predictCategoriesBatch(List.of("新店"));
         }

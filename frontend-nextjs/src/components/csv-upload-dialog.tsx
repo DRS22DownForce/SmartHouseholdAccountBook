@@ -21,7 +21,17 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { uploadCsvFile, type CsvUploadResponse } from "@/api/expenseApi"
+import type { ApiExpensesUploadCsvPostCsvFormatEnum } from "@/api/generated/api"
 import { cn } from "@/lib/utils"
+
+/** 三井住友カードの確定月明細CSV */
+const CONFIRMED_MONTH: ApiExpensesUploadCsvPostCsvFormatEnum = "MITSUISUMITOMO_CONFIRMED_MONTH"
+/** 三井住友カードの未確定月明細CSV */
+const UNCONFIRMED_MONTH: ApiExpensesUploadCsvPostCsvFormatEnum = "MITSUISUMITOMO_UNCONFIRMED_MONTH"
+
+function isCsvFormat(value: string): value is ApiExpensesUploadCsvPostCsvFormatEnum {
+  return value === CONFIRMED_MONTH || value === UNCONFIRMED_MONTH
+}
 
 interface CsvUploadDialogProps {
   onUpload?: () => void
@@ -32,7 +42,7 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
   const [status, setStatus] = useState<{ type: "success" | "error"; message: string; details?: CsvUploadResponse } | null>(null)
   const [isUploading, setIsUploading] = useState(false)
   const [open, setOpen] = useState(false)
-  const [csvFormat, setCsvFormat] = useState<"MITSUISUMITOMO_OLD_FORMAT" | "MITSUISUMITOMO_NEW_FORMAT" | "">("")
+  const [csvFormat, setCsvFormat] = useState<ApiExpensesUploadCsvPostCsvFormatEnum | "">("")
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleFile = async (file: File) => {
@@ -41,8 +51,7 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
       return
     }
 
-    // CSV形式が選択されていない場合はエラー
-    if (!csvFormat || (csvFormat !== "MITSUISUMITOMO_OLD_FORMAT" && csvFormat !== "MITSUISUMITOMO_NEW_FORMAT")) {
+    if (!isCsvFormat(csvFormat)) {
       setStatus({ type: "error", message: "CSV形式を選択してください" })
       return
     }
@@ -157,13 +166,17 @@ export function CsvUploadDialog({ onUpload }: CsvUploadDialogProps) {
           {/* CSV形式選択 */}
           <div className="space-y-2">
             <label className="text-sm font-medium">CSV形式を選択</label>
-            <Select value={csvFormat} onValueChange={(value) => setCsvFormat(value as "MITSUISUMITOMO_OLD_FORMAT" | "MITSUISUMITOMO_NEW_FORMAT")}>
+            <Select value={csvFormat} onValueChange={(value) => {
+              if (isCsvFormat(value)) {
+                setCsvFormat(value)
+              }
+            }}>
               <SelectTrigger className="w-full">
                 <SelectValue placeholder="CSV形式を選択してください" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="MITSUISUMITOMO_OLD_FORMAT">三井住友カード（確定月）</SelectItem>
-                <SelectItem value="MITSUISUMITOMO_NEW_FORMAT">三井住友カード（未確定月）</SelectItem>
+                <SelectItem value={CONFIRMED_MONTH}>三井住友カード（確定月）</SelectItem>
+                <SelectItem value={UNCONFIRMED_MONTH}>三井住友カード（未確定月）</SelectItem>
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">

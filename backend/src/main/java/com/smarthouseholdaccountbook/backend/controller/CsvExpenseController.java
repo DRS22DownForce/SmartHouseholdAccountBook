@@ -61,11 +61,11 @@ public class CsvExpenseController implements CsvExpensesApi {
 
         // 内部 enum に値が増えても、OpenAPI で公開した形式だけを許可する。
         return switch (csvFormat) {
-            case "MITSUISUMITOMO_OLD_FORMAT" -> CsvFormat.MITSUISUMITOMO_OLD_FORMAT;
-            case "MITSUISUMITOMO_NEW_FORMAT" -> CsvFormat.MITSUISUMITOMO_NEW_FORMAT;
+            case "MITSUISUMITOMO_CONFIRMED_MONTH" -> CsvFormat.MITSUISUMITOMO_CONFIRMED_MONTH;
+            case "MITSUISUMITOMO_UNCONFIRMED_MONTH" -> CsvFormat.MITSUISUMITOMO_UNCONFIRMED_MONTH;
             default -> throw new IllegalArgumentException(
-                    "無効なCSV形式です。MITSUISUMITOMO_OLD_FORMAT（三井住友カード 確定月）"
-                            + "またはMITSUISUMITOMO_NEW_FORMAT（三井住友カード 未確定月）を指定してください");
+                    "無効なCSV形式です。MITSUISUMITOMO_CONFIRMED_MONTH（三井住友カード 確定月）"
+                            + "またはMITSUISUMITOMO_UNCONFIRMED_MONTH（三井住友カード 未確定月）を指定してください");
         };
     }
 }

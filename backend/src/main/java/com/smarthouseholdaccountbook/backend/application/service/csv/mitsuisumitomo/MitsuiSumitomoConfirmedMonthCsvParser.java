@@ -10,16 +10,16 @@ import java.io.IOException;
 import java.io.InputStream;
 
 /**
- * 三井住友カード 確定月の明細CSVパーサー
+ * 三井住友カード 確定月の明細CSVパーサー。
  *
  * 列構成: ご利用日,ご利用店名,ご利用金額,支払区分,今回回数,お支払い金額,...
  * 店名にカンマが含まれる場合があるため、金額は列2以降で有効な数値を探し、
  * その手前までを店名として結合する。
  */
 @Component
-public class MitsuiSumitomoOldCsvParser implements CsvParser {
+public class MitsuiSumitomoConfirmedMonthCsvParser implements CsvParser {
 
-    private static final Logger logger = LoggerFactory.getLogger(MitsuiSumitomoOldCsvParser.class);
+    private static final Logger logger = LoggerFactory.getLogger(MitsuiSumitomoConfirmedMonthCsvParser.class);
 
     private static final MitsuiSumitomoCsvParseUtil.Config CONFIG = new MitsuiSumitomoCsvParseUtil.Config(
             0,  // dateColumn
@@ -27,7 +27,7 @@ public class MitsuiSumitomoOldCsvParser implements CsvParser {
             2,  // amountStartColumn
             3,  // minColumnCount
             0,  // columnsBetweenDescriptionAndAmount
-            true // checkTotalLine
+            true // checkTotalLine（確定月CSVには合計行がある）
     );
 
     @Override
