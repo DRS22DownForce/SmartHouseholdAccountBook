@@ -51,11 +51,11 @@ class CsvExpenseControllerTest {
                 new CsvExpenseService.CsvUploadResult(2, 0, 0, List.of());
         CsvUploadResponseDto dto = new CsvUploadResponseDto();
         when(csvExpenseService.uploadCsvAndAddExpenses(
-                file, CsvFormat.MITSUISUMITOMO_OLD_FORMAT)).thenReturn(result);
+                file, CsvFormat.MITSUISUMITOMO_CONFIRMED_MONTH)).thenReturn(result);
         when(csvExpenseMapper.toDto(result)).thenReturn(dto);
 
         assertThat(controller.apiExpensesUploadCsvPost(
-                file, "MITSUISUMITOMO_OLD_FORMAT").getBody()).isSameAs(dto);
+                file, "MITSUISUMITOMO_CONFIRMED_MONTH").getBody()).isSameAs(dto);
     }
 
     @Test
@@ -63,16 +63,16 @@ class CsvExpenseControllerTest {
         when(file.isEmpty()).thenReturn(true);
 
         assertThatThrownBy(() -> controller.apiExpensesUploadCsvPost(
-                file, "MITSUISUMITOMO_OLD_FORMAT"))
+                file, "MITSUISUMITOMO_CONFIRMED_MONTH"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("ファイルが空です");
-        verify(csvExpenseService, never()).uploadCsvAndAddExpenses(file, CsvFormat.MITSUISUMITOMO_OLD_FORMAT);
+        verify(csvExpenseService, never()).uploadCsvAndAddExpenses(file, CsvFormat.MITSUISUMITOMO_CONFIRMED_MONTH);
     }
 
     @Test
     void nullファイルを拒否する() {
         assertThatThrownBy(() -> controller.apiExpensesUploadCsvPost(
-                null, "MITSUISUMITOMO_OLD_FORMAT"))
+                null, "MITSUISUMITOMO_CONFIRMED_MONTH"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("ファイルが空です");
     }
@@ -82,7 +82,7 @@ class CsvExpenseControllerTest {
         when(file.getOriginalFilename()).thenReturn("expenses.txt");
 
         assertThatThrownBy(() -> controller.apiExpensesUploadCsvPost(
-                file, "MITSUISUMITOMO_OLD_FORMAT"))
+                file, "MITSUISUMITOMO_CONFIRMED_MONTH"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("CSVファイルを選択してください");
     }

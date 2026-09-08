@@ -36,6 +36,7 @@ public final class MitsuiSumitomoCsvParseUtil {
     }
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy/M/d");
+    // 三井住友カードの明細CSVは Shift_JIS で出力される
     private static final Charset CHARSET = Charset.forName("Shift_JIS");
     private static final int ILLEGAL_AMOUNT_COLUMN = -1;
 

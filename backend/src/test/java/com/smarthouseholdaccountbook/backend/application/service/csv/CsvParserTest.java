@@ -2,8 +2,8 @@ package com.smarthouseholdaccountbook.backend.application.service.csv;
 
 import com.smarthouseholdaccountbook.backend.application.service.csv.model.CsvParseResult;
 import com.smarthouseholdaccountbook.backend.application.service.csv.model.CsvParsedExpense;
-import com.smarthouseholdaccountbook.backend.application.service.csv.mitsuisumitomo.MitsuiSumitomoNewCsvParser;
-import com.smarthouseholdaccountbook.backend.application.service.csv.mitsuisumitomo.MitsuiSumitomoOldCsvParser;
+import com.smarthouseholdaccountbook.backend.application.service.csv.mitsuisumitomo.MitsuiSumitomoConfirmedMonthCsvParser;
+import com.smarthouseholdaccountbook.backend.application.service.csv.mitsuisumitomo.MitsuiSumitomoUnconfirmedMonthCsvParser;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -24,10 +24,10 @@ class CsvParserTest {
     private static final Charset SHIFT_JIS = Charset.forName("Shift_JIS");
 
     @Nested
-    @DisplayName("MitsuiSumitomoOldCsvParser")
-    class MitsuiSumitomoOldCsvParserTest {
+    @DisplayName("MitsuiSumitomoConfirmedMonthCsvParser")
+    class MitsuiSumitomoConfirmedMonthCsvParserTest {
 
-        private final MitsuiSumitomoOldCsvParser parser = new MitsuiSumitomoOldCsvParser();
+        private final MitsuiSumitomoConfirmedMonthCsvParser parser = new MitsuiSumitomoConfirmedMonthCsvParser();
 
         @Test
         @DisplayName("確定月形式のCSVを正常に解析できる")
@@ -241,10 +241,10 @@ class CsvParserTest {
     }
 
     @Nested
-    @DisplayName("MitsuiSumitomoNewCsvParser")
-    class MitsuiSumitomoNewCsvParserTest {
+    @DisplayName("MitsuiSumitomoUnconfirmedMonthCsvParser")
+    class MitsuiSumitomoUnconfirmedMonthCsvParserTest {
 
-        private final MitsuiSumitomoNewCsvParser parser = new MitsuiSumitomoNewCsvParser();
+        private final MitsuiSumitomoUnconfirmedMonthCsvParser parser = new MitsuiSumitomoUnconfirmedMonthCsvParser();
 
         @Test
         @DisplayName("未確定月形式のCSVを正常に解析できる")

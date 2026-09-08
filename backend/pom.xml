@@ -37,6 +37,13 @@
 		<java.version>25</java.version>
 		<!-- OpenAPI仕様ファイルのパス -->
 		<openapi.file>../openapi/openapi.yaml</openapi.file>
+		<!--
+		  Tomcat 埋め込み版の CVE 対応（GHSA-9xv2-5v5q-p794 ほか）。
+		  spring-boot-starter-parent 4.0.8 / 4.1.1 時点では tomcat 11.0.24 のため、
+		  親 BOM の管理プロパティを上書きして 11.0.25 を使う。
+		  次の Spring Boot パッチで同梱されたら、この行は削除してよい。
+		-->
+		<tomcat.version>11.0.25</tomcat.version>
 	</properties>
 
 	<!-- ========================================

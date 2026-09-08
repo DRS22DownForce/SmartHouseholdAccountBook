@@ -61,8 +61,8 @@ public class CsvExpenseService {
      * 4. DB 保存（短い write TX
      * 
      * @param file      CSVファイル
-     * @param csvFormat CSV形式（MITSUISUMITOMO_OLD_FORMAT: 三井住友カード 確定月、
-     *                  MITSUISUMITOMO_NEW_FORMAT: 三井住友カード 未確定月）
+     * @param csvFormat CSV形式（MITSUISUMITOMO_CONFIRMED_MONTH: 三井住友カード 確定月、
+     *                  MITSUISUMITOMO_UNCONFIRMED_MONTH: 三井住友カード 未確定月）
      * @return CSVアップロード結果（成功件数、スキップ件数、エラー件数、エラー詳細）
      * @throws CsvUploadException ファイルの読み込みに失敗した場合、または処理中にエラーが発生した場合
      */
