@@ -87,12 +87,13 @@ flowchart TB
     EIP --> Nginx
     Nginx -->|"/"| Next
     Nginx -->|"/api/*"| Backend
-    User --> Cognito
-    Next --> Cognito
-    Backend --> Cognito
+    User -->|ログイン / トークン取得| Cognito
+    Backend -->|JWT 検証 JWKS| Cognito
     Backend --> MySQL
     Backend --> OpenAI
 ```
+
+ログインはブラウザ上の AWS Amplify が Cognito と直接やりとりします。Next.js サーバー（`:3000`）は Cognito を呼びません。Spring Boot は発行済み JWT の署名を Cognito の公開鍵（JWKS）で検証します。
 
 ### デプロイ・運用
 
